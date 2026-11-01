@@ -6,6 +6,18 @@ Revision 2 in progress: vanilla textures, official logos, new default card, simp
 
 <!-- v2-insert -->
 
+### New default card: sparse profile
+
+Marlowww, ranked only on MCTiers. The strip stays, and unranked lists fold into one quiet line.
+
+![New default card: sparse profile](shots/v2-02-default-card-sparse.png)
+
+### New default card
+
+Esports strip with highest rank and total points over quiet rows. Official logos, real game items and real achievement dates, with no underlines. R means retired, ^ means their peak was higher. McPvP's API gives no dates, so that row has none.
+
+![New default card](shots/v2-01-default-card.png)
+
 ## Older drafts
 
 ### Icons

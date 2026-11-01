@@ -15,7 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 TMP = ROOT / "_tmp"
 BG = TMP / "bg"
 BG.mkdir(parents=True, exist_ok=True)
-ICONS = ROOT.parent / "mod/src/main/resources/assets/tierprofiles/textures/kit"
+ICONS = TMP / "vanilla/kit"
 F = np.float32
 
 
@@ -108,13 +108,38 @@ def t_accent(r):
     return a
 
 
-MATS = {"grass": (t_grass, t_grass_side, t_dirt), "dirt": (t_dirt,) * 3, "brick": (t_brick,) * 3,
-        "tile": (t_tile,) * 3, "dark": (t_dark,) * 3, "plank": (t_plank,) * 3,
-        "bark": (t_bark,) * 3, "leaf": (t_leaf,) * 3, "obsidian": (t_obsidian,) * 3,
-        "sand": (t_sand,) * 3, "water": (t_water,) * 3, "accent": (t_accent,) * 3}
+VAN = TMP / "vanilla/cur"
+GRASS = np.array((0x91, 0xBD, 0x59), F) / 255
+LEAF = np.array((0x48, 0xB5, 0x18), F) / 255
+
+
+def block(name, tint=None, base=None):
+    im = np.asarray(Image.open(VAN / f"block/{name}.png").convert("RGBA")).astype(F)[:16, :16] / 255
+    rgb, al = im[..., :3], im[..., 3:]
+    if tint is not None:
+        rgb = rgb * tint
+    if base is not None:
+        rgb = base * (1 - al) + rgb * al
+    return rgb
+
+
+def mat(top, side=None, bottom=None):
+    side = top if side is None else side
+    bottom = top if bottom is None else bottom
+    return np.stack([np.stack([x] * 4) for x in (top, side, bottom)])
+
+
+_dirt = block("dirt")
+_side = block("grass_block_side_overlay", GRASS, block("grass_block_side"))
+_leaf = block("oak_leaves", LEAF, np.array((.05, .13, .05), F))
+MATS = {"grass": mat(block("grass_block_top", GRASS), _side, _dirt), "dirt": mat(_dirt),
+        "brick": mat(block("stone_bricks")), "tile": mat(block("smooth_stone")),
+        "dark": mat(block("deepslate_tiles")), "plank": mat(block("oak_planks")),
+        "bark": mat(block("oak_log_top"), block("oak_log"), block("oak_log_top")), "leaf": mat(_leaf),
+        "obsidian": mat(block("obsidian")), "sand": mat(block("sand")), "water": mat(block("sand")),
+        "accent": mat(block("prismarine_bricks"))}
 MAT_ID = {k: i for i, k in enumerate(MATS)}
-ATLAS = np.stack([np.stack([tile(fn, seed=31 * i + j) for j, fn in enumerate(fs)])
-                  for i, fs in enumerate(MATS.values())])  # mat, top/side/bottom, var, y, x, rgb
+ATLAS = np.stack(list(MATS.values()))  # mat, top/side/bottom, var, y, x, rgb
 
 
 # ---------------------------------------------------------------- player model
@@ -193,14 +218,11 @@ def player_parts(skin, pos, yaw=0.0, pose=None, overlay=None, scale=1 / 16 * .93
         C = np.array([px, py, pz], F) + c * s
         hsz = np.array([w / 2, h / 2, d / 2], F) * s
         out.append(Part(C, R, hsz, skin, face_rects(uv, w, h, d)))
-        for lay, inflate in ((skin, .5), (overlay, None)):
-            if lay is None:
-                continue
-            inf = inflate
-            if inf is None:
-                inf = 1.0 if name in ("head", "body", "rarm", "larm") else .75
-            hs2 = hsz + inf * s
-            out.append(Part(C, R, hs2, lay, face_rects(ouv, w, h, d)))
+        out.append(Part(C, R, hsz + .5 * s, skin, face_rects(ouv, w, h, d)))
+        for k, (tex, auv, inf) in enumerate((overlay or {}).get(name, [])):
+            aw = 4 if name in ("rarm", "larm") else w
+            out.append(Part(C, R, np.array([aw / 2, h / 2, d / 2], F) * s + (inf + k * .02) * s, tex,
+                            face_rects(auv, aw, h, d)))
 
     ax = 6 if not slim else 5.5
     add("rleg", -2, 12, 12, p["rleg"])
@@ -254,85 +276,49 @@ def make_skin(seed):
     return a.astype(F) / 255
 
 
-ARMOR = {  # material: (main, light, dark)
-    "leather": ((166, 104, 62), (198, 138, 90), (116, 70, 40)),
-    "chain": ((152, 158, 170), (198, 204, 214), (98, 104, 118)),
-    "iron": ((206, 212, 222), (240, 243, 248), (146, 154, 168)),
-    "gold": ((250, 200, 60), (255, 236, 130), (196, 140, 26)),
-    "diamond": ((40, 206, 214), (168, 246, 240), (24, 130, 156)),
-    "netherite": ((70, 62, 72), (112, 102, 112), (42, 36, 44)),
-}
+ARM_FILE = {"chain": "chainmail"}
 TRIM = {"gold": (255, 214, 64), "amethyst": (190, 110, 255), "redstone": (240, 50, 50),
         "lapis": (50, 96, 230), "emerald": (40, 220, 110), "copper": (232, 130, 80),
         "quartz": (240, 236, 226), "diamond": (110, 240, 240), "netherite": (60, 52, 60)}
 
 
-def trim_mask(pattern, w, h):
-    """Original trim shapes. Returns a bool array for a face of size h x w."""
-    m = np.zeros((h, w), bool)
-    if pattern == "stripe":
-        m[:, max(0, w // 2 - 1):w // 2 + 1] = True
-    elif pattern == "chevron":
-        for y in range(h):
-            x = y % max(1, h // 2 + 1)
-            if x < w // 2:
-                m[y, x] = True; m[y, w - 1 - x] = True
-    elif pattern == "bands":
-        m[::4, :] = True
-    elif pattern == "edge":
-        m[0, :] = True; m[-1, :] = True; m[:, 0] = True; m[:, -1] = True
-    elif pattern == "bolt":
-        x = w // 2
-        for y in range(h):
-            xx = (x + (y // 2) % 3 - 1) % w
-            m[y, xx] = True
-            if xx + 1 < w:
-                m[y, xx + 1] = True
-    return m
+def _armor_tex(sub, m):
+    im = Image.open(VAN / f"entity/equipment/{sub}/{ARM_FILE.get(m, m)}.png").convert("RGBA")
+    return np.asarray(im).astype(F) / 255
+
+
+def _trim_tex(sub, pattern, material):
+    a = np.asarray(Image.open(VAN / f"trims/entity/{sub}/{pattern}.png").convert("RGBA")).astype(F) / 255
+    c = np.array(TRIM[material], F) / 255
+    lum = a[..., :3].mean(-1, keepdims=True) * 1.5
+    return np.dstack([np.clip(lum * c, 0, 1), a[..., 3]])
 
 
 def armor_overlay(slots, pattern=None, trim=None):
-    """slots maps head/chest/legs/feet to a material or None. Same UVs as the skin's outer layer."""
-    a = np.zeros((64, 64, 4), np.uint8)
-    tc = TRIM.get(trim) if trim else None
-
-    def paint(uv, w, h, d, mat, rows=None, face_hole=False):
-        main, light, dark = ARMOR[mat]
-        for key, (u, v, du, dv) in face_rects(uv, w, h, d).items():
-            for y in range(dv):
-                if rows and key not in ("py", "ny") and not (rows[0] <= y < rows[1]):
-                    continue
-                for x in range(du):
-                    c = main
-                    if y == 0 or (x == 0 and y < 3):
-                        c = light
-                    if y == dv - 1:
-                        c = dark
-                    if face_hole and key == "pz" and 1 <= x <= du - 2 and y >= 2:
-                        continue
-                    if face_hole and key == "ny":
-                        continue
-                    a[v + y, u + x] = (*c, 255)
-            if tc and pattern and key in ("pz", "nz", "nx", "px"):
-                m = trim_mask(pattern, du, dv)
-                for y in range(dv):
-                    for x in range(du):
-                        if m[y, x] and a[v + y, u + x, 3]:
-                            a[v + y, u + x] = (*tc, 255)
-
+    """Real vanilla armor and trim textures, laid out by body part as the game does."""
+    def layers(sub, m):
+        out = [_armor_tex(sub, m)]
+        if pattern and trim:
+            out.append(_trim_tex(sub, pattern, trim))
+        return out
+    A = {}
     if slots.get("head"):
-        paint((32, 0), 8, 8, 8, slots["head"], face_hole=True)
+        A["head"] = [(t, (0, 0), 1.0) for t in layers("humanoid", slots["head"])]
     if slots.get("chest"):
-        paint((16, 32), 8, 12, 4, slots["chest"])
-        paint((40, 32), 4, 12, 4, slots["chest"], rows=(0, 7))
-        paint((48, 48), 4, 12, 4, slots["chest"], rows=(0, 7))
-    # one overlay holds legs OR boots per row band; boots win on the lower rows
-    for uv in ((0, 32), (0, 48)):
-        if slots.get("legs"):
-            paint(uv, 4, 12, 4, slots["legs"], rows=(0, 8))
-        if slots.get("feet"):
-            paint(uv, 4, 12, 4, slots["feet"], rows=(8, 12))
-    return a.astype(F) / 255
+        c = layers("humanoid", slots["chest"])
+        A["body"] = [(t, (16, 16), 1.0) for t in c]
+        A["rarm"] = A["larm"] = [(t, (40, 16), 1.0) for t in c]
+    legs = []
+    if slots.get("legs"):
+        l = layers("humanoid_leggings", slots["legs"])
+        A.setdefault("body", [])
+        A["body"] = [(t, (16, 16), .5) for t in l] + A["body"]
+        legs += [(t, (0, 16), .5) for t in l]
+    if slots.get("feet"):
+        legs += [(t, (0, 16), 1.0) for t in layers("humanoid", slots["feet"])]
+    if legs:
+        A["rleg"] = A["lleg"] = legs
+    return A
 
 
 # ---------------------------------------------------------------- camera and ray casting
@@ -528,14 +514,10 @@ class Scene:
                 t = (92 - cam.pos[1]) / d[..., 1]
             cx = cam.pos[0] + d[..., 0] * t
             cz = cam.pos[2] + d[..., 2] * t
-            ci = np.floor(cx / 20).astype(np.int64)
-            cj = np.floor(cz / 20).astype(np.int64)
-            rng = np.random.default_rng(7)
-            g = rng.random((128, 128))
-            # chunky blobs: smooth the noise a little then threshold
-            g = (g + np.roll(g, 1, 0) + np.roll(g, 1, 1) + np.roll(g, (1, 1), (0, 1)) +
-                 np.roll(g, 2, 0) + np.roll(g, 2, 1)) / 6
-            c = (g[ci % 128, cj % 128] > .585) & (d[..., 1] > .02) & (t > 0) & (t < 4000)
+            ci = np.floor(cx / 12).astype(np.int64)
+            cj = np.floor(cz / 12).astype(np.int64)
+            cm = np.asarray(Image.open(VAN / "environment/clouds.png").convert("RGBA"))[..., 3] > 0
+            c = cm[cj % cm.shape[0], ci % cm.shape[1]] & (d[..., 1] > .02) & (t > 0) & (t < 4000)
             fade = np.clip(1 - t / 2200, 0, 1)
             a = (c * .9 * fade)[..., None]
             sky = sky * (1 - a) + np.array((.98, .98, 1.0), F) * a
@@ -607,7 +589,7 @@ def scene_fight():
     sc.box((34, 0, -62), (64, 7, -46), "grass")
     sc.box((44, 7, -62), (64, 11, -50), "grass")
     sc.draw_boxes()
-    foe = load_skin("Marlowww") if False else make_skin(5)
+    foe = make_skin(5)
     arm = armor_overlay(dict(head="diamond", chest="diamond", legs="diamond", feet="diamond"))
     swing = dict(rarm=math.radians(-70), larm=math.radians(12), rleg=math.radians(22), lleg=math.radians(-22))
     sc.draw_parts(player_parts(foe, (-.25, 0.02, -.1), yaw=math.radians(10), pose=swing, overlay=arm,
@@ -618,7 +600,7 @@ def scene_fight():
     pose2 = dict(rarm=math.radians(-30), larm=math.radians(24), rleg=math.radians(-20), lleg=math.radians(20))
     sc.draw_parts(player_parts(far, (6.2, 0.02, -9.0), yaw=math.radians(-56), pose=pose2, overlay=arm2))
     sc.blob(6.2, -9, .02, .8, .4)
-    sc.draw_parts(held_item(cam, "sword", make_skin(3)))
+    sc.draw_parts(held_item(cam, "sword", load_skin("JokingDK")))
     save(sc.finish(), "fight")
 
 
@@ -633,7 +615,7 @@ def scene_lobby():
     arena_ground(sc)
     for x in range(-26, 26, 2):
         for z in range(-26, 20, 2):
-            m = "brick" if (x // 2 + z // 2) % 8 else "accent"
+            m = "brick" if (x // 2 + z // 2) % 8 else "tile"
             sc.box((x, 0, z), (x + 2, .02, z + 2), m)
     for x in (-21, 21):
         for z in (-20, -10, 0):
@@ -692,9 +674,9 @@ def models():
     model("m-joking-lg", jok, yaw=-.5, W=360, H=440)
     model("m-marlowww-lg", mar, yaw=-.5, W=360, H=440)
     model("m-joking-front", jok, yaw=-.25, head_yaw=.1, W=480, H=600)
-    a = armor_overlay(dict(head="netherite", chest="diamond", legs="netherite", feet="diamond"), "chevron", "amethyst")
+    a = armor_overlay(dict(head="netherite", chest="diamond", legs="netherite", feet="diamond"), "rib", "amethyst")
     model("m-joking-armor", jok, overlay=a, yaw=-.55, W=720, H=1280)
-    show = armor_overlay(dict(head="netherite", chest="diamond", legs="diamond", feet="netherite"), "chevron", "gold")
+    show = armor_overlay(dict(head="netherite", chest="netherite", legs="netherite", feet="netherite"), "sentry", "gold")
     model("m-armor-hero", jok, overlay=show, yaw=-.5, W=400, H=395)
     model("m-armor-sm", jok, overlay=show, yaw=-.5, W=220, H=176)
     model("m-armor-lg", jok, overlay=show, yaw=-.5, W=460, H=575)

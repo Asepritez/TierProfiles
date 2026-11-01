@@ -42,23 +42,16 @@ function twinkle(p, n, seed, t, cols, region) {
 
 // The moon: 7 tones, a soft terminator and hand-placed craters. Drawn at 1 GUI pixel.
 function moon(p, cx, cy, R, t) {
-  const tones=['#FFFBE6','#F8EDC6','#E6D5A0','#C8B37E','#9C8A68','#6E6358','#4A4552'].map(hex);
   // halo: dithered rings that breathe slowly
   const breathe=.5+.5*Math.sin(t/LOOP*6.283);
   for(let y=cy-R-22;y<=cy+R+22;y++)for(let x=cx-R-22;x<=cx+R+22;x++){ const d=Math.hypot(x-cx,y-cy);
     if(d>R){ const k=1-(d-R)/(16+4*breathe); if(k>0&&k*k*.55>BAYER[y&3][x&3]) p.set(x,y,hex('#8FA6E8'),.34+.1*breathe); } }
-  const craters=[[-.40,-.34,.21],[.26,-.48,.13],[.44,.08,.17],[-.10,.34,.25],[-.58,.28,.11],[.12,-.10,.09],[.46,.52,.09],[-.20,-.68,.08]];
-  for(let y=-R;y<=R;y++)for(let x=-R;x<=R;x++){ const d=Math.hypot(x+.5,y+.5); if(d>R) continue;
-    const nx=x/R,ny=y/R;
-    // lit from the upper left
-    let l=.92-.62*((nx+ny)*.55+.1)-.25*Math.pow(d/R,4);
-    for(const [cxx,cyy,cr] of craters){ const dc=Math.hypot(nx-cxx,ny-cyy);
-      if(dc<cr){ const rim=(nx-cxx)+(ny-cyy); l-=.22-.3*rim/cr*.5; }
-      else if(dc<cr*1.22){ l+=.07; } }
-    l=Math.max(0,Math.min(.999,l));
-    const v=(1-l)*(tones.length-1), i=Math.floor(v), f=v-i;
-    p.set(cx+x,cy+y,tones[Math.min(tones.length-1,f>BAYER[(y+64)&3][(x+64)&3]?i+1:i)]);
-  }
+  // the game's own moon texture, added over the sky the way the game blends it
+  const S=MOON_TEX.length, sc=Math.max(1,Math.round(2*R/S));
+  const ox=cx-Math.floor(S*sc/2), oy=cy-Math.floor(S*sc/2);
+  for(let j=0;j<S;j++)for(let i=0;i<S;i++){ const [r,g,b,a]=MOON_TEX[j][i]; if(!a||r+g+b<12) continue;
+    for(let u=0;u<sc;u++)for(let v=0;v<sc;v++){ const X=ox+i*sc+u,Y=oy+j*sc+v; if(X<0||Y<0||X>=p.w||Y>=p.h) continue;
+      const q=(Y*p.w+X)*4,d=p.d; d[q]=Math.min(255,d[q]+r); d[q+1]=Math.min(255,d[q+1]+g); d[q+2]=Math.min(255,d[q+2]+b); } }
 }
 
 const BG_FN = {
