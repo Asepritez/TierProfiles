@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "id": "tierprofiles",
+  "version": "${version}",
+  "name": "TierProfiles",
+  "description": "Every Minecraft PvP tier list on one profile, with heavy customization.",
+  "authors": ["Asepritez"],
+  "contact": {
+    "homepage": "https://github.com/Asepritez/TierProfiles",
+    "sources": "https://github.com/Asepritez/TierProfiles"
+  },
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "client": ["dev.tierprofiles.TierProfilesClient"]
+  },
+  "depends": {
+    "fabricloader": ">=0.20.1",
+    "fabric-api": "*",
+    "minecraft": "~26.3",
+    "java": ">=25"
+  },
+  "suggests": {
+    "modmenu": "*"
+  }
+}
