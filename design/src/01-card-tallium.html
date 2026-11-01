@@ -1,0 +1,8 @@
+<!doctype html><meta charset="utf8"><title>Card A</title>
+<link rel="stylesheet" href="base.css"><script src="lib.js"></script><script src="cards.js"></script>
+<body><div class="scene" style="background-image:url(../_tmp/bg/fight.png)"></div>
+<script>
+const p = new URLSearchParams(location.search).get('p') === 'm' ? MARLOWWW : JOKING;
+mount(hud(0));
+mount(`<div class="abs" style="right:20px;top:68px">${cardA(p)}</div>`);
+</script></body>
