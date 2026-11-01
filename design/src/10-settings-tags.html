@@ -1,0 +1,67 @@
+<!doctype html><meta charset="utf8"><title>Tags tab</title>
+<link rel="stylesheet" href="base.css"><script src="lib.js"></script><script src="hudkit.js"></script><script src="shell.js"></script><script src="../_tmp/bg/lobby.js"></script>
+<body><script>
+const S = [
+ ['Nametag','sword',1,'LT3','Highest overall','MCTiers',1],
+ ['Tab list','bow',1,'HT4','Highest overall','MCTiers',0],
+ ['Chat','pot',0,'HT3','Auto from inventory','MCTiers',0],
+ ['Look-at card','smp',1,'None','Top 3 kits','All lists',0],
+ ['Overlay','vanilla',1,'None','All kits','All lists',0],
+];
+const col = [298,86,140,250,150];
+const head = ['Surface','On','Min tier','Gamemode','List'];
+const table = `<div class="th">${head.map((h,i)=>`<span class="nw" style="width:${col[i]}px">${h}</span>`).join('')}</div>
+ <div class="col" style="margin-top:6px">${S.map((r,i)=>`<div class="tr ${r[6]?'on':''}">
+   <span class="row gap8 nw" style="width:${col[0]}px">${ic(r[1])}${r[0]}</span>
+   <span style="width:${col[1]}px">${chk(r[2])}</span>
+   <span class="row" style="width:${col[2]}px">${r[3]==='None'?'<span class="muted">None</span>':chip(r[3])}</span>
+   <span class="nw" style="width:${col[3]}px">${r[4]}</span><span class="nw" style="width:${col[4]}px">${r[5]}</span></div>`).join('')}</div>`;
+
+// live preview: real nametags in a small world window
+const tag = (n,t,k,hide) => `<div class="row gap6 nw" style="height:22px;padding:0 4px;background:rgba(0,0,0,.5);color:#fff">${hide?'':`${ic(k,1)}<span class="tag-txt" style="color:${TIER[t]}">${t}</span><span style="color:#999">|</span>`}<span class="tag-txt">${n}</span></div>`;
+const preview = `<div class="panel" style="left:20px;top:372px;width:924px;height:646px;padding:0;overflow:hidden">
+  <div class="row gap8" style="height:34px;padding:0 10px;background:#17191A;box-shadow:inset 0 -2px 0 #666"><span class="accent">Live preview</span><span class="muted nw">Nametag, with your changes</span><span class="sp"></span><span class="muted nw">Sample players</span></div>
+  <div class="preview-bg" style="height:396px;background-image:url(../_tmp/bg/lobby.png);background-size:1920px auto;background-position:-400px -240px">
+    ${LOBBY.map(p=>{const [k,t]=SAMPLE[p.name];const x=p.x-400,y=p.y-240;return (x>70&&x<820&&y>26&&y<390)?`<div class="abs" style="left:${x}px;top:${y}px;transform:translate(-50%,-100%)">${tag(p.name,t,k,!atLeast(t,'LT3'))}</div>`:''}).join('')}
+  </div>
+  <div class="row gap12" style="height:44px;padding:0 12px;background:#141617;box-shadow:inset 0 2px 0 #333">
+    <span class="nw">${LOBBY.filter(p=>atLeast(SAMPLE[p.name][1],'LT3')).length} of ${LOBBY.length} tags shown</span><span class="muted nw">HT4 and below hidden</span><span class="sp"></span>
+    ${seg(['Nametag','Tab','Chat'],'Nametag')}</div>
+  <div class="row gap12" style="height:150px;padding:8px 12px;background:#111314;align-items:flex-start">
+    <div class="col gap4 sp"><span class="muted">Tag format</span>
+      ${['After name','Before name'].map((v,i)=>`<div class="row gap8">${`<span class="check ${i==1?'on':''}" style="width:20px"></span>`}${v}</div>`).join('')}</div>
+    <div class="col gap4 sp"><span class="muted">Show on tag</span>
+      <div class="row gap8">${chk(1)}Gamemode icon</div><div class="row gap8">${chk(0)}List mark</div><div class="row gap8">${chk(0)}Region</div></div>
+    <div class="col gap4 sp"><span class="muted">Text</span>
+      <div class="row gap8">Short <span class="muted">HT1</span></div><div class="row gap8 muted">Long <span>High Tier 1</span></div><div class="row gap8">Brackets ${drop('None',96)}</div></div>
+  </div></div>`;
+
+const listRow = (id,t,on) => `<div class="row gap8" style="height:36px">${lm(LISTS[id].mark)}<span class="nw sp">${listLabel(id)}</span>${t?chip(t):'<span class="muted">Same as above</span>'}</div>`;
+const prio = ['mctiers','mcpvp','pvptiers','subtiers','pvphq'].map((id,i)=>`<div class="row gap8" style="height:36px;background:${i%2?'#1B1E20':'#101214'};padding:0 6px"><span class="accent" style="width:14px">${i+1}</span>${lm(LISTS[id].mark)}<span class="sp nw">${listLabel(id)}</span><span class="muted nw">::</span></div>`).join('');
+
+const insp = `<div class="panel" style="left:964px;top:114px;width:936px;height:904px;padding:10px;overflow:hidden">
+ <div class="row gap8" style="height:34px">${ic('sword')}<span style="color:#fff">Nametag</span><span class="muted nw">Tag above a player's head</span><span class="sp"></span>${sw(1)}</div>
+ <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px">
+  <div class="col gap6">
+   ${group('Filter','sword',1,'5 set',`
+     <div class="muted">Minimum tier: show LT3 and above</div>${tierLadder('LT3').replace('width:44px','width:42px').replaceAll('width:44px','width:42px')}
+     ${opt('Hide unranked',chk(1))}${opt('Hide retired',chk(1))}${opt('Hide my own tag',chk(0))}`)}
+   ${group('Per-list minimum','mace',1,'2 set',`
+     <div class="muted" style="line-height:20px">HT4 means different things on<br>different lists.</div>
+     ${listRow('mctiers','LT3')}${listRow('mcpvp','HT3')}${listRow('pvptiers')}${listRow('subtiers')}${listRow('pvphq')}`)}
+   ${group('Advanced','shield',0,'4')}
+  </div>
+  <div class="col gap6">
+   ${group('Which tier','bow',1,'',`
+     <div class="muted">When peak and current differ</div>${seg(['Current','Peak','Both'],'Current')}`)}
+   ${group('Gamemode','pot',1,'',`
+     ${seg(['Highest','Pick','Auto'],'Highest')}
+     <div class="muted" style="line-height:20px">Highest shows their best tier.<br>Auto reads your inventory.</div>`)}
+   ${group('List priority','smp',1,'',`
+     <div class="muted">Wins when there is room for one</div><div class="col" style="gap:0">${prio}</div>`)}
+   ${group('Tag style','vanilla',1,'8',`${opt('Icon set',drop('TierProfiles',190))}${opt('Separator',drop('|',80))}`)}
+  </div>
+ </div></div>`;
+
+mount(shell('Tags', `<div class="abs" style="left:20px;top:114px;width:924px">${table}</div>${preview}${insp}`, {changes:3}));
+</script></body>

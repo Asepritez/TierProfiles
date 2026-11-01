@@ -1,0 +1,8 @@
+<!doctype html><meta charset="utf8"><title>Filter before</title>
+<link rel="stylesheet" href="base.css"><script src="lib.js"></script><script src="hudkit.js"></script><script src="../_tmp/bg/lobby.js"></script>
+<body><div class="scene" style="background-image:url(../_tmp/bg/lobby.png)"></div>
+<script>
+mount(hud(0, undefined, {}));
+LOBBY.sort((a,b)=>b.d-a.d).forEach((p,i)=>{ const [k,t]=SAMPLE[p.name]; mount(nametag(p.x,p.y,p.name,{tier:t,kit:k,near:p.d<15,z:i+1})); });
+mount(`<div class="abs row gap8" style="left:20px;top:20px;height:34px;background:rgba(9,11,12,.86);padding:0 10px;box-shadow:inset 0 0 0 2px #666"><i style="width:12px;height:12px;background:#AAA"></i>Filter off: every tag shows</div>`);
+</script></body>

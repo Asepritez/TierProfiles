@@ -45,7 +45,7 @@ img { image-rendering: pixelated; display: block; }
 
 /* -------- HUD -------- */
 .nametag { position: absolute; transform: translate(-50%, -100%); white-space: nowrap; padding: 0 4px;
-           background: rgba(0, 0, 0, .28); display: flex; align-items: center; gap: 6px; height: 22px; color: #fff; }
+           background: rgba(0, 0, 0, .55); display: flex; align-items: center; gap: 6px; height: 22px; color: #fff; }
 .nametag.s3 { height: 32px; font-size: 27px; line-height: 30px; gap: 8px; }
 .tag-txt { text-shadow: 2px 2px 0 rgba(0,0,0,.4); }
 
@@ -83,7 +83,7 @@ img { image-rendering: pixelated; display: block; }
 .tr { height: 38px; display: flex; align-items: center; padding: 0 6px; }
 .tr:nth-child(odd) { background: #101214; } .tr:nth-child(even) { background: #1B1E20; }
 .tr.on { background: var(--sel) !important; box-shadow: inset 4px 0 0 var(--accent); }
-.group { height: 34px; display: flex; align-items: center; gap: 8px; padding: 0 8px; background: #22272A;
+.group { height: 38px; display: flex; align-items: center; gap: 8px; padding: 0 8px; background: #22272A;
          border: 2px solid #4A5358; color: #E6EEF1; }
 .pop { box-shadow: 0 0 0 2px #000; }
 .swatch { width: 28px; height: 28px; border: 2px solid #000; box-shadow: 0 0 0 2px #666; flex: none; }

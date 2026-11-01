@@ -15,7 +15,7 @@ function cardA(p, o = {}) {
       <div class="row" style="gap:6px">${kits}</div></div>`;
   };
   const f = p.focus;
-  return `<div style="width:${o.w||716}px;background:rgba(30,38,44,.93);box-shadow:inset 0 0 0 2px #5C6B74;padding:12px 14px 14px;position:relative">
+  return `<div style="width:${o.w||732}px;background:rgba(30,38,44,.93);box-shadow:inset 0 0 0 2px #5C6B74;padding:12px 14px 14px;position:relative">
     <div class="row" style="align-items:stretch;gap:12px">
       <div class="row" style="width:112px;justify-content:center"><img src="${p.model}" style="height:210px;width:auto"></div>
       <div style="width:2px;background:#4E5C65"></div>
@@ -27,7 +27,7 @@ function cardA(p, o = {}) {
       </div>
     </div>
     <div class="row gap8 nw" style="margin-top:8px;height:32px;color:#BFD4DE;box-shadow:0 -2px 0 #4E5C65;padding-top:6px">${ic(f.k)}<span>${f.list} ${f.kit}</span>${chip(f.t,{ret:f.r,pal})}
-      <span class="muted">${f.ago}</span><span class="sp"></span>${legend}</div>
+      <span class="muted">${f.ago}</span><span class="sp"></span>${o.noLegend?'':legend}</div>
     <div class="abs" style="left:2px;bottom:2px;height:4px;width:74%;background:#9CD4A8"></div>
   </div>`;
 }

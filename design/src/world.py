@@ -624,33 +624,31 @@ def scene_fight():
 
 LOBBY_NAMES = ["KitSmith", "PearlPanic", "Bedwrecker", "lowroll_", "Maceling", "CrystalKid", "OneTap_Oli",
                "ShieldNan", "Totemless", "ByteBow", "TacoStrafe", "Wtapper", "SoupGhost", "NoHitNora",
-               "PotDrinker", "GappleGus"]
+               "PotDrinker", "GappleGus", "DripCart", "FenceJump", "SpearSam", "ElytraEd"]
 
 
 def scene_lobby():
-    cam = Cam(1920, 1080, (0.0, 2.35, 9.5), 0.0, math.radians(-6), 70)
+    cam = Cam(1920, 1080, (0.0, 7.6, 16.0), 0.0, math.radians(-24), 58)
     sc = Scene(cam, sky=((110, 160, 248), (190, 216, 250)), fog=120)
     arena_ground(sc)
-    for x in range(-20, 20, 2):
-        for z in range(-26, 14, 2):
-            m = "tile" if (x // 2 + z // 2) % 2 == 0 else "dark"
+    for x in range(-26, 26, 2):
+        for z in range(-26, 20, 2):
+            m = "brick" if (x // 2 + z // 2) % 8 else "accent"
             sc.box((x, 0, z), (x + 2, .02, z + 2), m)
-    for x in (-13, 13):
+    for x in (-21, 21):
         for z in (-20, -10, 0):
             sc.box((x - 1, 0, z - 1), (x + 1, 7, z + 1), "tile")
             sc.box((x - 1.5, 7, z - 1.5), (x + 1.5, 8, z + 1.5), "accent")
-    sc.box((-20, 0, -28), (20, 4, -26), "dark")
-    sc.box((-20, 4, -28), (20, 5, -26), "accent")
+    sc.box((-26, 0, -28), (26, 4, -26), "dark")
+    sc.box((-26, 4, -28), (26, 5, -26), "accent")
     sc.box((-6, 4, -28), (6, 12, -26), "dark")
-    sc.box((-4, 0, -8), (4, 1, -4), "plank")
-    sc.box((-3, 1, -7), (3, 2, -5), "tile")
     for x, z in ((-24, -32), (-16, -36), (16, -34), (26, -30), (0, -40)):
         tree(sc, x, z, 7)
     sc.draw_boxes()
     r = np.random.default_rng(12)
-    spots = [(-7.2, -3.0), (-4.3, 1.3), (-1.6, -2.1), (1.5, 2.2), (4.2, -1.2), (7.3, 2.1), (-8.8, 3.6),
-             (-3.1, 5.1), (0.4, 4.9), (3.3, 5.6), (-5.6, -9.6), (6.1, -8.8), (9.2, -5.2), (-10.2, -4.8),
-             (-0.9, -11.6), (2.8, -13.2)]
+    spots = [(-5.2, 8.6), (3.4, 9.2), (-8.6, 3.2), (-1.6, 2.6), (5.2, 3.6), (11.4, 2.8), (-10.8, -2.2), (-3.6, -1.6),
+             (3.6, -2.4), (10.4, -1.4), (-13.2, -7.8), (-6.2, -8.2), (1.2, -7.4), (7.6, -8.4), (14.2, -7.2),
+             (-16.4, -14.4), (-8.2, -13.6), (.4, -14.2), (8.4, -13.6), (16.6, -14.6)]
     players = []
     for i, (x, z) in enumerate(spots):
         skin = make_skin(100 + i)
@@ -663,10 +661,10 @@ def scene_lobby():
         pose = dict(rarm=sw, larm=-sw, rleg=-sw, lleg=sw) if i % 4 else None
         sc.draw_parts(player_parts(skin, (x, .02, z), yaw=yaw, pose=pose, overlay=arm))
         sc.blob(x, z, .02, .8, .4)
-        top = cam.project((x, 2.2, z))
+        top = cam.project((x, 2.15, z))
         players.append(dict(name=LOBBY_NAMES[i], x=round(top[0]), y=round(top[1]), d=round(top[2], 1)))
     save(sc.finish(), "lobby")
-    (BG / "lobby.json").write_text(json.dumps(players, indent=0))
+    (BG / "lobby.js").write_text("const LOBBY = " + json.dumps(players) + ";")
 
 
 def model(name, skin, overlay=None, yaw=-.5, pitch=-.16, W=360, H=640, zoom=1.0, pose=None, head_yaw=.25,
