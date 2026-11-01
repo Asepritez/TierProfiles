@@ -65,3 +65,27 @@ HT1 turns purple and bold with a star, above HT3 turns red, both with a tag glow
 Table of the five surfaces, with a collapsible inspector for the selected one and a live preview that shows how many tags survive your filter.
 
 ![Settings: Tags tab](shots/10-settings-tags.png)
+
+## Settings: Colours tab
+
+Four presets, a colour for every tier, shared or per list, a full RGB picker and a preview of the nametag, tab list and card chips.
+
+![Settings: Colours tab](shots/11-settings-colours.png)
+
+## Settings: Rules tab
+
+Ordered rules with an editor. The preview shows which rule caught each sample player, so first-match-wins is easy to see, and the rule is repeated in plain words.
+
+![Settings: Rules tab](shots/12-settings-rules.png)
+
+## Settings: Sharing tab
+
+Named setups such as Casual and Tournament, plus a share code. Importing shows what would change before you commit.
+
+![Settings: Sharing tab](shots/13-settings-sharing.png)
+
+## Settings: search
+
+How 118 settings stay organised: seven tabs, collapsible groups, and one search across all of them with the setting's path and a live control on each result.
+
+![Settings: search](shots/14-settings-search.png)

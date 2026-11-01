@@ -1,0 +1,68 @@
+<!doctype html><meta charset="utf8"><title>Colours tab</title>
+<link rel="stylesheet" href="base.css"><script src="lib.js"></script><script src="hudkit.js"></script><script src="shell.js"></script>
+<body><script>
+const PRESET = {
+  Default:TIER,
+  Heat:{HT1:'#FF3B30',LT1:'#FF5A2B',HT2:'#FF7A26',LT2:'#FF9A22',HT3:'#FFBA1F',LT3:'#FFD21C',HT4:'#FFE85A',LT4:'#FFF08A',HT5:'#FFF5B8',LT5:'#FFFADC'},
+  Mono:{HT1:'#FFFFFF',LT1:'#E6E6E6',HT2:'#CCCCCC',LT2:'#B3B3B3',HT3:'#999999',LT3:'#858585',HT4:'#707070',LT4:'#5E5E5E',HT5:'#4D4D4D',LT5:'#3D3D3D'},
+  Colourblind:{HT1:'#FFD500',LT1:'#E6B800',HT2:'#56B4E9',LT2:'#3D8FC4',HT3:'#E69F00',LT3:'#B87F00',HT4:'#CC79A7',LT4:'#A35F86',HT5:'#BBBBBB',LT5:'#8A8A8A'},
+};
+const presetCard = (n,on) => `<div class="col gap4" style="width:224px;padding:8px;background:${on?'#3E4A50':'#17191A'};box-shadow:inset 0 0 0 2px ${on?'#68B5D5':'#666'}">
+   <span class="nw" style="color:#fff">${n==='Colourblind'?'Colourblind-safe':n}</span>
+   <div class="row" style="height:20px">${RANK_ALL.map(t=>`<i style="flex:1;height:20px;background:${PRESET[n][t]}"></i>`).join('')}</div></div>`;
+const editing = 'HT3';
+const grid = RANK_ALL.map(t=>{const hl=t===editing;return `<div class="row gap8" style="height:44px;padding:0 8px;background:${hl?'#3E4A50':'#14171A'};box-shadow:inset 0 0 0 2px ${hl?'#68B5D5':'#333'}">
+  <span class="swatch" style="background:${TIER[t]}"></span><span class="nw" style="color:#fff;width:36px">${t}</span><span class="muted nw">${TIER[t]}</span><span class="sp"></span>${chip(t)}</div>`}).join('');
+
+const previewRow = pal => ['nametag','tab','chat'];
+const pv = `<div class="panel" style="left:20px;top:760px;width:1880px;height:258px;padding:0;overflow:hidden">
+  <div class="row gap8" style="height:34px;padding:0 10px;background:#17191A;box-shadow:inset 0 -2px 0 #666"><span class="accent">Live preview</span><span class="muted nw">Every tier in each place it appears</span></div>
+  <div class="row" style="align-items:stretch;height:220px">
+    <div class="preview-bg" style="width:760px;background-image:url(../_tmp/bg/fight.png);background-size:1920px auto;background-position:0 -80px">
+      <div class="abs col gap4" style="left:20px;top:14px">
+       ${[['HT1','sword','OneTap_Oli'],['HT2','uhc','NoHitNora'],['HT3','mace','Maceling'],['LT3','bow','ByteBow'],['HT4','pot','PotDrinker']].map(([t,k,n])=>`<div class="row gap6 nw" style="height:24px;padding:0 4px;background:rgba(0,0,0,.6);color:#fff;width:max-content">${ic(k,1)}<span class="tag-txt" style="color:${TIER[t]}">${t}</span><span style="color:#999">|</span><span class="tag-txt">${n}</span></div>`).join('')}
+       <div class="nw" style="margin-top:4px;background:rgba(0,0,0,.6);padding:0 4px;width:max-content;color:#BBB">Nametag</div></div>
+      <div class="abs col gap4" style="left:330px;top:14px;width:400px;background:rgba(0,0,0,.72);padding:6px">
+       ${[['HT1','sword','OneTap_Oli'],['HT2','uhc','NoHitNora'],['HT3','mace','Maceling'],['LT3','bow','ByteBow']].map(([t,k,n])=>`<div class="row gap6 nw" style="height:22px;background:rgba(255,255,255,.07);padding:0 4px">${ic(k,1)}<span style="color:${TIER[t]};width:36px">${t}</span><span>${n}</span></div>`).join('')}
+       <div class="muted sh">Tab list</div></div>
+    </div>
+    <div class="col" style="flex:1;padding:12px;gap:8px;background:#111314">
+      <span class="muted">Card chips</span>
+      <div class="row" style="gap:6px;flex-wrap:wrap">${RANK_ALL.map(t=>chip(t)).join('')}</div>
+      <span class="muted" style="margin-top:6px">Retired</span>
+      <div class="row" style="gap:6px;flex-wrap:wrap">${RANK_ALL.map(t=>chip(t,{ret:1})).join('')}</div>
+      <span class="muted" style="margin-top:6px">McPvP beta extra steps follow the nearest colour</span>
+      <div class="row" style="gap:6px">${['MT1','MT2','MT3','MT4','MT5'].map(t=>chip(t)).join('')}</div>
+    </div></div></div>`;
+
+const c = TIER[editing];
+const picker = `<div class="panel" style="left:964px;top:114px;width:936px;height:632px;padding:12px">
+  <div class="row gap12" style="height:40px"><span class="swatch" style="background:${c}"></span><span style="color:#fff">Editing ${editing}</span><span class="muted nw">Shared across all lists</span><span class="sp"></span><div class="btn sm">Copy hex</div><div class="btn sm">Paste</div><div class="btn sm">Reset</div></div>
+  <div class="row gap12" style="margin-top:8px;align-items:flex-start">
+    <div style="position:relative;width:380px;height:436px;box-shadow:0 0 0 2px #666;background:linear-gradient(to top,#000,transparent),linear-gradient(to right,#fff,hsl(24,100%,50%))">
+      <i class="abs" style="left:236px;top:44px;width:12px;height:12px;box-shadow:0 0 0 2px #000,inset 0 0 0 2px #fff"></i></div>
+    <div style="position:relative;width:30px;height:436px;box-shadow:0 0 0 2px #666;background:linear-gradient(red,#ff0,#0f0,#0ff,#00f,#f0f,red)"><i class="abs" style="left:-4px;top:22px;width:38px;height:6px;background:#fff;box-shadow:0 0 0 2px #000"></i></div>
+    <div class="col gap8 sp">
+      ${[['Red',224,88],['Green',138,54],['Blue',79,31]].map(([l,v,p])=>`<div class="row gap8"><span style="width:60px">${l}</span><div class="field" style="width:76px">${v}</div><div class="slider"><i></i><b style="width:${p}%;background:${l==='Red'?'#FF7777':l==='Green'?'#77D877':'#7799FF'}"></b><u style="left:${p}%"></u></div></div>`).join('')}
+      <div class="row gap8"><span style="width:60px">Hex</span><div class="field sp">${c}</div></div>
+      <span class="muted" style="margin-top:6px">Live tag</span>
+      <div class="row gap12" style="height:64px;background:#0B0D0E;box-shadow:inset 0 0 0 2px #333;padding:0 12px">
+        ${ic('mace')}<span class="chip" style="height:30px;background:${c};font-size:27px;padding:0 8px">HT3</span><span class="nw" style="color:#fff">Maceling</span></div>
+      <span class="muted" style="line-height:20px">Contrast on dark: <span class="good">Good</span></span>
+    </div>
+  </div>
+  <div class="row gap8" style="margin-top:14px;height:40px"><span class="muted">Recent</span>${['#FF7777','#77D877','#68B5D5','#FFCF4A','#C98BFF','#FF4FA3','#1FE6BE','#FFFFFF'].map(x=>`<span class="swatch" style="background:${x}"></span>`).join('')}</div>
+  <div class="row gap8" style="margin-top:10px;height:44px;padding:0 8px;background:#14171A"><span class="muted">Applies to</span>${seg(['This tier','High and Low 3'],'This tier')}<span class="sp"></span><span class="muted">Each tier keeps its own colour</span></div>
+</div>`;
+
+const left = `<div class="abs col gap8" style="left:20px;top:114px;width:924px">
+  <div class="row" style="justify-content:space-between">${Object.keys(PRESET).map((n,i)=>presetCard(n,i==0).replace('width:224px','width:224px')).join('')}</div>
+  <div class="row gap12" style="height:40px"><span class="nw">Tier colours</span><span class="sp"></span><span class="muted nw">Lists</span>${seg(['Shared','Per list'],'Shared')}${drop('MCTiers',170).replace('class="btn"','class="btn" style2').replace('color','color')}</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">${grid}</div>
+  <div class="col gap2" style="margin-top:4px">
+   <div class="row gap8" style="height:28px"><span class="muted nw">Per list view. Switch to Per list to edit one list on its own.</span></div>
+   ${['mctiers','mcpvp','pvptiers','subtiers','pvphq'].map(id=>`<div class="row gap8" style="height:34px;padding:0 6px;background:#14171A">${lm(LISTS[id].mark)}<span class="nw" style="width:130px">${listLabel(id)}</span><span class="row" style="flex:1;height:18px">${RANK_ALL.map(t=>`<i style="flex:1;height:18px;background:${TIER[t]}"></i>`).join('')}</span><span class="muted nw" style="width:80px;text-align:right">Shared</span></div>`).join('')}
+  </div>
+</div>`;
+mount(shell('Colours', left + picker + pv, {changes:1}));
+</script></body>

@@ -13,7 +13,7 @@ function shell(active, body, o = {}) {
   <div class="abs row gap6" style="left:20px;top:60px;right:20px">${TABS.map(([t,k])=>`<div class="tab ${t===active?'on':''}">${ic(k)}<span>${t}</span></div>`).join('')}</div>
   ${body}
   <div class="abs row gap12" style="left:20px;right:20px;bottom:12px;height:36px">
-    <span class="row gap8 nw" style="color:${o.changes?'#FFCF4A':'#AAA'}">${o.changes?`<i style="width:12px;height:12px;background:#FFCF4A;display:inline-block"></i>${o.changes} changes staged until Apply`:'Changes are staged until Apply.'}</span>
+    <span class="row gap8 nw" style="color:${o.changes?'#FFCF4A':'#AAA'}">${o.changes?`<i style="width:12px;height:12px;background:#FFCF4A;display:inline-block"></i>${o.changes} change${o.changes>1?'s':''} staged until Apply`:'Changes are staged until Apply.'}</span>
     <span class="sp"></span><div class="btn">Reset tab</div><div class="btn">Discard</div><div class="btn on">Apply</div>
   </div>`;
 }
