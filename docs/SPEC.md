@@ -31,6 +31,10 @@ MCTiers-style rankings use `{tier, pos, peak_tier, peak_pos, attained, retired}`
 High and 1 is Low, so `tier 3, pos 1` is LT3. McPvP uses strings such as `HT2`, and has an extra
 `MT` (mid) and `ST` (lowest) tier, with levels 1 to 6.
 
+McPvP is mainstream but new, and some of its tiers look inflated, so it is included but must not be
+the default top-priority list. MCTiers comes first by default, and the UI labels McPvP as beta.
+`mcpvp.club` is the practice server, not a data source. `mcpvp.gg` had no website when checked.
+
 Titles come from points on the MCTiers ladder: Grandmaster 400+, Master 250+, Ace 100+,
 Specialist 50+, Cadet 20+, Novice 10+, Rookie 1+. McPvP has no titles of its own, so TierProfiles
 applies this ladder to McPvP points and calls it a TierProfiles title.
@@ -45,8 +49,9 @@ cache**: use the Workers Cache API.
 - `GET /v1/profile/<uuid>?name=<name>` returns one merged profile.
 - `POST /v1/profiles` takes up to 8 `{uuid, name}` and returns merged profiles (8 players on 5 lists
   is 40 outgoing requests, under the limit of 50).
-- `GET /v1/loadout/<uuid>` and `PUT /v1/loadout` for the player's chosen armor. The PUT needs proof
-  of account ownership. Do that in a later phase; design for it now.
+- `GET /v1/cosmetics/<uuid>` returns a player's card customization.
+- `POST /v1/auth/challenge`, `POST /v1/auth/verify` and `PUT /v1/cosmetics` implement Identity below.
+  Store cosmetics in D1 and validate them against an allowlist of preset ids.
 - Cache a good result per list for 30 minutes, and "not ranked" for 2 hours.
 - A provider that fails returns `{status: "unavailable"}` for that list, never a 500.
 - Send a clear `User-Agent` naming the project and repo URL.
@@ -119,13 +124,39 @@ This is the headline feature. All of it is staged until Apply, as in Tallium.
 Player's 3D model, name, region, title, a row per list with tier chips and gamemode icons, and
 for each tier: peak, whether retired, and how long ago it was attained.
 
-### Character loadout (later phase)
+### Your profile (visual only)
 
-Players choose armor material per slot, plus trim pattern and trim material. Stored as a small JSON
-object on the server. It only appears **on the profile card**, never in the world, because hiding a
-player's real armor mid-fight would be unfair.
+Every customization here is cosmetic and appears **only inside TierProfiles' own GUI**: the profile
+card and the settings preview. Nothing changes the player's real armor, skin, hitbox, or anything in
+the world. Nothing touches gameplay or sends anything to the Minecraft server, so it cannot obstruct
+a fight or get anyone banned. This is a hard rule.
 
-Later cosmetics are earned from tiers, not bought. Any aura must hide on invisible players.
+Players edit their own profile in the in-game config, on a **Profile** tab:
+- Card model: armor material per slot, trim pattern, trim material. Purely a visual on the card.
+- Card background: animated scenes such as moon and night sky, starfield, nebula, embers, snow, plain.
+- Card border: thin, double, glowing, animated shimmer, corner ornaments.
+- Effects: sparkles, drifting particles, floating motes, with an intensity slider and an off switch.
+- Accent colour, and which kit and list to feature.
+- Preset choices only, no free text for now, so there is nothing to moderate.
+
+All effects are drawn in the GUI, respect a global "reduce motion" setting, and must not cover the
+crosshair or hotbar. Stored as a small JSON object on the server, so other mod users see it on your
+card. Some options may later be earned from tiers. Nothing is sold.
+
+### Identity (no linking)
+
+No website, no Microsoft login screen, no code to paste. If you're logged in to Minecraft, you can
+edit your own profile:
+
+1. The mod asks our server for a random challenge.
+2. The mod calls Minecraft's own `joinServer` session call with that challenge, the same silent step
+   the game does whenever you join an online server.
+3. Our server asks Mojang's `sessionserver.mojang.com/session/minecraft/hasJoined` whether that
+   username really did that, and gets back the verified UUID.
+4. Our server returns a short-lived token that allows saving that UUID's profile.
+
+The player's access token goes **only to Mojang**, never to our server. Say this plainly in the
+README and the first-run notice. Offline or cracked accounts can't save a profile, but can view.
 
 ## Design language
 
