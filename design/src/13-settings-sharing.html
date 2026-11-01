@@ -20,7 +20,7 @@ const left = `<div class="abs" style="left:20px;top:114px;width:900px">
   <div class="panel" style="position:relative;margin-top:16px;padding:10px;height:556px">
     <div class="row gap8" style="height:30px"><span class="accent">Preview</span><span class="muted nw">Tournament, before you switch</span></div>
     <div class="col gap6" style="margin-top:8px">
-      ${[['Minimum tier',chip('HT3')],['Show on nametag','Peak tier'],['Chat tags','Off'],['Colours','Default'],['Rules','2 on, 1 off'],['Card','Tallium Flat, 80% size'],['List order','MCTiers first'],['Icon set','TierProfiles'],['Swap key','F9']].map(([a,b])=>`<div class="row" style="height:40px;background:#14171A;padding:0 10px"><span class="muted sp nw">${a}</span><span class="nw">${b}</span></div>`).join('')}
+      ${[['Minimum tier',chip('HT3')],['Show on nametag','Peak tier'],['Chat tags','Off'],['Colours','Default'],['Rules','2 on, 1 off'],['Card','Flat layout, 80% size'],['List order','MCTiers first'],['Icon set','TierProfiles'],['Swap key','F9']].map(([a,b])=>`<div class="row" style="height:40px;background:#14171A;padding:0 10px"><span class="muted sp nw">${a}</span><span class="nw">${b}</span></div>`).join('')}
     </div></div></div>`;
 const right = `<div class="panel" style="left:940px;top:114px;width:960px;height:904px;padding:12px">
   <div class="row gap8" style="height:34px">${ic('elytra')}<span style="color:#fff">Share code</span><span class="muted nw">Text you can paste anywhere</span></div>
@@ -40,7 +40,7 @@ const right = `<div class="panel" style="left:940px;top:114px;width:960px;height
     </div>
     <div class="row gap8" style="margin-top:6px"><div class="btn on">Add as new profile</div><div class="btn">Replace Casual</div><span class="sp"></span><div class="btn">Clear</div></div>`)}
   </div>
-  <div class="abs muted" style="left:12px;right:12px;bottom:12px;line-height:22px">Codes hold settings only. Your name, account and server list are never in them.</div>
+  <div class="abs muted" style="left:12px;right:12px;bottom:12px;line-height:22px">Codes hold settings only, never your name or account.</div>
 </div>`;
 mount(shell('Sharing', left + right));
 </script></body>

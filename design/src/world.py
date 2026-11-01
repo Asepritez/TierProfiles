@@ -259,7 +259,7 @@ ARMOR = {  # material: (main, light, dark)
     "chain": ((152, 158, 170), (198, 204, 214), (98, 104, 118)),
     "iron": ((206, 212, 222), (240, 243, 248), (146, 154, 168)),
     "gold": ((250, 200, 60), (255, 236, 130), (196, 140, 26)),
-    "diamond": ((64, 214, 214), (168, 246, 240), (30, 150, 164)),
+    "diamond": ((40, 206, 214), (168, 246, 240), (24, 130, 156)),
     "netherite": ((70, 62, 72), (112, 102, 112), (42, 36, 44)),
 }
 TRIM = {"gold": (255, 214, 64), "amethyst": (190, 110, 255), "redstone": (240, 50, 50),
@@ -304,9 +304,9 @@ def armor_overlay(slots, pattern=None, trim=None):
                     continue
                 for x in range(du):
                     c = main
-                    if y == 0 or x == 0:
+                    if y == 0 or (x == 0 and y < 3):
                         c = light
-                    if y == dv - 1 or x == du - 1:
+                    if y == dv - 1:
                         c = dark
                     if face_hole and key == "pz" and 1 <= x <= du - 2 and y >= 2:
                         continue
@@ -694,6 +694,10 @@ def models():
     model("m-joking-front", jok, yaw=-.25, head_yaw=.1, W=480, H=600)
     a = armor_overlay(dict(head="netherite", chest="diamond", legs="netherite", feet="diamond"), "chevron", "amethyst")
     model("m-joking-armor", jok, overlay=a, yaw=-.55, W=720, H=1280)
+    show = armor_overlay(dict(head="netherite", chest="diamond", legs="diamond", feet="netherite"), "chevron", "gold")
+    model("m-armor-hero", jok, overlay=show, yaw=-.5, W=400, H=395)
+    model("m-armor-sm", jok, overlay=show, yaw=-.5, W=220, H=176)
+    model("m-armor-lg", jok, overlay=show, yaw=-.5, W=460, H=575)
     for i, yaw in enumerate((-.55, .55, 3.14)):
         model(f"m-rot{i}", jok, overlay=a, yaw=yaw, W=360, H=640)
 

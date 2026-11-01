@@ -1,0 +1,63 @@
+<!doctype html><meta charset="utf8"><title>Profile tab</title>
+<link rel="stylesheet" href="base.css"><script src="lib.js"></script><script src="fx.js"></script><script src="fancy.js"></script><script src="hudkit.js"></script><script src="shell.js"></script>
+<body><script>
+const t = 2.6, ACC = '#FFE9A8';
+const O = {bg:'moon',border:'shimmer',fx:['sparkles'],intensity:.7,accent:ACC,mx:37,my:38,mr:31,mdx:16};
+
+// armour material swatches: flat colours, with the chosen one outlined
+const MAT = [['Leather','#A6683E'],['Chain','#98A0AC'],['Iron','#CED4DE'],['Gold','#FAC83C'],['Diamond','#28CED6'],['Netherite','#463E48']];
+const matRow = (slot, kit, on) => `<div class="row gap8" style="height:42px"><span class="nw" style="width:92px">${slot}</span>
+  ${MAT.map(([n,c])=>`<span style="width:30px;height:30px;background:${c};box-shadow:${n===on?'0 0 0 2px #fff,0 0 0 4px #000':'inset 0 0 0 2px rgba(0,0,0,.45)'};flex:none"></span>`).join('')}
+  <span class="nw muted" style="margin-left:6px">${on}</span></div>`;
+const trimG = {
+ Stripe:['..##..','..##..','..##..','..##..','..##..','..##..'],
+ Chevron:['#....#','##..##','.####.','..##..','......','......'],
+ Bands:['######','......','######','......','######','......'],
+ Edge:['######','#....#','#....#','#....#','#....#','######'],
+ Bolt:['...##.','..##..','.####.','..##..','.##...','.#....'],
+};
+const trimTile = (n,on) => `<div class="col" style="align-items:center;gap:2px;width:94px;height:66px;padding:4px;background:${on?'#3E4A50':'#17191A'};box-shadow:inset 0 0 0 2px ${on?'#68B5D5':'#444'}">${pxArt(trimG[n],{'#':on?'#FFD640':'#C8C8C8'},6).replace('width="36"','width="36" style="height:36px"')}<span class="nw" style="line-height:20px;font-size:18px">${n}</span></div>`;
+const TM = [['Gold','#FFD640'],['Amethyst','#BE6EFF'],['Redstone','#F03232'],['Lapis','#3260E6'],['Emerald','#28DC6E'],['Copper','#E88250'],['Quartz','#F0ECE2'],['Diamond','#6EF0F0'],['Netherite','#3C343C']];
+
+const left = `<div class="panel" style="left:20px;top:114px;width:760px;height:444px;padding:12px">
+    <div class="row gap8" style="height:24px;margin-top:-4px"><span class="accent">Live preview</span><span class="muted nw">How others see your card</span><span class="sp"></span><span class="good nw">Signed in as JokingDK</span></div>
+    <div style="margin-top:4px">${heroCard(JOKING,O,t)}</div></div>
+  <div class="panel" style="left:20px;top:570px;width:760px;height:448px;padding:10px;overflow:hidden">
+    <div class="row" style="height:100%;gap:12px;align-items:stretch">
+      <div class="col" style="width:204px;background:#0B0D0E url(tex/dither.png);box-shadow:inset 0 0 0 2px #333;align-items:center;justify-content:center;position:relative">
+        <img src="../_tmp/bg/m-armor-lg.png" style="height:330px;width:auto">
+        <div class="row gap8 nw muted" style="position:absolute;bottom:6px">${K('←')}Drag${K('→')}</div>
+      </div>
+      <div class="col sp" style="gap:2px">
+        <div class="row gap8" style="height:30px">${ic('diamond_smp')}<span style="color:#fff">Card model</span></div>
+        ${matRow('Helmet','netherite','Netherite')}${matRow('Chest','diamond_smp','Diamond')}${matRow('Legs','diamond_smp','Diamond')}${matRow('Boots','netherite','Netherite')}
+        <span class="muted" style="margin-top:6px">Trim pattern</span>
+        <div class="row gap4">${Object.keys(trimG).map(n=>trimTile(n,n==='Chevron')).join('')}</div>
+        <div class="row gap6" style="margin-top:8px;height:34px"><span class="muted nw">Material</span>${TM.map(([n,c])=>`<span style="width:26px;height:26px;background:${c};box-shadow:${n==='Gold'?'0 0 0 2px #fff,0 0 0 4px #000':'inset 0 0 0 2px rgba(0,0,0,.45)'};flex:none"></span>`).join('')}</div>
+      </div>
+    </div></div>`;
+
+const thumb = (o,n,on) => { const W=172,H=86,gw=W/2,gh=H/2,s=drawScene(gw,gh,{mx:20,my:18,mr:13,fxw:gw,...o},t),b=drawBorder(gw,gh,{accent:on?'#FFFFFF':'#666666',border:o.border||'thin',...(o.bo||{})},t);
+  return `<div class="col gap2" style="width:${W}px"><div style="position:relative;width:${W}px;height:${H}px;${on?'box-shadow:0 0 0 2px #fff':''}"><img src="${s}" width="${W}" height="${H}"><img src="${b}" width="${W}" height="${H}" class="abs" style="left:0;top:0"></div><span class="nw ${on?'':'muted'}" style="line-height:22px;${on?'color:#fff':''}">${n}</span></div>`; };
+const bgs = [['moon','Moon'],['stars','Starfield'],['nebula','Nebula'],['embers','Embers'],['snow','Snow'],['plain','Plain']];
+const bos = [['thin','Thin'],['double','Double'],['glow','Glowing'],['shimmer','Shimmer'],['corners','Corners']];
+const accents = ['#FFE9A8','#FFCF4A','#FF7A1A','#FF6A6A','#FF4FA3','#C98BFF','#68B5D5','#1FE6BE','#77D877','#DDDDDD'];
+const kits = ['smp','shield','cart','mace','vanilla','sword','uhc','pot'];
+
+const right = `<div class="panel" style="left:794px;top:114px;width:1106px;height:904px;padding:10px;overflow:hidden">
+  <div class="col gap6">
+  ${group('Background','vanilla',1,'Moon',`<div class="row" style="justify-content:space-between">${bgs.map(([b,n])=>thumb({bg:b,accent:ACC},n,b==='moon')).join('')}</div>`)}
+  ${group('Border','shield',1,'Shimmer',`<div class="row" style="gap:12px">${bos.map(([b,n])=>thumb({bg:'stars',border:b,accent:ACC,bo:{accent:ACC}},n,b==='shimmer')).join('')}</div>`)}
+  ${group('Effects','end_game',1,'Sparkles',`
+    <div class="row gap12" style="height:40px"><span class="row gap8 nw">${chk(1)}Sparkles</span><span class="row gap8 nw">${chk(0)}Drifting particles</span><span class="row gap8 nw">${chk(0)}Floating motes</span><span class="sp"></span><span class="nw">All effects</span>${sw(1)}</div>
+    <div class="row gap12" style="height:36px"><span class="nw" style="width:110px">Intensity</span>${slider(70,'70%').replace('width:230px','width:520px')}<span class="sp"></span><span class="muted nw">Off in reduce motion</span></div>`)}
+  ${group('Accent colour','pot',1,'',`<div class="row gap8" style="height:36px">${accents.map((c,i)=>`<span class="swatch" style="background:${c};${i==0?'box-shadow:0 0 0 2px #fff':''}"></span>`).join('')}<span class="sp"></span><span class="muted nw">Tints title and border</span></div>`)}
+  ${group('Featured','sword',1,'',`<div class="row gap8" style="height:42px"><span class="nw" style="width:64px">Kit</span>${kits.map((k,i)=>`<span class="row" style="width:40px;height:40px;justify-content:center;background:${i==0?'#3E4A50':'#17191A'};box-shadow:inset 0 0 0 2px ${i==0?'#68B5D5':'#444'}">${ic(k)}</span>`).join('')}<span style="width:6px"></span><span class="nw">List</span><div class="btn" style="width:230px;justify-content:space-between;padding:0 8px"><span class="row gap6 nw">${lm('mcpvp',1)}McPvP ${betaTag}</span><span class="muted">v</span></div></div>`)}
+  ${group('Card size','bow',1,'',`
+    <div class="row gap12" style="height:36px"><span class="nw" style="width:110px">Scale</span>${slider(50,'100%').replace('width:230px','width:360px')}<span style="width:12px"></span><span class="nw" style="width:110px">Opacity</span>${slider(90,'90%').replace('width:230px','width:360px')}</div>
+    <div class="row gap12" style="height:36px"><span class="row gap8 nw">${chk(0)}Reduce motion</span><span class="sp"></span><span class="muted nw">Preset choices only, so nothing needs moderating</span></div>`)}
+  </div>
+  <div class="abs row gap8" style="left:10px;right:10px;bottom:8px;height:32px;background:#101214;box-shadow:inset 0 0 0 2px #333;padding:0 10px">${ic('shield',1)}<span class="nw">Only shows on your TierProfiles card. Never changes your real armor.</span></div>
+</div>`;
+mount(shell('Profile', left + right, {changes:4}));
+</script></body>

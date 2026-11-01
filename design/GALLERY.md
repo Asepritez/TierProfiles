@@ -89,3 +89,27 @@ Named setups such as Casual and Tournament, plus a share code. Importing shows w
 How 118 settings stay organised: seven tabs, collapsible groups, and one search across all of them with the setting's path and a live control on each result.
 
 ![Settings: search](shots/14-settings-search.png)
+
+## Card styles showcase
+
+Six animated backgrounds including an original pixel-art moon, five borders, and sparkles and motes at different intensities. Everything stays inside the card.
+
+![Card styles showcase](shots/15-card-styles.png)
+
+## Styled card in the game
+
+The moon card on the real HUD. It stays in the corner, clear of crosshair and hotbar, and it is drawn only in the GUI, never in the world.
+
+![Styled card in the game](shots/16-card-on-hud.png)
+
+## Settings: Profile tab
+
+Edit your own card with a live preview: armor per slot, trim pattern and material, background, border, effects, accent, featured kit and list. This replaces the old loadout editor. Preset choices only.
+
+![Settings: Profile tab](shots/19-settings-profile.png)
+
+## First-run notice
+
+A short, friendly disclosure of what leaves your game, the login promise, and an off switch.
+
+![First-run notice](shots/20-first-run.png)
