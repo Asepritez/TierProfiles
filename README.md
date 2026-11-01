@@ -7,8 +7,23 @@ Early development. See [docs/SPEC.md](docs/SPEC.md) for the design.
 
 ## Privacy
 
-TierProfiles sends the UUIDs and names of players in your tab list to the TierProfiles server to
-look up their tiers. It sends nothing else, and you can turn lookups off in settings.
+Your login stays with Minecraft. We never see your account token.
+
+Here is exactly what leaves your game:
+
+- **Tier lookups.** The names and UUIDs of players in your tab list go to the TierProfiles server,
+  which asks the tier lists (MCTiers, McPvP, PvPTiers, SubTiers and PVPHQ) about them.
+- **Your card style.** Your card style is sent only when you save it. It is a small set of preset
+  choices, stored on the TierProfiles server so that other players see it on your card.
+- **Proving it's you.** To save a card style, the game makes the same silent `joinServer` call to
+  Mojang that it makes when you join an online server, and our server asks Mojang to confirm it. Your
+  access token goes only to Mojang.
+
+We send nothing else: no chat, no server address, no position. As with any website, the server host
+(Cloudflare) sees your IP address when the mod connects.
+
+Nothing is sent until you have seen the first-run notice, and you can turn lookups off at any time in
+Settings, More. With lookups off, no data is sent and no tiers show.
 
 ## License
 

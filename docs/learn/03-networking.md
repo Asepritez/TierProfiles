@@ -52,8 +52,12 @@ Three rules are enforced in code, not just promised:
 2. **Version 4 UUIDs only.** Real accounts have version 4 UUIDs. NPCs and fake tab entries usually
    don't, so we never send them.
 3. **Nothing is sent before you've seen the notice.** `isAllowed` needs both the on switch and the
-   first-run notice. There's a test that checks the exact JSON sent contains a `uuid`, a `name` and
-   nothing else.
+   first-run notice. There's a test that checks the exact JSON of a lookup contains a `uuid`, a `name`
+   and nothing else.
+
+Lookups aren't the only thing the mod sends. If you choose to save your card style, that goes to our
+server too, and only then. Your Minecraft access token never comes to us: it only goes to Mojang. The
+README lists everything that leaves your game.
 
 ## How the mod starts
 
