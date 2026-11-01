@@ -22,14 +22,15 @@ provider must fail softly: one list going down must never break the others.
 | List | Lookup | Notes |
 |---|---|---|
 | MCTiers | `https://mctiers.gg/api/profile/<uuid>` | Also `/api/profile/by-name/<name>`. Accepts dashed or plain UUID. Returns `rankings`, `region`, `points`, `overall`, `badges`. Sends `max-age=600`. The old `mctiers.com` is dead (registrar hold). |
-| McPvP | `https://www.mcpvp.com/tiers/search?q=<name>` | Name search, not exact: filter results by UUID. Returns `points`, `region`, `country`, `kitRanks`, `kitPeakRanks`, `kitRetired`, `trend`. Beta tiers will reset. Add `&version=legacy` for the old list. |
+| McPvP | `https://www.mcpvp.com/tiers/search?q=<name>` | Name search, not exact: it matches substrings, so filter results by UUID. Query must be 3 to 16 characters. Capped at 50 results sorted by points, so a full page with no match means "unknown", not "unranked". Returns `points`, `region`, `country`, `kitRanks`, `kitPeakRanks`, `kitRetired`, `trend`. Beta tiers will reset. Add `&version=legacy` for the old list (not used). |
 | PvPTiers | `https://pvptiers.com/api/profile/<uuid>` | UUID must have **no dashes**; dashed returns 400. |
 | SubTiers | `https://subtiers.net/api/v2/profile/<uuid>` | Dashed UUID. Returns `rankings`, `region`, `points`, `overall`, `badges`. |
-| PVPHQ | `https://pvphq.com/api/ranked/<uuid>` | **Unverified**: every call failed during research. Field names come from the MIT mod MicahXX/HQTiers: `rating`, `tr`, `peakRating`, `wins`, `losses`, `gamesPlayed`, `leaderboardPosition`, `grantedTier`, `tierColor`. Treat as optional. |
+| PVPHQ | `https://pvphq.com/api/ranked/<uuid>` | **Unverified**: every call failed during research, and on 2026-11-01 the API hung with no response while pvphq.com itself stayed up, so it needs a hard timeout. Field names come from the MIT mod MicahXX/HQTiers: `rating`, `tr`, `peakRating`, `wins`, `losses`, `gamesPlayed`, `leaderboardPosition`, `grantedTier`, `tierColor`. Treat as optional. |
 
 MCTiers-style rankings use `{tier, pos, peak_tier, peak_pos, attained, retired}`, where `pos` 0 is
 High and 1 is Low, so `tier 3, pos 1` is LT3. McPvP uses strings such as `HT2`, and has an extra
-`MT` (mid) and `ST` (lowest) tier, with levels 1 to 6.
+`MT` (mid) and `ST` (lowest) tier, with levels 1 to 6. `peak_tier` and `peak_pos` can be null. All lists
+answer 404 for a player they don't know, except McPvP, which returns an empty result.
 
 McPvP is mainstream but new, and some of its tiers look inflated, so it is included but must not be
 the default top-priority list. MCTiers comes first by default, and the UI labels McPvP as beta.
@@ -47,13 +48,54 @@ row reads and 100,000 row writes a day. KV allows only 1,000 writes a day, so **
 cache**: use the Workers Cache API.
 
 - `GET /v1/profile/<uuid>?name=<name>` returns one merged profile.
-- `POST /v1/profiles` takes up to 8 `{uuid, name}` and returns merged profiles (8 players on 5 lists
-  is 40 outgoing requests, under the limit of 50).
+- `POST /v1/profiles` takes `{"players": [{uuid, name}]}`, up to 8, and returns `{"profiles": [...]}`.
 - `GET /v1/cosmetics/<uuid>` returns a player's card customization.
 - `POST /v1/auth/challenge`, `POST /v1/auth/verify` and `PUT /v1/cosmetics` implement Identity below.
   Store cosmetics in D1 and validate them against an allowlist of preset ids.
 - Cache a good result per list for 30 minutes, and "not ranked" for 2 hours.
-- A provider that fails returns `{status: "unavailable"}` for that list, never a 500.
+- A provider that fails returns `{status: "unavailable", reason}` for that list, never a 500.
+- Only version 4 UUIDs are accepted; anything else is a 400.
+
+**Budget.** Cache calls share the 50-per-request quota with `fetch`, so 8 players on 5 lists can't
+have one cache entry per list (40 match + 40 fetch + 40 put = 120). The server keeps **one entry per
+player**, with an expiry per list inside it, and spends a budget of 48 subrequests. A full cold batch
+is 8 matches, 8 puts and 32 fetches, which covers every list but PVPHQ. Lists are served in the order
+MCTiers, McPvP, PvPTiers, SubTiers, PVPHQ, and a list that misses out reports `reason: "busy"` and is
+not cached, so the next request fills the gap.
+
+**Failure handling.** Each list call times out after 3.5 seconds. A failed call is remembered for one
+minute. Two failures in a row stop calls to that list for a minute (`circuit_open`).
+
+**Cache API caveat.** Cloudflare documents working cache operations for custom domains and does not
+say they work on `workers.dev`. So a bounded in-memory map sits in front of the Cache API. If we
+deploy to `workers.dev` with no domain, check whether entries survive. If not, the server still works
+but relies on memory alone and calls the lists more often.
+
+Merged profile:
+
+```json
+{
+  "uuid": "1246a0ec-662b-45de-bb0b-d68cb1cce800",
+  "name": "JokingDK",
+  "lists": {
+    "mctiers": {
+      "status": "ok", "region": "EU", "country": null, "points": 102, "overall": 56,
+      "tiers": [{"kit": "sword", "rank": "LT3", "peak": "HT3", "attained": 1772946009, "retired": false}]
+    },
+    "mcpvp": {"status": "unranked"},
+    "pvphq": {"status": "unavailable", "reason": "timeout"}
+  }
+}
+```
+
+`lists` always has all five keys. `rank` and `peak` are `HT`, `MT`, `LT` or `ST` plus a level. `peak`
+and `attained` may be null. `rating` and `games` appear on PVPHQ tiers. Kit ids are normalized so one
+gamemode has one name: `vanilla` becomes `crystal`, `nethop` and `netherite-pot` become `neth_pot`,
+`cart` becomes `minecart`, `diamond-smp` becomes `dia_smp`, and dashes become underscores. Unknown kits
+pass through. Titles are not sent: the mod works them out from `points`.
+
+Unavailable reasons: `timeout`, `network`, `http_<code>`, `bad_json`, `bad_shape`, `circuit_open`,
+`busy`, `name_required`, `name_too_short`, `search_truncated`.
 - Send a clear `User-Agent` naming the project and repo URL.
 
 The mod's server URL is a config value, default `http://127.0.0.1:8787` until we deploy, so it can

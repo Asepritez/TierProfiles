@@ -1,0 +1,5 @@
+name = "tierprofiles"
+main = "src/index.ts"
+compatibility_date = "2026-09-01"
+
+# Free plan: no bindings needed yet. D1 arrives with the loadout phase.
