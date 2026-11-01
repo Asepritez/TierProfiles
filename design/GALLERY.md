@@ -102,6 +102,18 @@ The moon card on the real HUD. It stays in the corner, clear of crosshair and ho
 
 ![Styled card in the game](shots/16-card-on-hud.png)
 
+## Moon card, animated
+
+The showcase card as a seamless 8 second loop at 6 frames a second: twinkling stars, drifting cloud, sparkles and two shimmer comets running round the border. VS Code shows this animated PNG moving.
+
+![Moon card, animated](shots/17-card-moon-animated.png)
+
+## Moon card, three frames
+
+Three moments from the same loop, for viewers that show only still images.
+
+![Moon card, three frames](shots/18-card-moon-frames.png)
+
 ## Settings: Profile tab
 
 Edit your own card with a live preview: armor per slot, trim pattern and material, background, border, effects, accent, featured kit and list. This replaces the old loadout editor. Preset choices only.
@@ -113,3 +125,7 @@ Edit your own card with a live preview: armor per slot, trim pattern and materia
 A short, friendly disclosure of what leaves your game, the login promise, and an off switch.
 
 ![First-run notice](shots/20-first-run.png)
+
+## Recommendation
+
+Use Card A's layout as the default, because it fits all five lists in the smallest space and leaves the fight visible. Add the Profile tab's scenes and borders on top of it, as in the moon card. Keep Card B as an optional Bold layout. Card C suits streams.
