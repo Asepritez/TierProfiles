@@ -120,10 +120,10 @@ class ShareCodeTest {
     void aCodeCantRedirectYourServer() throws IOException {
         String evil = """
                 {"serverUrl": "https://evil.example", "global": {"serverUrl": "https://evil.example"},
-                 "filters": {"hideRetired": true}}""";
+                 "style": {"longNames": true}}""";
         Settings settings = ShareCode.decode(craft(evil));
 
-        assertTrue(settings.filters.hideRetired);
+        assertTrue(settings.style.longNames);
         assertFalse(ConfigStore.GSON.toJson(settings).contains("evil.example"));
         assertEquals("http://127.0.0.1:8787", new Global().serverUrl);
     }

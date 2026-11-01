@@ -6,6 +6,8 @@ public final class CardSettings {
     public static final float MAX_SCALE = 2.0f;
     public static final int MAX_CLOSE_SECONDS = 120;
     public static final int MAX_DELAY_MS = 2000;
+    public static final float MIN_SPEED = 0.25f;
+    public static final float MAX_SPEED = 3.0f;
 
     public float lookAtScale = 1.0f;
     public float lookAtOpacity = 0.9f;
@@ -27,6 +29,35 @@ public final class CardSettings {
     public boolean showPoints = true;
     public boolean showCountry = true;
 
+    public Detail detail = Detail.STANDARD;
+    public AnimationStyle animationStyle = AnimationStyle.GLIDE;
+    /** 1 is normal, 2 is twice as fast. */
+    public float animationSpeed = 1.0f;
+
+    /** How much each list's row says. */
+    public enum Detail {
+        /** Tiers only, with unranked lists left out. */
+        MINIMAL,
+        /** Your best few tiers with the date each was achieved. */
+        STANDARD,
+        /** Every tier, with dates. */
+        FULL
+    }
+
+    public enum AnimationStyle {
+        GLIDE, FADE, SCALE, OFF
+    }
+
+    /** Reduce motion wins over everything. */
+    public AnimationStyle effectiveStyle(boolean reduceMotion) {
+        return reduceMotion ? AnimationStyle.OFF : animationStyle;
+    }
+
+    /** A duration adjusted for the speed setting. */
+    public long scaled(long millis) {
+        return Math.round(millis / (double) animationSpeed);
+    }
+
     public enum LookAtAnchor {
         BELOW_CROSSHAIR, TOP, BOTTOM_LEFT, BOTTOM_RIGHT
     }
@@ -44,6 +75,9 @@ public final class CardSettings {
         overlayCloseSeconds = Math.clamp(overlayCloseSeconds, 0, MAX_CLOSE_SECONDS);
         lookAtAnchor = lookAtAnchor == null ? LookAtAnchor.BELOW_CROSSHAIR : lookAtAnchor;
         overlayAnchor = overlayAnchor == null ? OverlayAnchor.RIGHT : overlayAnchor;
+        detail = detail == null ? Detail.STANDARD : detail;
+        animationStyle = animationStyle == null ? AnimationStyle.GLIDE : animationStyle;
+        animationSpeed = Float.isFinite(animationSpeed) ? Math.clamp(animationSpeed, MIN_SPEED, MAX_SPEED) : 1.0f;
     }
 
     private static float clampScale(float value) {

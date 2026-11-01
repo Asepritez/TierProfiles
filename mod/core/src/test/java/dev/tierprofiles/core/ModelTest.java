@@ -54,7 +54,7 @@ class ModelTest {
         Title.Earned earned = Title.of(TierList.MCTIERS, withPoints(330));
         assertEquals(Title.MASTER, earned.title());
         assertTrue(earned.official());
-        assertEquals("Master", earned.label());
+        assertEquals("Combat Master", earned.label());
     }
 
     @Test
@@ -62,7 +62,7 @@ class ModelTest {
         Title.Earned earned = Title.of(TierList.MCPVP, withPoints(280));
         assertEquals(Title.MASTER, earned.title());
         assertFalse(earned.official());
-        assertEquals("Master (TierProfiles title)", earned.label());
+        assertEquals("Combat Master (TierProfiles title)", earned.label());
     }
 
     @Test

@@ -17,6 +17,7 @@ import dev.tierprofiles.core.model.TierList;
 import dev.tierprofiles.core.settings.Filters.KitMode;
 import dev.tierprofiles.core.settings.Settings;
 import dev.tierprofiles.core.settings.Surface;
+import dev.tierprofiles.core.settings.SurfaceSettings;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -70,7 +71,7 @@ class TagSelectorTest {
     @Test
     void aFailedFilterFallsBackToTheNextStrongestKitNotNothing() {
         Settings settings = settings();
-        settings.filters.hideRetired = true;
+        settings.surface(Surface.NAMETAG).hideRetired = true;
         PlayerProfile profile = player(TierList.MCTIERS, ok(entry("sword", "HT1", null, true), entry("axe", "LT2")));
         assertEquals(List.of("mctiers:axe:LT2"), labels(select(profile, settings)));
     }
@@ -122,14 +123,14 @@ class TagSelectorTest {
         assertTrue(tag.retired());
 
         Settings hiding = settings();
-        hiding.filters.hideRetired = true;
+        hiding.surface(Surface.NAMETAG).hideRetired = true;
         assertEquals(0, select(profile, hiding).size());
     }
 
     @Test
     void peakModeShowsThePeak() {
         Settings settings = settings();
-        settings.filters.showPeak = true;
+        settings.surface(Surface.NAMETAG).tierMode = SurfaceSettings.TierMode.PEAK;
         PlayerProfile profile = player(TierList.MCTIERS, ok(entry("sword", "HT3", "HT2", false)));
         assertEquals(List.of("mctiers:sword:HT2"), labels(select(profile, settings)));
     }
@@ -137,14 +138,14 @@ class TagSelectorTest {
     @Test
     void peakModeFallsBackToCurrentWhenThereIsNoPeak() {
         Settings settings = settings();
-        settings.filters.showPeak = true;
+        settings.surface(Surface.NAMETAG).tierMode = SurfaceSettings.TierMode.PEAK;
         assertEquals(List.of("mctiers:sword:HT4"), labels(select(HT4_ONLY, settings)));
     }
 
     @Test
     void peakModePicksTheBestPeakNotTheBestCurrent() {
         Settings settings = settings();
-        settings.filters.showPeak = true;
+        settings.surface(Surface.NAMETAG).tierMode = SurfaceSettings.TierMode.PEAK;
         PlayerProfile profile = player(TierList.MCTIERS, ok(
                 entry("sword", "HT3", "HT3", false),
                 entry("axe", "LT4", "HT1", false)));
@@ -154,7 +155,7 @@ class TagSelectorTest {
     @Test
     void minimumIsCheckedAgainstWhatIsShown() {
         Settings settings = settings();
-        settings.filters.showPeak = true;
+        settings.surface(Surface.NAMETAG).tierMode = SurfaceSettings.TierMode.PEAK;
         settings.surface(Surface.NAMETAG).minimumTier = "HT2";
         PlayerProfile profile = player(TierList.MCTIERS, ok(entry("sword", "LT4", "HT2", false)));
         assertEquals(1, select(profile, settings).size());
@@ -217,7 +218,7 @@ class TagSelectorTest {
     @Test
     void selectedKitsOnlyCountThoseKits() {
         Settings settings = settings();
-        settings.filters.kitMode = KitMode.SELECTED;
+        settings.surface(Surface.NAMETAG).kitMode = KitMode.SELECTED;
         settings.filters.selectedKits = new ArrayList<>(List.of("axe"));
         PlayerProfile profile = player(TierList.MCTIERS, ok(entry("sword", "HT1"), entry("axe", "LT4")));
         assertEquals(List.of("mctiers:axe:LT4"), labels(select(profile, settings)));
@@ -226,7 +227,7 @@ class TagSelectorTest {
     @Test
     void selectedKitOrderBreaksTies() {
         Settings settings = settings();
-        settings.filters.kitMode = KitMode.SELECTED;
+        settings.surface(Surface.NAMETAG).kitMode = KitMode.SELECTED;
         settings.filters.selectedKits = new ArrayList<>(List.of("axe", "sword"));
         PlayerProfile profile = player(TierList.MCTIERS, ok(entry("sword", "HT2"), entry("axe", "HT2")));
         assertEquals(List.of("mctiers:axe:HT2"), labels(select(profile, settings)));
@@ -241,7 +242,7 @@ class TagSelectorTest {
     @Test
     void autoModeUsesTheDetectedKit() {
         Settings settings = settings();
-        settings.filters.kitMode = KitMode.AUTO;
+        settings.surface(Surface.NAMETAG).kitMode = KitMode.AUTO;
         PlayerProfile profile = player(TierList.MCTIERS, ok(entry("sword", "HT1"), entry("mace", "LT4")));
         List<Tag> tags = TagSelector.select(profile, Surface.NAMETAG, settings, new Context(false, "mace"));
         assertEquals(List.of("mctiers:mace:LT4"), labels(tags));
@@ -250,7 +251,7 @@ class TagSelectorTest {
     @Test
     void autoModeWithNoGuessActsLikeHighest() {
         Settings settings = settings();
-        settings.filters.kitMode = KitMode.AUTO;
+        settings.surface(Surface.NAMETAG).kitMode = KitMode.AUTO;
         PlayerProfile profile = player(TierList.MCTIERS, ok(entry("sword", "HT1"), entry("mace", "LT4")));
         assertEquals(List.of("mctiers:sword:HT1"), labels(select(profile, settings)));
     }
@@ -258,7 +259,7 @@ class TagSelectorTest {
     @Test
     void ownTagCanBeHidden() {
         Settings settings = settings();
-        settings.filters.hideOwnTag = true;
+        settings.surface(Surface.TAB).hideOwnTag = true;
         assertEquals(0, TagSelector.select(HT4_ONLY, Surface.TAB, settings, new Context(true, null)).size());
         assertEquals(1, TagSelector.select(HT4_ONLY, Surface.TAB, settings, new Context(false, null)).size());
     }
@@ -272,14 +273,14 @@ class TagSelectorTest {
                 TierList.PVPHQ, ListProfile.UNRANKED);
         assertEquals(0, select(profile, settings).size());
 
-        settings.filters.hideUnranked = false;
+        settings.surface(Surface.NAMETAG).hideUnranked = false;
         assertEquals(List.of("unranked"), labels(select(profile, settings)));
     }
 
     @Test
     void aListBeingDownMeansWeDontClaimUnranked() {
         Settings settings = settings();
-        settings.filters.hideUnranked = false;
+        settings.surface(Surface.NAMETAG).hideUnranked = false;
         PlayerProfile profile = player(TierList.MCTIERS, ListProfile.UNRANKED, TierList.PVPHQ, ListProfile.unavailable("timeout"));
         assertEquals(0, select(profile, settings).size());
     }
@@ -287,9 +288,40 @@ class TagSelectorTest {
     @Test
     void aFilteredOutRankedPlayerIsNotCalledUnranked() {
         Settings settings = settings();
-        settings.filters.hideUnranked = false;
+        settings.surface(Surface.NAMETAG).hideUnranked = false;
         settings.surface(Surface.NAMETAG).minimumTier = "LT3";
         assertEquals(0, select(HT4_ONLY, settings).size());
+    }
+
+    @Test
+    void hidingRetiredIsPerSurface() {
+        Settings settings = settings();
+        settings.surface(Surface.NAMETAG).hideRetired = true;
+        PlayerProfile profile = player(TierList.MCTIERS, ok(entry("sword", "HT1", null, true)));
+        assertEquals(0, TagSelector.select(profile, Surface.NAMETAG, settings, Context.NONE).size());
+        assertEquals(1, TagSelector.select(profile, Surface.TAB, settings, Context.NONE).size());
+    }
+
+    @Test
+    void bothModeShowsCurrentAndAHigherPeak() {
+        Settings settings = settings();
+        settings.surface(Surface.NAMETAG).tierMode = SurfaceSettings.TierMode.BOTH;
+        Tag tag = select(player(TierList.MCTIERS, ok(entry("sword", "HT3", "HT2", false))), settings).getFirst();
+        assertEquals("HT3", tag.tier().label());
+        assertEquals("HT2", tag.higherPeak().label());
+    }
+
+    @Test
+    void bothModeLeavesPeakOutWhenItIsNoBetter() {
+        Settings settings = settings();
+        settings.surface(Surface.NAMETAG).tierMode = SurfaceSettings.TierMode.BOTH;
+        Tag tag = select(player(TierList.MCTIERS, ok(entry("sword", "HT3", "HT3", false))), settings).getFirst();
+        assertEquals(null, tag.higherPeak());
+    }
+
+    @Test
+    void lookAtCardShowsThreeListsByDefault() {
+        assertEquals(3, settings().surface(Surface.LOOK_AT).maxTags);
     }
 
     @Test

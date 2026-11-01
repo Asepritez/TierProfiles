@@ -24,6 +24,7 @@ public final class TierProfiles {
     // Volatile so the render thread sees a new config as soon as Apply publishes it.
     private static volatile ConfigFile config;
     private static ProfileService profiles;
+    private static volatile String detectedKit;
 
     private TierProfiles() {
     }
@@ -47,11 +48,21 @@ public final class TierProfiles {
         return profiles;
     }
 
+    /** The kit your inventory suggests, or null. */
+    public static String detectedKit() {
+        return detectedKit;
+    }
+
+    static void setDetectedKit(String kit) {
+        detectedKit = kit;
+    }
+
     /** Makes a new config live and saves it. Saving failing shouldn't stop the game. */
     public static void publish(ConfigFile updated) {
         boolean serverChanged = !updated.global.serverUrl.equals(config.global.serverUrl);
+        boolean lookupsOff = !updated.global.lookupsEnabled;
         config = updated;
-        if (serverChanged) {
+        if (serverChanged || lookupsOff) {
             profiles.clear();
         }
         try {

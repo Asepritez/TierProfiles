@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "tierprofiles-test",
+  "version": "1.0.0",
+  "name": "TierProfiles tests",
+  "environment": "client",
+  "entrypoints": {
+    "fabric-client-gametest": ["dev.tierprofiles.test.SurfaceGameTest"]
+  },
+  "depends": {
+    "tierprofiles": "*"
+  }
+}

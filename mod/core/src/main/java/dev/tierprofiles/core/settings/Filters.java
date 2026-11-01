@@ -13,11 +13,6 @@ import java.util.Set;
 public final class Filters {
     private static final int MAX_SELECTED_KITS = 64;
 
-    public boolean hideRetired = false;
-    public boolean hideUnranked = true;
-    public boolean hideOwnTag = false;
-    public boolean showPeak = false;
-    public KitMode kitMode = KitMode.HIGHEST;
     /** Kits that count in SELECTED mode. Earlier kits win ties. */
     public List<String> selectedKits = new ArrayList<>();
     /** Which list wins when there's room for only one. First is strongest. */
@@ -44,10 +39,6 @@ public final class Filters {
     }
 
     void sanitize() {
-        if (kitMode == null) {
-            kitMode = KitMode.HIGHEST;
-        }
-
         Set<String> kits = new LinkedHashSet<>();
         if (selectedKits != null) {
             for (String kit : selectedKits) {

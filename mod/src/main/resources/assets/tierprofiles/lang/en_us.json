@@ -1,0 +1,9 @@
+{
+  "key.category.tierprofiles.main": "TierProfiles",
+  "key.tierprofiles.up": "Select player above",
+  "key.tierprofiles.down": "Select player below",
+  "key.tierprofiles.left": "Select column to the left",
+  "key.tierprofiles.right": "Select column to the right",
+  "key.tierprofiles.pin": "Pin selected card",
+  "key.tierprofiles.settings": "Open settings"
+}

@@ -33,59 +33,61 @@ public final class TagSelector {
     }
 
     public static List<Tag> select(PlayerProfile profile, Surface surface, Settings settings, Context context) {
-        SurfaceSettings surfaceSettings = settings.surface(surface);
+        SurfaceSettings rules = settings.surface(surface);
         Filters filters = settings.filters;
 
-        if (profile == null || !surfaceSettings.enabled) {
+        if (profile == null || !rules.enabled) {
             return List.of();
         }
-        if (context.isSelf() && filters.hideOwnTag) {
+        if (context.isSelf() && rules.hideOwnTag) {
             return List.of();
         }
 
         List<Tag> tags = new ArrayList<>();
         for (TierList list : filters.listPriority) {
-            if (tags.size() >= surfaceSettings.maxTags) {
+            if (tags.size() >= rules.maxTags) {
                 break;
             }
             if (!filters.isEnabled(list)) {
                 continue;
             }
-            Tag tag = bestOn(list, profile.list(list), surfaceSettings.minimum(), filters, context);
+            Tag tag = bestOn(list, profile.list(list), rules, filters, context);
             if (tag != null) {
                 tags.add(tag);
             }
         }
 
-        if (tags.isEmpty() && !filters.hideUnranked && isKnownUnranked(profile, filters)) {
+        if (tags.isEmpty() && !rules.hideUnranked && isKnownUnranked(profile, filters)) {
             return List.of(Tag.UNRANKED);
         }
         return tags;
     }
 
-    private static Tag bestOn(TierList list, ListProfile listProfile, Tier surfaceMinimum, Filters filters, Context context) {
+    private static Tag bestOn(TierList list, ListProfile listProfile, SurfaceSettings rules, Filters filters, Context context) {
         if (!listProfile.isOk()) {
             return null;
         }
 
+        boolean usePeak = rules.tierMode == SurfaceSettings.TierMode.PEAK;
+        Tier surfaceMinimum = rules.minimum();
         Tier listMinimum = filters.listMinimum(list);
         TierEntry best = null;
 
         for (TierEntry entry : listProfile.tiers()) {
-            if (filters.hideRetired && entry.retired()) {
+            if (rules.hideRetired && entry.retired()) {
                 continue;
             }
-            if (!kitCounts(entry.kit(), filters, context)) {
+            if (!kitCounts(entry.kit(), rules, filters, context)) {
                 continue;
             }
-            Tier shown = entry.shown(filters.showPeak);
+            Tier shown = entry.shown(usePeak);
             if (surfaceMinimum != null && !shown.isAtLeast(surfaceMinimum)) {
                 continue;
             }
             if (listMinimum != null && !shown.isAtLeast(listMinimum)) {
                 continue;
             }
-            if (best == null || isBetter(entry, best, filters)) {
+            if (best == null || isBetter(entry, best, usePeak, rules, filters)) {
                 best = entry;
             }
         }
@@ -93,11 +95,16 @@ public final class TagSelector {
         if (best == null) {
             return null;
         }
-        return new Tag(list, best.kit(), best.shown(filters.showPeak), best.retired(), listProfile.region());
+        Tier shown = best.shown(usePeak);
+        Tier higherPeak = null;
+        if (rules.tierMode == SurfaceSettings.TierMode.BOTH && best.peak() != null && !shown.isAtLeast(best.peak())) {
+            higherPeak = best.peak();
+        }
+        return new Tag(list, best.kit(), shown, higherPeak, best.retired(), listProfile.region());
     }
 
-    private static boolean kitCounts(String kit, Filters filters, Context context) {
-        return switch (filters.kitMode) {
+    private static boolean kitCounts(String kit, SurfaceSettings rules, Filters filters, Context context) {
+        return switch (rules.kitMode) {
             case HIGHEST -> true;
             case SELECTED -> filters.selectedKits.contains(kit);
             case AUTO -> context.detectedKit() == null || context.detectedKit().equals(kit);
@@ -105,16 +112,16 @@ public final class TagSelector {
     }
 
     /** Stronger tier wins, then an active tier beats a retired one, then your kit order. */
-    private static boolean isBetter(TierEntry candidate, TierEntry current, Filters filters) {
-        int candidateScore = candidate.shown(filters.showPeak).score();
-        int currentScore = current.shown(filters.showPeak).score();
+    private static boolean isBetter(TierEntry candidate, TierEntry current, boolean usePeak, SurfaceSettings rules, Filters filters) {
+        int candidateScore = candidate.shown(usePeak).score();
+        int currentScore = current.shown(usePeak).score();
         if (candidateScore != currentScore) {
             return candidateScore < currentScore;
         }
         if (candidate.retired() != current.retired()) {
             return current.retired();
         }
-        if (filters.kitMode == Filters.KitMode.SELECTED) {
+        if (rules.kitMode == Filters.KitMode.SELECTED) {
             return filters.selectedKits.indexOf(candidate.kit()) < filters.selectedKits.indexOf(current.kit());
         }
         return false;

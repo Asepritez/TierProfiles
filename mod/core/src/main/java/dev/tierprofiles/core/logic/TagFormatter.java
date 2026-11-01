@@ -52,6 +52,12 @@ public final class TagFormatter {
             }
             out.add(Segment.text(label, color));
 
+            if (tag.higherPeak() != null) {
+                out.add(Segment.text(" (", PUNCTUATION));
+                out.add(Segment.text(tag.higherPeak().label(), style.color(tag.list(), tag.higherPeak())));
+                out.add(Segment.text(")", PUNCTUATION));
+            }
+
             if (surface.region && tag.region() != null) {
                 out.add(Segment.text(" " + tag.region(), PUNCTUATION));
             }

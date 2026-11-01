@@ -21,11 +21,11 @@ import org.junit.jupiter.api.Test;
 
 class TagFormatterTest {
     private static Tag tag(String tier) {
-        return new Tag(TierList.MCTIERS, "sword", Tier.parse(tier), false, "EU");
+        return new Tag(TierList.MCTIERS, "sword", Tier.parse(tier), null, false, "EU");
     }
 
     private static Tag retired(String tier) {
-        return new Tag(TierList.MCTIERS, "sword", Tier.parse(tier), true, "EU");
+        return new Tag(TierList.MCTIERS, "sword", Tier.parse(tier), null, true, "EU");
     }
 
     private final Settings settings = settings();
@@ -78,7 +78,7 @@ class TagFormatterTest {
     @Test
     void regionIsLeftOutWhenUnknown() {
         surface.region = true;
-        assertEquals("[HT3]", text(new Tag(TierList.PVPHQ, "sword", Tier.parse("HT3"), false, null)));
+        assertEquals("[HT3]", text(new Tag(TierList.PVPHQ, "sword", Tier.parse("HT3"), null, false, null)));
     }
 
     @Test
@@ -135,6 +135,11 @@ class TagFormatterTest {
         assertEquals("[HT1R]", text(retired("HT1")));
         style.retiredMark = Style.RetiredMark.NONE;
         assertEquals("[HT1]", text(retired("HT1")));
+    }
+
+    @Test
+    void aHigherPeakFollowsInBrackets() {
+        assertEquals("[HT3 (HT2)]", text(new Tag(TierList.MCTIERS, "sword", Tier.parse("HT3"), Tier.parse("HT2"), false, "EU")));
     }
 
     @Test

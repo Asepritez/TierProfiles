@@ -12,9 +12,9 @@ import java.util.List;
 /**
  * Runs name highlight rules from top to bottom, and the first match wins.
  *
- * Rules share the retired and peak settings with tags, because those change what a
- * player's tier means. They ignore minimum-tier filters: hiding a tag is a display
- * choice, and it shouldn't stop a rule from seeing that the tier exists.
+ * Each rule says for itself whether retired tiers count and whether to use peaks.
+ * Rules ignore minimum-tier filters: hiding a tag is a display choice, and it
+ * shouldn't stop a rule from seeing that the tier exists.
  */
 public final class HighlightEngine {
     private HighlightEngine() {
@@ -42,22 +42,22 @@ public final class HighlightEngine {
             if (!filters.isEnabled(list) || (rule.list != null && rule.list != list)) {
                 continue;
             }
-            if (hasTierAtLeast(profile.list(list), minimum, rule.kit, filters)) {
+            if (hasTierAtLeast(profile.list(list), minimum, rule)) {
                 return true;
             }
         }
         return false;
     }
 
-    private static boolean hasTierAtLeast(ListProfile listProfile, Tier minimum, String kit, Filters filters) {
+    private static boolean hasTierAtLeast(ListProfile listProfile, Tier minimum, HighlightRule rule) {
         for (TierEntry entry : listProfile.tiers()) {
-            if (filters.hideRetired && entry.retired()) {
+            if (rule.ignoreRetired && entry.retired()) {
                 continue;
             }
-            if (kit != null && !kit.equals(entry.kit())) {
+            if (rule.kit != null && !rule.kit.equals(entry.kit())) {
                 continue;
             }
-            if (entry.shown(filters.showPeak).isAtLeast(minimum)) {
+            if (entry.shown(rule.usePeak).isAtLeast(minimum)) {
                 return true;
             }
         }

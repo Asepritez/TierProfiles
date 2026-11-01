@@ -2,12 +2,12 @@ package dev.tierprofiles.core.model;
 
 /** The MCTiers title ladder, highest first. */
 public enum Title {
-    GRANDMASTER("Grandmaster", 400),
-    MASTER("Master", 250),
-    ACE("Ace", 100),
-    SPECIALIST("Specialist", 50),
-    CADET("Cadet", 20),
-    NOVICE("Novice", 10),
+    GRANDMASTER("Combat Grandmaster", 400),
+    MASTER("Combat Master", 250),
+    ACE("Combat Ace", 100),
+    SPECIALIST("Combat Specialist", 50),
+    CADET("Combat Cadet", 20),
+    NOVICE("Combat Novice", 10),
     ROOKIE("Rookie", 1);
 
     private final String displayName;

@@ -11,6 +11,9 @@ public final class HighlightRule {
     /** Null means any kit. */
     public String kit = null;
     public String minimumTier = "HT3";
+    public boolean ignoreRetired = false;
+    /** Judge players by their best-ever tier rather than their current one. */
+    public boolean usePeak = false;
 
     /** Name colour, or null to leave it alone. */
     public Integer color = 0xFF7777;

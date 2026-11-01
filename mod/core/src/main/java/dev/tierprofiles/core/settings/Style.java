@@ -20,7 +20,7 @@ public final class Style {
     public Brackets brackets = Brackets.SQUARE;
     public Separator separator = Separator.SPACE;
     public boolean longNames = false;
-    public IconSet iconSet = IconSet.TIERPROFILES;
+    public IconSet iconSet = IconSet.CLASSIC;
     public RetiredMark retiredMark = RetiredMark.DIM;
 
     public enum Position {
@@ -50,10 +50,12 @@ public final class Style {
     }
 
     public enum IconSet {
+        /** Real items in the older look, from the game's built-in Programmer Art pack. */
+        CLASSIC,
+        /** Real items as they look in the current game. */
+        CURRENT,
         /** Our own 16x16 art. */
-        TIERPROFILES,
-        /** Vanilla items drawn at runtime from the player's own game. */
-        VANILLA
+        PIXEL
     }
 
     /** How a retired tier looks: faded, marked with an R, or no different. */
@@ -79,7 +81,7 @@ public final class Style {
         position = position == null ? Position.AFTER : position;
         brackets = brackets == null ? Brackets.SQUARE : brackets;
         separator = separator == null ? Separator.SPACE : separator;
-        iconSet = iconSet == null ? IconSet.TIERPROFILES : iconSet;
+        iconSet = iconSet == null ? IconSet.CLASSIC : iconSet;
         retiredMark = retiredMark == null ? RetiredMark.DIM : retiredMark;
 
         tierColors = cleanColors(tierColors);

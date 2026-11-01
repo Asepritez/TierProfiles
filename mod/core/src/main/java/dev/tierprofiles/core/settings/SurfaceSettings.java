@@ -14,9 +14,26 @@ public final class SurfaceSettings {
     public boolean listLogo = false;
     public boolean region = false;
 
+    public boolean hideRetired = false;
+    public boolean hideUnranked = true;
+    public boolean hideOwnTag = false;
+    public TierMode tierMode = TierMode.CURRENT;
+    public Filters.KitMode kitMode = Filters.KitMode.HIGHEST;
+    /** Whether name highlight rules apply on this surface. */
+    public boolean highlightName = true;
+
+    /** What to show when a player's current tier and best-ever tier differ. */
+    public enum TierMode {
+        CURRENT, PEAK, BOTH
+    }
+
     public static SurfaceSettings defaultsFor(Surface surface) {
         SurfaceSettings settings = new SurfaceSettings();
         settings.enabled = surface.enabledByDefault();
+        if (surface == Surface.LOOK_AT) {
+            settings.maxTags = 3;
+            settings.listLogo = true;
+        }
         return settings;
     }
 
@@ -29,5 +46,7 @@ public final class SurfaceSettings {
             minimumTier = null;
         }
         maxTags = Math.clamp(maxTags, 1, MAX_TAGS);
+        tierMode = tierMode == null ? TierMode.CURRENT : tierMode;
+        kitMode = kitMode == null ? Filters.KitMode.HIGHEST : kitMode;
     }
 }

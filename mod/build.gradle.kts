@@ -14,6 +14,19 @@ repositories {
     maven("https://maven.terraformersmc.com/releases/")
 }
 
+// Real in-game tests. They run inside an actual game window with the offline dev
+// account, so they're never part of `build` and must be started by hand with
+// `./gradlew runClientGameTest`.
+fabricApi {
+    configureTests {
+        createSourceSet = true
+        modId = "tierprofiles-test"
+        enableGameTests = false
+        enableClientGameTests = true
+        eula = true
+    }
+}
+
 dependencies {
     minecraft("com.mojang:minecraft:$minecraftVersion")
     implementation("net.fabricmc:fabric-loader:${property("loader_version")}")
@@ -40,4 +53,10 @@ tasks.jar {
     from(project(":core").sourceSets.main.get().output)
     from(rootDir.resolve("../LICENSE"))
     from(rootDir.resolve("../THIRD_PARTY_NOTICES.txt"))
+}
+
+loom {
+    runs.named("clientGameTest") {
+        runDir("run/gametest")
+    }
 }

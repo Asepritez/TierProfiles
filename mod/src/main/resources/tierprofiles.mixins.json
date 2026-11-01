@@ -1,0 +1,17 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "dev.tierprofiles.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "client": [
+    "ChatListenerMixin",
+    "EntityRendererMixin",
+    "KeyboardHandlerMixin",
+    "PlayerTabOverlayAccessor",
+    "PlayerTabOverlayMixin",
+    "ReloadableResourceManagerMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

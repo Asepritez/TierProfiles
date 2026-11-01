@@ -1,0 +1,33 @@
+{
+  "providers": [
+    {"type": "bitmap", "file": "tierprofiles:icon/current/sword.png", "ascent": 7, "height": 8, "chars": ["\uE100"]},
+    {"type": "bitmap", "file": "tierprofiles:icon/current/crystal.png", "ascent": 7, "height": 8, "chars": ["\uE101"]},
+    {"type": "bitmap", "file": "tierprofiles:icon/current/axe.png", "ascent": 7, "height": 8, "chars": ["\uE102"]},
+    {"type": "bitmap", "file": "tierprofiles:icon/current/mace.png", "ascent": 7, "height": 8, "chars": ["\uE103"]},
+    {"type": "bitmap", "file": "tierprofiles:icon/current/pot.png", "ascent": 7, "height": 8, "chars": ["\uE104"]},
+    {"type": "bitmap", "file": "tierprofiles:icon/current/neth_pot.png", "ascent": 7, "height": 8, "chars": ["\uE105"]},
+    {"type": "bitmap", "file": "tierprofiles:icon/current/smp.png", "ascent": 7, "height": 8, "chars": ["\uE106"]},
+    {"type": "bitmap", "file": "tierprofiles:icon/current/uhc.png", "ascent": 7, "height": 8, "chars": ["\uE107"]},
+    {"type": "bitmap", "file": "tierprofiles:icon/current/spear.png", "ascent": 7, "height": 8, "chars": ["\uE108"]},
+    {"type": "bitmap", "file": "tierprofiles:icon/current/shield.png", "ascent": 7, "height": 8, "chars": ["\uE109"]},
+    {"type": "bitmap", "file": "tierprofiles:icon/current/dia_smp.png", "ascent": 7, "height": 8, "chars": ["\uE10A"]},
+    {"type": "bitmap", "file": "tierprofiles:icon/current/dia_crystal.png", "ascent": 7, "height": 8, "chars": ["\uE10B"]},
+    {"type": "bitmap", "file": "tierprofiles:icon/current/og_vanilla.png", "ascent": 7, "height": 8, "chars": ["\uE10C"]},
+    {"type": "bitmap", "file": "tierprofiles:icon/current/minecart.png", "ascent": 7, "height": 8, "chars": ["\uE10D"]},
+    {"type": "bitmap", "file": "tierprofiles:icon/current/trident.png", "ascent": 7, "height": 8, "chars": ["\uE10E"]},
+    {"type": "bitmap", "file": "tierprofiles:icon/current/bed.png", "ascent": 7, "height": 8, "chars": ["\uE10F"]},
+    {"type": "bitmap", "file": "tierprofiles:icon/current/speed.png", "ascent": 7, "height": 8, "chars": ["\uE110"]},
+    {"type": "bitmap", "file": "tierprofiles:icon/current/debuff.png", "ascent": 7, "height": 8, "chars": ["\uE111"]},
+    {"type": "bitmap", "file": "tierprofiles:icon/current/creeper.png", "ascent": 7, "height": 8, "chars": ["\uE112"]},
+    {"type": "bitmap", "file": "tierprofiles:icon/current/early_game.png", "ascent": 7, "height": 8, "chars": ["\uE113"]},
+    {"type": "bitmap", "file": "tierprofiles:icon/current/late_game.png", "ascent": 7, "height": 8, "chars": ["\uE114"]},
+    {"type": "bitmap", "file": "tierprofiles:icon/current/end_game.png", "ascent": 7, "height": 8, "chars": ["\uE115"]},
+    {"type": "bitmap", "file": "tierprofiles:icon/current/elytra.png", "ascent": 7, "height": 8, "chars": ["\uE116"]},
+    {"type": "bitmap", "file": "tierprofiles:icon/current/bow.png", "ascent": 7, "height": 8, "chars": ["\uE117"]},
+    {"type": "bitmap", "file": "tierprofiles:logo/mctiers.png", "ascent": 7, "height": 8, "chars": ["\uE200"]},
+    {"type": "bitmap", "file": "tierprofiles:logo/mcpvp.png", "ascent": 7, "height": 8, "chars": ["\uE201"]},
+    {"type": "bitmap", "file": "tierprofiles:logo/pvptiers.png", "ascent": 7, "height": 8, "chars": ["\uE202"]},
+    {"type": "bitmap", "file": "tierprofiles:logo/subtiers.png", "ascent": 7, "height": 8, "chars": ["\uE203"]},
+    {"type": "bitmap", "file": "tierprofiles:logo/pvphq.png", "ascent": 7, "height": 8, "chars": ["\uE204"]}
+  ]
+}

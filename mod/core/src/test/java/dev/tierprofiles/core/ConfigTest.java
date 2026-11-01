@@ -33,13 +33,13 @@ class ConfigTest {
     void stagedChangesDontTouchLiveUntilApply() {
         ConfigFile live = fresh();
         ConfigEditor editor = new ConfigEditor(live);
-        editor.staged().active().filters.hideRetired = true;
+        editor.staged().active().style.longNames = true;
 
-        assertFalse(live.active().filters.hideRetired);
+        assertFalse(live.active().style.longNames);
         assertTrue(editor.isDirty());
 
         ConfigFile applied = editor.apply();
-        assertTrue(applied.active().filters.hideRetired);
+        assertTrue(applied.active().style.longNames);
         assertFalse(editor.isDirty());
     }
 
@@ -47,23 +47,23 @@ class ConfigTest {
     void applyPublishesANewObjectSoTheRenderThreadNeverSeesAHalfChange() {
         ConfigFile live = fresh();
         ConfigEditor editor = new ConfigEditor(live);
-        editor.staged().active().filters.hideRetired = true;
+        editor.staged().active().style.longNames = true;
         ConfigFile applied = editor.apply();
 
         assertNotSame(live, applied);
-        assertFalse(live.active().filters.hideRetired);
+        assertFalse(live.active().style.longNames);
 
-        editor.staged().active().filters.hideUnranked = false;
-        assertTrue(applied.active().filters.hideUnranked);
+        editor.staged().active().style.perListColors = true;
+        assertFalse(applied.active().style.perListColors);
     }
 
     @Test
     void discardThrowsChangesAway() {
         ConfigEditor editor = new ConfigEditor(fresh());
-        editor.staged().active().filters.hideRetired = true;
+        editor.staged().active().style.longNames = true;
         editor.discard();
 
-        assertFalse(editor.staged().active().filters.hideRetired);
+        assertFalse(editor.staged().active().style.longNames);
         assertFalse(editor.isDirty());
     }
 
@@ -75,8 +75,8 @@ class ConfigTest {
     @Test
     void undoingAChangeByHandIsNotDirty() {
         ConfigEditor editor = new ConfigEditor(fresh());
-        editor.staged().active().filters.hideRetired = true;
-        editor.staged().active().filters.hideRetired = false;
+        editor.staged().active().style.longNames = true;
+        editor.staged().active().style.longNames = false;
         assertFalse(editor.isDirty());
     }
 
@@ -85,10 +85,10 @@ class ConfigTest {
         ConfigEditor editor = new ConfigEditor(fresh());
         assertTrue(editor.createProfile("Tournament", editor.staged().active()));
         assertTrue(editor.switchProfile("Tournament"));
-        editor.staged().active().filters.hideRetired = true;
+        editor.staged().active().style.longNames = true;
 
-        assertFalse(editor.staged().profiles.get("Default").filters.hideRetired);
-        assertTrue(editor.staged().profiles.get("Tournament").filters.hideRetired);
+        assertFalse(editor.staged().profiles.get("Default").style.longNames);
+        assertTrue(editor.staged().profiles.get("Tournament").style.longNames);
     }
 
     @Test

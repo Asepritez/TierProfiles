@@ -105,18 +105,20 @@ class HighlightEngineTest {
 
     @Test
     void retiredTiersDontCountWhenHidden() {
-        Settings settings = settings();
-        settings.filters.hideRetired = true;
+        HighlightRule rule = redHt3();
+        rule.ignoreRetired = true;
         PlayerProfile profile = player(TierList.MCTIERS, ok(entry("sword", "HT1", null, true)));
-        assertTrue(run(profile, settings, redHt3()).isPlain());
+        assertTrue(run(profile, settings(), rule).isPlain());
+        assertEquals(RED, run(profile, settings(), redHt3()).color());
     }
 
     @Test
     void peakModeAppliesToRules() {
-        Settings settings = settings();
-        settings.filters.showPeak = true;
+        HighlightRule rule = redHt3();
+        rule.usePeak = true;
         PlayerProfile profile = player(TierList.MCTIERS, ok(entry("sword", "LT5", "HT1", false)));
-        assertEquals(RED, run(profile, settings, redHt3()).color());
+        assertEquals(RED, run(profile, settings(), rule).color());
+        assertTrue(run(profile, settings(), redHt3()).isPlain());
     }
 
     @Test
