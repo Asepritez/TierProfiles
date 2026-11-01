@@ -232,7 +232,9 @@ Layout unit: one Minecraft GUI pixel. Control height 18, row height 19, gutter 6
 
 Modrinth's rules require clear disclosure of data sent to a remote server. Say in the README, on
 the Modrinth page and in a first-run notice that the mod sends the UUIDs and names of players in
-your tab list to the TierProfiles server. Send nothing else. Include a setting to turn it off.
+your tab list to the TierProfiles server, and your own card style when you choose to save it. Send
+nothing else. Your Minecraft access token only ever goes to Mojang. Include a setting to turn
+lookups off.
 
 ## Credits
 
