@@ -202,7 +202,12 @@ README and the first-run notice. Offline or cracked accounts can't save a profil
 
 ## Design language
 
-Based on Tallium's look. Dark, flat, sharp corners, thin borders, no vanilla stone textures.
+Based on Tallium's look. Dark, flat, sharp corners, thin borders, no vanilla stone textures. Not too
+bright. The default profile card blends Card A's compact rows with Card C's esports presentation.
+Reference sites: `mctiers.gg` and `mcpvp.com`.
+
+The config must not feel overwhelming. Each tab opens on a few essentials, with a clear "Advanced"
+section for the rest, and search finds everything.
 
 | Token | Value |
 |---|---|
@@ -222,19 +227,27 @@ Layout unit: one Minecraft GUI pixel. Control height 18, row height 19, gutter 6
 
 ## Icons and rights
 
-- **Do not commit Mojang textures, McPvP icons, or MCTiers/SubTiers icons to this repo.** McPvP's
-  icons may only be used with their permission.
-- Default set: our own original pixel art at 16×16, in the same spirit as McPvP's kit icons.
-- Fallback set: vanilla items drawn at runtime from the player's own game (`renderItem`), so nothing
-  is redistributed. Older-style art is possible through the game's built-in Programmer Art pack.
+The look must be vanilla and official, so lists are easy to tell apart at a glance.
+
+- **Vanilla first.** Use the player's own game textures at runtime wherever possible: kit icons from
+  real items with `renderItem`, the card moon from the game's own moon texture, and armor and trims
+  on the real player model. Prefer the older look McPvP uses: an "Icon style" setting offers
+  Classic, from the game's built-in Programmer Art pack, as the default, and Current.
+- **Kit icons** match what the lists use: sword is a netherite sword, plus mace, potion, ender pearl,
+  golden apple, shield, bow, creeper spawn egg, minecart with TNT, diamond and netherite chestplates.
+- **Official list logos** are downloaded at runtime from each list's own website and cached locally.
+  Sources are in `docs/LOGOS.md`. If one can't be fetched, fall back to our neutral letter mark.
+- **Never commit** Mojang textures or third-party logos to this repo, and never bundle them in the
+  jar. Runtime loading gives the same look without redistributing anyone's files.
+- Our own pixel icons remain as the final fallback, and for anything with no vanilla equivalent.
 
 ## Privacy
 
 Modrinth's rules require clear disclosure of data sent to a remote server. Say in the README, on
 the Modrinth page and in a first-run notice that the mod sends the UUIDs and names of players in
 your tab list to the TierProfiles server, and your own card style when you choose to save it. Send
-nothing else. Your Minecraft access token only ever goes to Mojang. Include a setting to turn
-lookups off.
+nothing else. The mod also downloads list logos directly from those lists' websites. Your Minecraft
+access token only ever goes to Mojang. Include a setting to turn lookups off.
 
 ## Credits
 
