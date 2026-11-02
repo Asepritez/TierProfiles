@@ -1,6 +1,7 @@
 package dev.tierprofiles.hud;
 
 import com.mojang.authlib.GameProfile;
+import dev.tierprofiles.core.settings.Cosmetics;
 import java.util.UUID;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -55,12 +56,17 @@ public final class Portrait {
         return current;
     }
 
-    /** Draws the model facing the viewer, turned by `yaw` degrees. */
-    static void draw(GuiGraphicsExtractor graphics, UUID uuid, String name, int x0, int y0, int x1, int y1, int size, float yaw) {
+    /**
+     * Draws the model facing the viewer, turned by `yaw` degrees.
+     *
+     * @param look card armor to wear, or null for none
+     */
+    public static void draw(GuiGraphicsExtractor graphics, UUID uuid, String name, int x0, int y0, int x1, int y1, int size, float yaw, Cosmetics look) {
         RemotePlayer model = model(uuid, name);
         if (model == null) {
             return;
         }
+        Wardrobe.dress(model, look);
 
         EntityRenderDispatcher dispatcher = Minecraft.getInstance().getEntityRenderDispatcher();
         EntityRenderer<? super RemotePlayer, ?> renderer = dispatcher.getRenderer(model);

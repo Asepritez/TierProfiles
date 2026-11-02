@@ -20,6 +20,8 @@ public final class Global {
     public boolean reduceMotion = false;
     /** Download each list's real logo from its own website. */
     public boolean officialLogos = true;
+    /** How your own card looks. Personal, so share codes never carry it. */
+    public Cosmetics cosmetics = new Cosmetics();
 
     public static boolean isValidServerUrl(String url) {
         if (url == null) {
@@ -39,5 +41,7 @@ public final class Global {
             serverUrl = DEFAULT_SERVER_URL;
         }
         serverUrl = serverUrl.trim().replaceAll("/+$", "");
+        cosmetics = cosmetics == null ? new Cosmetics() : cosmetics;
+        cosmetics.sanitize();
     }
 }

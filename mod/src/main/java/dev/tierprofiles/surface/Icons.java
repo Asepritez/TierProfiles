@@ -46,8 +46,8 @@ public final class Icons {
 
     private static FontDescription fontFor(Style.IconSet set) {
         return switch (set) {
+            case DEFAULT -> CURRENT;
             case CLASSIC -> CLASSIC;
-            case CURRENT -> CURRENT;
             case PIXEL -> PIXEL;
         };
     }

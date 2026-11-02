@@ -58,6 +58,7 @@ public final class ProfileService {
     private final Map<UUID, String> urgent = new LinkedHashMap<>();
     private final Map<UUID, String> queued = new LinkedHashMap<>();
 
+    private volatile String lastStatus = "nothing sent yet";
     private long backoffUntil;
     private int failures;
     private ScheduledExecutorService executor;
@@ -114,6 +115,49 @@ public final class ProfileService {
 
     public synchronized int queueSize() {
         return urgent.size() + queued.size();
+    }
+
+    /** What the lists have said lately, for the Diagnostics page. */
+    public static final class ListHealth {
+        private final Map<ListStatus, Integer> counts = new EnumMap<>(ListStatus.class);
+        private String lastReason;
+
+        public int count(ListStatus status) {
+            return counts.getOrDefault(status, 0);
+        }
+
+        public String lastReason() {
+            return lastReason;
+        }
+
+        private void add(ListProfile profile) {
+            counts.merge(profile.status(), 1, Integer::sum);
+            if (profile.status() == ListStatus.UNAVAILABLE && profile.reason() != null) {
+                lastReason = profile.reason();
+            }
+        }
+    }
+
+    public Map<TierList, ListHealth> health() {
+        Map<TierList, ListHealth> health = new EnumMap<>(TierList.class);
+        for (TierList list : TierList.values()) {
+            health.put(list, new ListHealth());
+        }
+        for (Cached cached : cache.values()) {
+            for (TierList list : TierList.values()) {
+                health.get(list).add(cached.profile().list(list));
+            }
+        }
+        return health;
+    }
+
+    public int knownPlayers() {
+        return cache.size();
+    }
+
+    /** A short sentence about the last call to our server. */
+    public String lastStatus() {
+        return lastStatus;
     }
 
     /** Forget everything, for example after switching to another server. */
@@ -177,10 +221,12 @@ public final class ProfileService {
         try {
             reply = transport.post(settings.serverUrl + "/v1/profiles", requestBody(batch));
         } catch (IOException e) {
+            lastStatus = "failed: " + e.getMessage();
             onFailure(batch, now);
             return;
         }
 
+        lastStatus = "ok, " + batch.size() + " players";
         synchronized (this) {
             failures = 0;
         }

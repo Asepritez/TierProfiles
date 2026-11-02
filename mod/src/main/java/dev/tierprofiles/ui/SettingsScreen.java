@@ -5,76 +5,104 @@ import dev.tierprofiles.TierProfiles;
 import dev.tierprofiles.core.config.ConfigEditor;
 import dev.tierprofiles.core.config.ConfigStore;
 import dev.tierprofiles.core.config.ShareCode;
-import dev.tierprofiles.core.logic.HighlightEngine;
 import dev.tierprofiles.core.model.Kits;
-import dev.tierprofiles.core.model.PlayerProfile;
-import dev.tierprofiles.core.model.Tier;
 import dev.tierprofiles.core.model.TierList;
 import dev.tierprofiles.core.settings.ConfigFile;
 import dev.tierprofiles.core.settings.Global;
 import dev.tierprofiles.core.settings.HighlightRule;
 import dev.tierprofiles.core.settings.Settings;
 import dev.tierprofiles.core.settings.Surface;
-import dev.tierprofiles.surface.Decorator;
+import dev.tierprofiles.surface.KitIcon;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.IntConsumer;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 
 /**
- * The settings screen. Changes go to a staged copy and do nothing until Apply. Each tab
- * opens on a few essentials, with everything else under one Advanced section, and the
- * search box looks through every setting at once.
+ * The settings screen, built like an inventory: a rail of categories, options you pick
+ * with a hotbar-style frame, a permanent Live Stage showing the result, and a hotbar of
+ * your nine setups along the bottom.
+ *
+ * Changes go to a staged copy and do nothing until Apply. Each tab opens on a few
+ * essentials with one Advanced row beneath, and search reaches every setting.
+ *
+ * Layout numbers are from docs/LAYOUT.md, whose reference size is 960 by 540. Minecraft's
+ * own GUI scale often gives much less than that, so this screen picks its own scale
+ * through `virtualScale`, and everything below works in those virtual pixels.
  */
 public final class SettingsScreen extends Screen {
-    private static final int MARGIN = 6;
-    private static final int HEADER = 46;
-    private static final int FOOTER = 24;
-    private static final int TAB_HEIGHT = 20;
-    private static final int PREVIEW_MIN_WIDTH = 520;
-    private static final int PREVIEW_WIDTH = 170;
-    private static final int SCROLL_STEP = 19;
-    private static final int LABEL_WIDTH_GUESS = 8;
-    private static final int RULE_ROW = 16;
+    private static final int MARGIN = 10;
+    private static final int HEADER_Y = 10;
+    private static final int HEADER_H = 24;
+    private static final int RAIL_W = 88;
+    private static final int STAGE_W = 380;
+    private static final int BODY_Y = 40;
+    private static final int FOOTER = 44;
+    private static final int FOOTER_Y = 34;
+    private static final int RAIL_ITEM = 34;
+    private static final int PADDING = 10;
+    private static final int ROW = 28;
+    private static final int ROW_STEP = 32;
+    private static final int LABEL_W = 130;
+    /** The stage and the options' control column both need their full width. */
+    private static final int MIN_WIDTH_FOR_STAGE = 950;
+    private static final int SCROLL_STEP = 32;
+    private static final int RULE_ROW = 24;
+    private static final float TITLE_SCALE = 1.5f;
+    private static final int FOOTER_BUTTON = 24;
+
+    private static final List<Item> SETUP_ICONS = List.of(
+            Items.ENDER_PEARL, Items.NETHERITE_SWORD, Items.MACE, Items.END_CRYSTAL, Items.NAME_TAG,
+            Items.GOLDEN_APPLE, Items.BOW, Items.TOTEM_OF_UNDYING, Items.SHIELD);
 
     private final Screen parent;
     private final ConfigEditor editor = new ConfigEditor(TierProfiles.config());
     private final Ui ui = new Ui();
     private final SettingsCatalog catalog = new SettingsCatalog(editor::staged, this);
+    private final LiveStage stage = new LiveStage();
 
     private SettingsTab tab = SettingsTab.TAGS;
     private Surface surface = Surface.NAMETAG;
-    private final Set<String> openAdvanced = new HashSet<>();
-    private final Map<SettingsTab, Integer> scrollByTab = new LinkedHashMap<>();
+    private final Map<SettingsTab, Boolean> advancedOpen = new EnumMap<>(SettingsTab.class);
+    private final Map<SettingsTab, Integer> scrollByTab = new EnumMap<>(SettingsTab.class);
     private int contentHeight;
+    private int visibleHeight;
 
-    private EditBox search;
-    private EditBox serverBox;
-    private EditBox nameBox;
-    private EditBox codeBox;
-    private boolean serverBoxWanted;
+    private final TextField search = new TextField(40, "");
+    private final TextField serverBox = new TextField(200, "");
+    private final TextField nameBox = new TextField(ConfigFile.MAX_NAME_LENGTH, "New setup name");
+    private final TextField codeBox = new TextField(65536, "Paste a share code");
 
     private ColorPicker colorPicker;
     private KeyMapping listeningKey;
     private boolean confirmingClose;
+    private boolean showingStage;
+    private boolean diagnostics;
     private int selectedRule;
     private String sharingMessage = "";
+    private Settings pendingImport;
+
+    private int virtualWidth;
+    private int virtualHeight;
+    private float scale;
 
     public SettingsScreen(Screen parent) {
         super(Component.literal("TierProfiles"));
         this.parent = parent;
+        serverBox.value = editor.staged().global.serverUrl;
     }
 
     private Settings staged() {
@@ -85,293 +113,363 @@ public final class SettingsScreen extends Screen {
         return editor.staged();
     }
 
-    @Override
-    protected void init() {
-        search = box(160, "Search every setting");
-        search.setResponder(text -> scrollByTab.clear());
-        serverBox = box(120, "");
-        serverBox.setMaxLength(200);
-        serverBox.setValue(config().global.serverUrl);
-        nameBox = box(100, "New profile name");
-        nameBox.setMaxLength(ConfigFile.MAX_NAME_LENGTH);
-        codeBox = box(160, "Paste a share code");
-        codeBox.setMaxLength(65536);
+    /** For tests, and for jumping straight to a tab. */
+    public void openTab(SettingsTab wanted) {
+        tab = wanted;
+        search.value = "";
+        diagnostics = false;
     }
 
-    private EditBox box(int width, String hint) {
-        EditBox box = new EditBox(font, 0, 0, width, 12, Component.literal(hint));
-        box.setBordered(false);
-        box.setHint(Component.literal(hint));
-        box.setMaxLength(100);
-        addRenderableWidget(box);
-        return box;
+    /** For tests: type into the search box. */
+    public void searchFor(String text) {
+        search.value = text;
     }
 
-    private void placeBox(EditBox box, int x, int y, int width) {
-        box.setX(x + 4);
-        box.setY(y + 3);
-        box.setWidth(width - 8);
-        ui.graphics.fill(x, y, x + width, y + 14, Theme.ROW);
-        ui.graphics.outline(x, y, width, 14, box.isFocused() ? Theme.ACCENT : Theme.BORDER);
-        box.visible = true;
+    public void setAdvanced(boolean open) {
+        advancedOpen.put(tab, open);
+    }
+
+    public void openDiagnostics() {
+        diagnostics = true;
+    }
+
+    /** Stages a change from code, for tests. */
+    public ConfigFile stagedConfig() {
+        return editor.staged();
+    }
+
+    public int changeCount() {
+        return editor.changeCount();
+    }
+
+    public void applyChanges() {
+        apply();
+    }
+
+    public void selectRule(int index) {
+        selectedRule = index;
+    }
+
+    /**
+     * The whole-number size for this window, as physical pixels per virtual pixel. At
+     * 1080p that's 2, which gives exactly the reference 960 by 540 whatever the GUI scale.
+     */
+    private void measure() {
+        int physicalWidth = minecraft.getWindow().getWidth();
+        int physicalHeight = minecraft.getWindow().getHeight();
+        int pixels = Math.max(1, Math.min(physicalWidth / 960, physicalHeight / 540));
+        scale = (float) pixels / minecraft.getWindow().getGuiScale();
+        virtualWidth = Math.round(width / scale);
+        virtualHeight = Math.round(height / scale);
+    }
+
+    private boolean stageFits() {
+        return virtualWidth >= MIN_WIDTH_FOR_STAGE;
     }
 
     @Override
     public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
-        graphics.fill(0, 0, width, height, Theme.BACKGROUND);
+        graphics.fill(0, 0, width, height, 0xFC090B0C);
     }
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
-        ui.begin(graphics, mouseX, mouseY);
+        measure();
+        graphics.pose().pushMatrix();
+        graphics.pose().scale(scale, scale);
+        ui.begin(graphics, Math.round(mouseX / scale), Math.round(mouseY / scale));
         ui.setBlocked(colorPicker != null || confirmingClose);
-        hideBoxes();
 
         drawHeader();
+        drawRail();
         drawBody();
-        drawFooter();
+        drawHotbar();
 
-        super.extractRenderState(graphics, mouseX, mouseY, partialTick);
-        graphics.nextStratum();
-
-        if (colorPicker != null && colorPicker.draw(ui, width, height)) {
+        if (colorPicker != null && colorPicker.draw(ui, virtualWidth, virtualHeight)) {
             colorPicker = null;
         }
         if (confirmingClose) {
             drawConfirmClose();
         }
         ui.end();
-    }
-
-    private void hideBoxes() {
-        nameBox.visible = false;
-        codeBox.visible = false;
-        serverBox.visible = false;
-        serverBoxWanted = false;
+        graphics.pose().popMatrix();
     }
 
     private void drawHeader() {
-        ui.text(Component.literal("TierProfiles").withStyle(s -> s.withBold(true)), MARGIN + 2, 8, 0xFFFFFFFF);
-        ui.text("Settings: " + config().activeProfile, MARGIN + 80, 8, Theme.MUTED);
+        ui.text("TierProfiles", MARGIN + 2, HEADER_Y + 8, 0xFFFFFFFF);
+        int x = MARGIN + RAIL_W;
+        int width = virtualWidth - x - MARGIN;
+        ui.graphics.fill(x, HEADER_Y, x + width, HEADER_Y + HEADER_H, Theme.INK);
+        ui.graphics.item(new ItemStack(Items.SPYGLASS), x + 4, HEADER_Y + 4);
 
-        int searchWidth = Math.min(170, width / 3);
-        placeBox(search, width - MARGIN - searchWidth, 4, searchWidth);
+        boolean searching = isSearching();
+        String prompt = "Search all " + catalog.all().size() + " settings";
+        if (!search.focused && !searching) {
+            ui.text(prompt, x + 24, HEADER_Y + 8, Theme.MUTED);
+        }
+        search.drawBare(ui, x + 20, HEADER_Y + 2, width - 70, HEADER_H - 4);
+        String shortcut = searching ? "Esc" : "Ctrl F";
+        ui.text(shortcut, x + width - 6 - ui.width(shortcut), HEADER_Y + 8, Theme.MUTED);
 
-        SettingsTab[] tabs = SettingsTab.values();
-        int gap = 3;
-        int tabWidth = (width - 2 * MARGIN - gap * (tabs.length - 1)) / tabs.length;
-        int x = MARGIN;
-        for (SettingsTab candidate : tabs) {
-            boolean on = candidate == tab && !isSearching();
-            ui.graphics.fill(x, 22, x + tabWidth, 22 + TAB_HEIGHT, on ? Theme.SELECTED : Theme.ROW);
-            ui.graphics.outline(x, 22, tabWidth, TAB_HEIGHT, on ? Theme.ACCENT : Theme.BORDER);
-            ui.graphics.item(new ItemStack(candidate.icon()), x + 3, 24);
-            if (tabWidth > 52) {
-                ui.text(candidate.title(), x + 21, 28, on ? 0xFFFFFFFF : Theme.MUTED);
+        if (!stageFits()) {
+            int buttonX = x + width - 100;
+            if (ui.button(buttonX, HEADER_Y + 3, 56, 18, showingStage ? "Options" : "Stage", showingStage)) {
+                showingStage = !showingStage;
             }
-            if (ui.clicked(x, 22, tabWidth, TAB_HEIGHT)) {
-                tab = candidate;
-                search.setValue("");
-            }
-            x += tabWidth + gap;
         }
     }
 
     private boolean isSearching() {
-        return !search.getValue().isBlank();
+        return !search.value.isBlank();
+    }
+
+    private void drawRail() {
+        int y = BODY_Y;
+        for (SettingsTab candidate : SettingsTab.values()) {
+            boolean on = candidate == tab && !isSearching();
+            int height = RAIL_ITEM - 2;
+            ui.graphics.fill(MARGIN, y, MARGIN + RAIL_W + (on ? 2 : -1), y + height, on ? Theme.INK : 0xFF0E1216);
+            if (on) {
+                ui.graphics.fill(MARGIN, y, MARGIN + 2, y + height, Theme.ACCENT);
+            }
+            ui.graphics.outline(MARGIN, y, RAIL_W - 1, height, on ? 0x00000000 : 0xFF1E2329);
+            ui.graphics.item(new ItemStack(candidate.icon()), MARGIN + 6, y + (height - 16) / 2);
+            ui.text(candidate.title(), MARGIN + 27, y + (height - 8) / 2, on ? 0xFFFFFFFF : Theme.MUTED);
+            if (ui.clicked(MARGIN, y, RAIL_W, height)) {
+                openTab(candidate);
+            }
+            y += RAIL_ITEM;
+        }
     }
 
     private void drawBody() {
-        int top = HEADER;
-        int bottom = height - FOOTER;
-        boolean preview = width >= PREVIEW_MIN_WIDTH && !isSearching() && (tab == SettingsTab.TAGS || tab == SettingsTab.COLOURS || tab == SettingsTab.RULES);
-        int listWidth = preview ? width - 2 * MARGIN - PREVIEW_WIDTH - MARGIN : width - 2 * MARGIN;
+        int top = BODY_Y;
+        int bottom = virtualHeight - FOOTER;
+        int optionsX = MARGIN + RAIL_W;
+        boolean stageBeside = stageFits();
+        int stageWidth = stageBeside ? STAGE_W : virtualWidth - optionsX - MARGIN;
+        int optionsWidth = stageBeside ? virtualWidth - optionsX - STAGE_W - 2 * MARGIN : stageWidth;
+        int stageX = stageBeside ? optionsX + optionsWidth + MARGIN : optionsX;
 
-        ui.graphics.fill(MARGIN, top, MARGIN + listWidth, bottom, Theme.PANEL);
-        ui.graphics.outline(MARGIN, top, listWidth, bottom - top, Theme.BORDER);
+        if (stageBeside || !showingStage) {
+            drawOptions(optionsX, top, optionsWidth, bottom - top);
+        }
+        if (stageBeside || showingStage) {
+            stage.draw(ui, stageX, top, stageWidth, bottom - top, tab, editor.staged(), scale);
+        }
+    }
 
+    void drawKit(Ui ui, String kit, int x, int y) {
+        KitIcon.draw(ui.graphics, kit, x, y, staged().style.iconSet);
+    }
+
+    private void drawOptions(int x, int top, int width, int height) {
+        ui.panel(x, top, width, height);
+
+        int left = x + PADDING;
+        int right = x + width - PADDING;
+        drawTitle(left, right, top + 13);
+
+        int listTop = top + 38;
+        int listBottom = top + height - 1;
+        visibleHeight = listBottom - listTop;
         int scroll = scrollByTab.getOrDefault(tab, 0);
-        ui.clip(MARGIN + 1, top + 1, MARGIN + listWidth - 1, bottom - 1);
-        int y = top + 3 - scroll;
-        int left = MARGIN + 4;
-        int right = MARGIN + listWidth - 8;
 
+        ui.clip(x + 1, listTop, x + width - 1, listBottom);
+        int y = listTop - scroll;
         if (isSearching()) {
             y = drawSearchResults(left, right, y);
+        } else if (diagnostics) {
+            y = drawDiagnostics(left, right, y);
         } else {
-            switch (tab) {
-                case RULES -> y = drawRules(left, right, y);
-                case SHARING -> y = drawSharing(left, right, y);
-                case PROFILE -> y = drawProfile(left, right, y);
-                case TAGS -> {
-                    y = drawSurfacePicker(left, right, y);
-                    y = drawSettings(catalog.forTab(tab, surface), left, right, y);
-                }
-                default -> y = drawSettings(catalog.forTab(tab, surface), left, right, y);
-            }
+            y = drawTab(left, right, y);
         }
         ui.unclip();
-        contentHeight = y + scroll - top;
+        contentHeight = y + scroll - listTop;
+        drawScrollbar(x + width - 4, listTop, listBottom, scroll);
+    }
 
-        if (preview) {
-            drawPreview(MARGIN + listWidth + MARGIN, top, PREVIEW_WIDTH, bottom - top);
+    private void drawScrollbar(int x, int top, int bottom, int scroll) {
+        if (contentHeight <= visibleHeight) {
+            return;
         }
-        if (serverBoxWanted) {
-            serverBox.visible = true;
+        int track = bottom - top;
+        int thumb = Math.max(16, track * visibleHeight / contentHeight);
+        int y = top + (track - thumb) * scroll / Math.max(1, contentHeight - visibleHeight);
+        ui.graphics.fill(x, y, x + 2, y + thumb, Theme.BORDER);
+    }
+
+    private void drawTitle(int left, int right, int y) {
+        String title = isSearching() ? resultCount() + " results" : diagnostics ? "Diagnostics" : tab.title();
+        ui.bigText(title, left, y, TITLE_SCALE, 0xFFFFFFFF);
+
+        String note = switch (tab) {
+            case TAGS -> surface.displayName();
+            case RULES -> "First match wins";
+            case POSITION -> words(staged().card.anchor.name());
+            case PROFILE -> "Preset choices only";
+            default -> "";
+        };
+        if (!isSearching() && !diagnostics) {
+            if (Boolean.TRUE.equals(advancedOpen.get(tab))) {
+                note = "Advanced";
+            }
+            ui.text(note, right - ui.width(note), y + 3, Theme.MUTED);
         }
     }
 
-    /** A row of surfaces. The list below always edits the one chosen here. */
-    private int drawSurfacePicker(int left, int right, int y) {
-        int count = Surface.values().length;
-        int each = (right - left) / count;
-        int x = left;
-        for (Surface candidate : Surface.values()) {
-            boolean on = candidate == surface;
-            ui.graphics.fill(x, y, x + each - 2, y + 15, on ? Theme.SELECTED : Theme.ROW);
-            ui.graphics.outline(x, y, each - 2, 15, on ? Theme.ACCENT : Theme.BORDER);
-            ui.graphics.centeredText(font, candidate.displayName(), x + each / 2 - 1, y + 4, on ? 0xFFFFFFFF : Theme.MUTED);
-            if (ui.clicked(x, y, each - 2, 15)) {
-                surface = candidate;
-            }
-            x += each;
-        }
-        return y + 19;
+    private static String words(String id) {
+        String lower = id.toLowerCase(Locale.ROOT).replace('_', ' ');
+        return Character.toUpperCase(lower.charAt(0)) + lower.substring(1);
     }
 
-    private int drawSettings(List<Setting> settings, int left, int right, int y) {
-        Map<String, List<Setting>> essentials = new LinkedHashMap<>();
-        List<Setting> advanced = new ArrayList<>();
-        for (Setting setting : settings) {
-            if (setting.advanced()) {
-                advanced.add(setting);
-            } else {
-                essentials.computeIfAbsent(setting.group(), unused -> new ArrayList<>()).add(setting);
+    private int drawTab(int left, int right, int y) {
+        boolean advanced = Boolean.TRUE.equals(advancedOpen.get(tab));
+        if (advanced) {
+            y = drawRows(catalog.forTab(tab, surface, true), left, right, y);
+            return drawAdvancedRow(left, right, y, "Back to the essentials", true);
+        }
+
+        switch (tab) {
+            case RULES -> y = drawRules(left, right, y);
+            case SHARING -> {
+                return drawSharing(left, right, y);
             }
-        }
-
-        for (Map.Entry<String, List<Setting>> group : essentials.entrySet()) {
-            ui.text(group.getKey(), left, y + 4, Theme.ACCENT);
-            y += 14;
-            for (Setting setting : group.getValue()) {
-                y = drawRow(setting, left, right, y, false);
-            }
-            y += 4;
-        }
-
-        if (!advanced.isEmpty()) {
-            y = drawAdvanced(advanced, left, right, y);
-        }
-        return y;
-    }
-
-    private int drawAdvanced(List<Setting> advanced, int left, int right, int y) {
-        String key = tab.name();
-        boolean open = openAdvanced.contains(key);
-        ui.graphics.fill(left - 1, y, right + 3, y + 15, Theme.ROW);
-        ui.graphics.outline(left - 1, y, right - left + 4, 15, Theme.BORDER);
-        ui.text((open ? "▼ " : "▶ ") + "Advanced", left + 3, y + 4, Theme.TEXT);
-        String count = advanced.size() + " settings";
-        ui.text(count, right - ui.width(count), y + 4, Theme.MUTED);
-        if (ui.clicked(left - 1, y, right - left + 4, 15)) {
-            if (open) {
-                openAdvanced.remove(key);
-            } else {
-                openAdvanced.add(key);
-            }
-        }
-        y += 18;
-
-        if (open) {
-            String lastGroup = "";
-            for (Setting setting : advanced) {
-                if (!setting.group().equals(lastGroup)) {
-                    lastGroup = setting.group();
-                    ui.text(lastGroup, left, y + 4, Theme.MUTED);
-                    y += 14;
+            default -> {
+                if (tab == SettingsTab.TAGS) {
+                    y = drawSurfaceSlots(left, y);
                 }
-                y = drawRow(setting, left, right, y, false);
+                y = drawRows(essentials(), left, right, y);
             }
+        }
+
+        int more = catalog.forTab(tab, surface, true).size();
+        if (more > 0) {
+            y = drawAdvancedRow(left, right, y, more + " more: " + advancedSummary(), false);
+        }
+        return drawHintBox(left, right, y + 6);
+    }
+
+    private List<Setting> essentials() {
+        return tab == SettingsTab.RULES ? List.of() : catalog.forTab(tab, surface, false);
+    }
+
+    private String advancedSummary() {
+        return switch (tab) {
+            case TAGS -> "per-list minimums, list order, format";
+            case COLOURS -> "retired chips, colours per list";
+            case RULES -> "";
+            case PROFILE -> "per-slot armor, trims, effects, accent, size";
+            case POSITION -> "look-at card";
+            case MORE -> "logos, server, diagnostics";
+            default -> "";
+        };
+    }
+
+    private int drawSurfaceSlots(int left, int y) {
+        int center = y + ROW / 2;
+        ui.text("Show on", left, center - 4, Theme.TEXT);
+        int x = left + LABEL_W;
+        Item[] icons = {Items.NAME_TAG, Items.BOOK, Items.PAPER, Items.SPYGLASS, Items.ARMOR_STAND};
+        Surface[] surfaces = Surface.values();
+        for (int i = 0; i < surfaces.length; i++) {
+            if (ui.slot(x, center, surfaces[i] == surface)) {
+                surface = surfaces[i];
+            }
+            ui.graphics.item(new ItemStack(icons[i]), x + 2, center - 8);
+            if (ui.hovered(x, center - 10, Ui.SLOT, Ui.SLOT)) {
+                ui.hint(surfaces[i].displayName(), "Everything below applies to this surface.");
+            }
+            x += Ui.SLOT + 1;
+        }
+        ui.text(surface.displayName(), x + 6, center - 4, Theme.MUTED);
+        return y + ROW_STEP;
+    }
+
+    private int drawRows(List<Setting> settings, int left, int right, int y) {
+        for (Setting setting : settings) {
+            y = drawRow(setting, left, right, y);
         }
         return y;
     }
 
-    private int drawRow(Setting setting, int left, int right, int y, boolean withPath) {
-        boolean hover = ui.hovered(left - 1, y, right - left + 4, Ui.ROW_HEIGHT);
-        if (hover) {
-            ui.graphics.fill(left - 1, y, right + 3, y + Ui.ROW_HEIGHT, 0x22FFFFFF);
-            ui.hint(setting.hint());
+    private int drawRow(Setting setting, int left, int right, int y) {
+        int center = y + ROW / 2;
+        if (ui.hovered(left, y, right - left, ROW)) {
+            ui.hint(setting.label(), setting.hint());
         }
-        int center = y + Ui.ROW_HEIGHT / 2;
-        ui.text(setting.label(), left + 3, center - 4, Theme.TEXT);
-        if (withPath) {
-            ui.text(setting.path(), left + 3 + LABEL_WIDTH_GUESS * 16, center - 4, Theme.MUTED);
+        ui.text(setting.label(), left, center - 4, Theme.TEXT);
+        setting.control().draw(ui, left + LABEL_W, center, right - left - LABEL_W);
+        return y + ROW_STEP;
+    }
+
+    private int drawAdvancedRow(int left, int right, int y, String summary, boolean open) {
+        int width = right - left;
+        ui.graphics.fill(left, y, right, y + ROW, ui.hovered(left, y, width, ROW) ? Theme.SELECTED : 0xFF131A20);
+        ui.graphics.outline(left, y, width, ROW, 0xFF2E3338);
+        ui.text(open ? "‹" : "›", left + 7, y + 10, Theme.ACCENT);
+        ui.text("Advanced", left + 16, y + 10, 0xFFFFFFFF);
+        ui.text(summary, left + LABEL_W, y + 10, Theme.MUTED);
+        if (ui.clicked(left, y, width, ROW)) {
+            advancedOpen.put(tab, !open);
+            scrollByTab.put(tab, 0);
         }
-        setting.control().draw(ui, right, center);
-        return y + Ui.ROW_HEIGHT;
+        return y + ROW_STEP;
+    }
+
+    /** A vanilla-style tooltip that explains whatever you're hovering. */
+    private int drawHintBox(int left, int right, int y) {
+        String title = ui.hoverTitle();
+        String hint = ui.hoverHint();
+        if (hint == null) {
+            return y;
+        }
+        int x = left + LABEL_W;
+        int width = right - x;
+        List<String> lines = new ArrayList<>();
+        ui.font.getSplitter().splitLines(hint, width - 12, net.minecraft.network.chat.Style.EMPTY)
+                .forEach(line -> lines.add(line.getString()));
+        int height = 18 + lines.size() * 11;
+
+        ui.graphics.fill(x, y, x + width, y + height, 0xF0100010);
+        ui.graphics.outline(x, y, width, height, 0xFF3A0F75);
+        ui.text(title, x + 6, y + 5, 0xFFFFFFFF);
+        int lineY = y + 16;
+        for (String line : lines) {
+            ui.text(line, x + 6, lineY, 0xFFCFCFCF);
+            lineY += 11;
+        }
+        return y + height;
+    }
+
+    private long resultCount() {
+        return catalog.all().stream().filter(setting -> setting.matches(search.value.trim())).count();
     }
 
     private int drawSearchResults(int left, int right, int y) {
-        String query = search.getValue().trim();
-        List<Setting> matches = new ArrayList<>();
+        String query = search.value.trim();
+        int labelWidth = LABEL_W;
+        int pathWidth = 170;
         for (Setting setting : catalog.all()) {
-            if (setting.matches(query)) {
-                matches.add(setting);
+            if (!setting.matches(query)) {
+                continue;
             }
-        }
-        ui.text(matches.size() + " results for \"" + query + "\"", left, y + 4, Theme.TEXT);
-        y += 16;
-        for (Setting setting : matches) {
-            y = drawRow(setting, left, right, y, right - left > 330);
+            int center = y + ROW / 2;
+            if (ui.hovered(left, y, right - left, ROW)) {
+                ui.graphics.fill(left, y, right, y + ROW, Theme.SELECTED);
+                ui.hint(setting.label(), setting.hint());
+            }
+            ui.text(setting.label(), left + 3, center - 4, Theme.TEXT);
+            ui.text(ui.font.plainSubstrByWidth(setting.path(), pathWidth - 6), left + labelWidth, center - 4, Theme.MUTED);
+            setting.control().draw(ui, left + labelWidth + pathWidth, center, right - left - labelWidth - pathWidth);
+            y += ROW_STEP;
         }
         return y;
     }
 
-    private void drawPreview(int x, int top, int width, int height) {
-        ui.panel(x, top, width, height);
-        ui.text("Live preview", x + 5, top + 5, Theme.ACCENT);
-
-        Settings settings = staged();
-        Surface shown = surface == Surface.LOOK_AT || surface == Surface.OVERLAY ? Surface.NAMETAG : surface;
-        ui.graphics.enableScissor(x + 1, top + 1, x + width - 1, top + height - 1);
-        int y = top + 19;
-        int tagged = 0;
-        for (PlayerProfile player : SamplePlayers.all()) {
-            Component line = Decorator.preview(player, Component.literal(player.name()), shown, settings);
-            ui.text(line, x + 5, y, 0xFFFFFFFF);
-            if (!line.getString().equals(player.name())) {
-                tagged += 1;
-            }
-            y += 12;
-        }
-        ui.graphics.disableScissor();
-        ui.text(tagged + " of " + SamplePlayers.all().size() + " tagged", x + 5, top + height - 12, Theme.MUTED);
-    }
-
-    void drawPriorityHint(Ui ui, int right, int y) {
-        Settings settings = staged();
-        List<TierList> order = settings.filters.listPriority;
-        int x = right - 5 * 46;
-        for (int i = 0; i < order.size(); i++) {
-            TierList list = order.get(i);
-            boolean hover = ui.hovered(x, y - 7, 44, 14);
-            ui.graphics.fill(x, y - 7, x + 44, y + 7, hover ? Theme.SELECTED : Theme.ROW);
-            ui.graphics.outline(x, y - 7, 44, 14, Theme.BORDER);
-            ui.graphics.centeredText(font, list.shortName(), x + 22, y - 3, list.isBeta() ? Theme.BETA : Theme.TEXT);
-            if (ui.clicked(x, y - 7, 44, 14) && i > 0) {
-                order.remove(i);
-                order.add(i - 1, list);
-            }
-            x += 46;
-        }
-        ui.hint("Click a list to move it up. First wins.");
-    }
-
-    void drawServerBox(Ui ui, int right, int y) {
-        int boxWidth = Math.min(190, width / 3);
-        placeBox(serverBox, right - boxWidth, y - 7, boxWidth);
-        serverBoxWanted = true;
-        String value = serverBox.getValue().trim();
+    void drawServerBox(Ui ui, int x, int y, int width) {
+        serverBox.draw(ui, x, y - 10, Math.min(260, width), Ui.SLOT);
+        String value = serverBox.value.trim();
         if (Global.isValidServerUrl(value)) {
             config().global.serverUrl = value;
         }
@@ -389,22 +487,49 @@ public final class SettingsScreen extends Screen {
         listeningKey = key;
     }
 
-    private int drawRules(int left, int right, int y) {
-        Settings settings = staged();
-        List<HighlightRule> rules = settings.rules;
-        ui.text("Rules run top to bottom, and the first match wins.", left, y + 3, Theme.MUTED);
-        y += 15;
+    private static String colourName(int rgb) {
+        return switch (rgb) {
+            case 0xFF7777 -> "Red";
+            case 0xFFCF4A -> "Gold";
+            case 0xC58BFF -> "Purple";
+            case 0x68B5D5 -> "Blue";
+            case 0x77D877 -> "Green";
+            case 0xFF5FA2 -> "Pink";
+            case 0xFFFFFF -> "White";
+            default -> dev.tierprofiles.core.settings.Colors.toHex(rgb);
+        };
+    }
 
+    private static String ruleEffect(HighlightRule rule) {
+        List<String> parts = new ArrayList<>();
+        parts.add(rule.color == null ? "No colour" : colourName(rule.color));
+        if (rule.gradientEnd != null) {
+            parts.add("gradient");
+        }
+        if (rule.bold) {
+            parts.add("bold");
+        }
+        if (rule.star) {
+            parts.add("star");
+        }
+        if (rule.glow) {
+            parts.add("glow");
+        }
+        return String.join(", ", parts);
+    }
+
+    private int drawRules(int left, int right, int y) {
+        List<HighlightRule> rules = staged().rules;
         for (int i = 0; i < rules.size(); i++) {
             y = drawRuleRow(rules, i, left, right, y);
         }
-        if (ui.button(left, y + 2, 90, 14, "Add a rule", false) && rules.size() < Settings.MAX_RULES) {
+        if (ui.button(left, y + 4, 90, Ui.SLOT, "Add a rule", false) && rules.size() < Settings.MAX_RULES) {
             rules.add(new HighlightRule());
             selectedRule = rules.size() - 1;
         }
-        y += 20;
+        y += ROW + 4;
 
-        if (selectedRule < rules.size() && !rules.isEmpty()) {
+        if (selectedRule < rules.size()) {
             y = drawRuleEditor(rules.get(selectedRule), left, right, y);
         }
         return y;
@@ -413,193 +538,264 @@ public final class SettingsScreen extends Screen {
     private int drawRuleRow(List<HighlightRule> rules, int index, int left, int right, int y) {
         HighlightRule rule = rules.get(index);
         boolean selected = index == selectedRule;
-        ui.graphics.fill(left - 1, y, right + 3, y + RULE_ROW - 1, selected ? Theme.SELECTED : Theme.ROW);
-        if (ui.clicked(left - 1, y, right - left - 60, RULE_ROW)) {
+        int width = right - left;
+        if (selected) {
+            ui.graphics.fill(left, y, right, y + RULE_ROW, Theme.SELECTED);
+            ui.graphics.fill(left, y, left + 2, y + RULE_ROW, Theme.ACCENT);
+        }
+        if (ui.clicked(left, y, width - 106, RULE_ROW)) {
             selectedRule = index;
         }
 
-        String listName = rule.list == null ? "any list" : rule.list.displayName();
-        String kitName = rule.kit == null ? "" : " in " + Kits.displayName(rule.kit);
+        String comparison = switch (rule.comparison) {
+            case AT -> "At ";
+            case ABOVE -> "Above ";
+            case AT_OR_ABOVE -> "From ";
+        };
+        String where = rule.list == null ? "any list" : dev.tierprofiles.core.layout.CardGrid.rowName(rule.list);
+        ui.text((index + 1) + "  " + comparison + rule.minimumTier + ", " + where, left + 6, y + 8, rule.enabled ? Theme.TEXT : Theme.MUTED);
         int color = rule.color == null ? Theme.TEXT : Theme.opaque(rule.color);
-        ui.text((index + 1) + ". " + rule.minimumTier + " and above on " + listName + kitName, left + 3, y + 4, rule.enabled ? color : Theme.MUTED);
+        ui.text(ruleEffect(rule), left + LABEL_W + 40, y + 8, rule.enabled ? color : Theme.MUTED);
+
+        rule.enabled = ui.toggle(right - 106, y + RULE_ROW / 2, rule.enabled);
 
         int x = right - 42;
-        if (ui.button(x, y + 1, 13, 13, "↑", false) && index > 0) {
+        if (ui.button(x, y + 4, 13, 16, "↑", false) && index > 0) {
             rules.remove(index);
             rules.add(index - 1, rule);
             selectedRule = index - 1;
         }
-        if (ui.button(x + 15, y + 1, 13, 13, "↓", false) && index < rules.size() - 1) {
+        if (ui.button(x + 14, y + 4, 13, 16, "↓", false) && index < rules.size() - 1) {
             rules.remove(index);
             rules.add(index + 1, rule);
             selectedRule = index + 1;
         }
-        if (ui.button(x + 30, y + 1, 13, 13, "x", false)) {
+        if (ui.button(x + 28, y + 4, 13, 16, "x", false)) {
             rules.remove(index);
-            selectedRule = Math.max(0, selectedRule - 1);
+            selectedRule = Math.max(0, Math.min(selectedRule, rules.size() - 1));
             return y;
         }
-        return y + RULE_ROW;
-    }
-
-    private int drawRuleEditor(HighlightRule rule, int left, int right, int y) {
-        ui.text("Edit rule " + (selectedRule + 1), left, y + 4, Theme.ACCENT);
-        y += 15;
-
-        y = line("Rule is on", left, right, y, (r, c) -> rule.enabled = ui.toggle(r, c, rule.enabled));
-        y = line("Tier is at or above", left, right, y, (r, c) -> {
-            Tier picked = ui.tierPicker(r, c, rule.minimum(), staged().style.palette::color);
-            if (picked != null) {
-                rule.minimumTier = picked.label();
-            }
-        });
-        y = line("On list", left, right, y, (r, c) -> {
-            List<TierList> lists = new ArrayList<>();
-            lists.add(null);
-            lists.addAll(List.of(TierList.values()));
-            rule.list = ui.cycle(r, c, 104, lists, rule.list, list -> list == null ? "Any list" : list.displayName());
-        });
-        y = line("In kit", left, right, y, (r, c) -> {
-            List<String> kits = new ArrayList<>();
-            kits.add(null);
-            kits.addAll(Kits.known());
-            rule.kit = ui.cycle(r, c, 104, kits, rule.kit, kit -> kit == null ? "Any kit" : Kits.displayName(kit));
-        });
-        y = line("Name colour", left, right, y, (r, c) -> {
-            int rgb = rule.color == null ? 0xFFFFFF : rule.color;
-            if (ui.swatch(r - 14, c - 7, 14, rgb)) {
-                pickColor(rgb, picked -> rule.color = picked);
-            }
-        });
-        y = line("Gradient", left, right, y, (r, c) -> {
-            boolean on = ui.toggle(r - 20, c, rule.gradientEnd != null);
-            if (on && rule.gradientEnd == null) {
-                rule.gradientEnd = 0xAA00FF;
-            } else if (!on) {
-                rule.gradientEnd = null;
-            }
-            if (rule.gradientEnd != null && ui.swatch(r - 14, c - 7, 14, rule.gradientEnd)) {
-                pickColor(rule.gradientEnd, picked -> rule.gradientEnd = picked);
-            }
-        });
-        y = line("Bold", left, right, y, (r, c) -> rule.bold = ui.toggle(r, c, rule.bold));
-        y = line("Glow around tag", left, right, y, (r, c) -> rule.glow = ui.toggle(r, c, rule.glow));
-        y = line("Star before name", left, right, y, (r, c) -> rule.star = ui.toggle(r, c, rule.star));
-        y = line("Ignore retired tiers", left, right, y, (r, c) -> rule.ignoreRetired = ui.toggle(r, c, rule.ignoreRetired));
-        y = line("Judge by peak", left, right, y, (r, c) -> rule.usePeak = ui.toggle(r, c, rule.usePeak));
-
-        int caught = 0;
-        for (PlayerProfile player : SamplePlayers.all()) {
-            if (!HighlightEngine.evaluate(player, staged().rules, staged().filters).isPlain()) {
-                caught += 1;
-            }
-        }
-        ui.text("Rules style " + caught + " of " + SamplePlayers.all().size() + " sample players.", left, y + 4, Theme.MUTED);
-        return y + 16;
+        return y + RULE_ROW + 2;
     }
 
     @FunctionalInterface
     private interface LineControl {
-        void draw(int right, int centerY);
+        void draw(int x, int centerY);
     }
 
-    private int line(String label, int left, int right, int y, LineControl control) {
-        ui.text(label, left + 3, y + Ui.ROW_HEIGHT / 2 - 4, Theme.TEXT);
-        control.draw(right, y + Ui.ROW_HEIGHT / 2);
-        return y + Ui.ROW_HEIGHT;
+    private int line(String label, int left, int y, LineControl control) {
+        int center = y + ROW / 2;
+        ui.text(label, left, center - 4, Theme.TEXT);
+        control.draw(left + LABEL_W, center);
+        return y + ROW_STEP;
+    }
+
+    private int drawRuleEditor(HighlightRule rule, int left, int right, int y) {
+        y = line("If tier", left, y, (x, c) -> {
+            rule.comparison = ui.segments(x, c, List.of(HighlightRule.Comparison.values()), rule.comparison, value -> switch (value) {
+                case AT -> "At";
+                case ABOVE -> "Above";
+                case AT_OR_ABOVE -> "At or above";
+            });
+            int after = x + 170;
+            rule.minimumTier = ui.cycleTier(after, c, rule.minimum(), staged().style.palette::color).label();
+        });
+        y = line("On list", left, y, (x, c) -> {
+            if (ui.slot(x, c, rule.list == null)) {
+                rule.list = null;
+            }
+            ui.graphics.centeredText(ui.font, "Any", x + Ui.SLOT / 2, c - 4, Theme.TEXT);
+            x += Ui.SLOT + 1;
+            for (TierList list : TierList.values()) {
+                if (ui.slot(x, c, rule.list == list)) {
+                    rule.list = list;
+                }
+                dev.tierprofiles.hud.Logos.draw(ui.graphics, list, x + 2, c - 8, 16, 1);
+                x += Ui.SLOT + 1;
+            }
+        });
+        y = line("Name colour", left, y, (x, c) -> {
+            for (int color : List.of(0xFF7777, 0xFFCF4A, 0xC58BFF, 0x68B5D5, 0x77D877, 0xFF5FA2, 0xFFFFFF)) {
+                if (ui.swatch(x, c, color, rule.color != null && rule.color == color)) {
+                    rule.color = color;
+                }
+                x += Ui.SLOT + 1;
+            }
+            int shown = rule.color == null ? 0xFFFFFF : rule.color;
+            if (ui.button(x + 4, c - 10, 56, Ui.SLOT, "Custom", false)) {
+                pickColor(shown, picked -> rule.color = picked);
+            }
+        });
+        y = line("Style", left, y, (x, c) -> {
+            int cell = 50;
+            rule.bold = styleCell(x, c, cell, "Bold", rule.bold);
+            rule.star = styleCell(x + cell + 1, c, cell, "Star", rule.star);
+            rule.glow = styleCell(x + 2 * (cell + 1), c, cell, "Glow", rule.glow);
+        });
+        y = line("Gradient", left, y, (x, c) -> {
+            boolean on = ui.toggle(x, c, rule.gradientEnd != null);
+            if (on && rule.gradientEnd == null) {
+                rule.gradientEnd = 0xC58BFF;
+            } else if (!on) {
+                rule.gradientEnd = null;
+            }
+            if (rule.gradientEnd != null && ui.swatch(x + 64, c, rule.gradientEnd, false)) {
+                pickColor(rule.gradientEnd, picked -> rule.gradientEnd = picked);
+            }
+        });
+        y = line("In kit", left, y, (x, c) -> {
+            if (ui.slot(x, c, rule.kit == null)) {
+                rule.kit = null;
+            }
+            ui.graphics.centeredText(ui.font, "Any", x + Ui.SLOT / 2, c - 4, Theme.TEXT);
+            x += Ui.SLOT + 1;
+            for (String kit : Kits.known().subList(0, 10)) {
+                if (ui.slot(x, c, kit.equals(rule.kit))) {
+                    rule.kit = kit;
+                }
+                drawKit(ui, kit, x + 2, c - 8);
+                x += Ui.SLOT + 1;
+            }
+        });
+        y = line("Ignore retired", left, y, (x, c) -> rule.ignoreRetired = ui.toggle(x, c, rule.ignoreRetired));
+        return line("Judge by peak", left, y, (x, c) -> rule.usePeak = ui.toggle(x, c, rule.usePeak));
+    }
+
+    private boolean styleCell(int x, int center, int width, String label, boolean value) {
+        int y = center - Ui.SLOT / 2;
+        ui.graphics.fill(x, y, x + width, y + Ui.SLOT, ui.hovered(x, y, width, Ui.SLOT) ? Theme.SELECTED : Theme.ROW);
+        if (value) {
+            ui.frame(x, y, width, Ui.SLOT);
+        }
+        ui.graphics.centeredText(ui.font, label, x + width / 2, center - 4, value ? 0xFFFFFFFF : Theme.MUTED);
+        return ui.clicked(x, y, width, Ui.SLOT) != value;
     }
 
     private int drawSharing(int left, int right, int y) {
-        ui.text("Named profiles", left, y + 4, Theme.ACCENT);
-        y += 15;
+        int width = right - left;
+        ui.text("Setups", left, y + 2, Theme.ACCENT);
+        y += 16;
 
         for (String name : new ArrayList<>(config().profiles.keySet())) {
             boolean active = name.equals(config().activeProfile);
-            ui.graphics.fill(left - 1, y, right + 3, y + RULE_ROW - 1, active ? Theme.SELECTED : Theme.ROW);
-            ui.text(name, left + 3, y + 4, active ? 0xFFFFFFFF : Theme.TEXT);
-            if (!active && ui.button(right - 90, y + 1, 44, 13, "Use", false)) {
+            ui.graphics.fill(left, y, right, y + RULE_ROW, active ? Theme.SELECTED : Theme.ROW);
+            ui.text(name, left + 6, y + 8, active ? 0xFFFFFFFF : Theme.TEXT);
+            if (!active && ui.button(right - 112, y + 3, 54, 18, "Use", false)) {
                 editor.switchProfile(name);
             }
-            if (ui.button(right - 44, y + 1, 44, 13, "Delete", false)) {
+            if (ui.button(right - 56, y + 3, 54, 18, "Delete", false)) {
                 editor.deleteProfile(name);
-                sharingMessage = "";
             }
-            y += RULE_ROW;
+            y += RULE_ROW + 2;
         }
 
-        y += 3;
-        int boxWidth = Math.min(150, right - left - 130);
-        placeBox(nameBox, left, y, boxWidth);
-        if (ui.button(left + boxWidth + 4, y, 60, 14, "New", false)) {
-            if (editor.createProfile(nameBox.getValue().trim(), staged())) {
-                nameBox.setValue("");
-            }
+        y += 4;
+        int boxWidth = Math.min(180, width - 130);
+        nameBox.draw(ui, left, y, boxWidth, Ui.SLOT);
+        if (ui.button(left + boxWidth + 4, y, 60, Ui.SLOT, "New", false) && editor.createProfile(nameBox.value.trim(), staged())) {
+            nameBox.value = "";
         }
-        if (ui.button(left + boxWidth + 68, y, 60, 14, "Rename", false)) {
-            if (editor.renameProfile(config().activeProfile, nameBox.getValue().trim())) {
-                nameBox.setValue("");
-            }
+        if (ui.button(left + boxWidth + 68, y, 60, Ui.SLOT, "Rename", false) && editor.renameProfile(config().activeProfile, nameBox.value.trim())) {
+            nameBox.value = "";
         }
-        y += 24;
+        y += ROW + 6;
 
-        ui.text("Share code", left, y + 4, Theme.ACCENT);
-        y += 15;
-        if (ui.button(left, y, 120, 14, "Copy my code", false)) {
-            try {
-                minecraft.keyboardHandler.setClipboard(ShareCode.encode(staged()));
-                sharingMessage = "Copied. Send it to a friend.";
-            } catch (IOException e) {
-                sharingMessage = "Could not make a code.";
-            }
+        ui.text("Share code", left, y + 2, Theme.ACCENT);
+        y += 16;
+        if (ui.button(left, y, 120, Ui.SLOT, "Copy my code", false)) {
+            copyCode();
         }
-        y += 19;
+        y += ROW;
 
-        int importWidth = right - left - 84;
-        placeBox(codeBox, left, y, importWidth);
-        if (ui.button(left + importWidth + 4, y, 80, 14, "Import", false)) {
-            importCode();
+        codeBox.draw(ui, left, y, width - 84, Ui.SLOT);
+        if (ui.button(left + width - 80, y, 80, Ui.SLOT, "Preview", false)) {
+            previewCode();
         }
-        y += 19;
+        y += ROW;
+
         ui.text(sharingMessage, left, y + 2, Theme.MUTED);
-        return y + 14;
+        y += 16;
+        if (pendingImport != null) {
+            if (ui.button(left, y, 110, Ui.SLOT, "Use this code", true)) {
+                config().profiles.put(config().activeProfile, ConfigStore.copy(pendingImport));
+                pendingImport = null;
+                codeBox.value = "";
+                sharingMessage = "Imported. Apply to keep it.";
+            }
+            y += ROW;
+        }
+        return y;
     }
 
-    private void importCode() {
+    private void copyCode() {
         try {
-            Settings imported = ShareCode.decode(codeBox.getValue());
-            config().profiles.put(config().activeProfile, ConfigStore.copy(imported));
-            codeBox.setValue("");
-            sharingMessage = "Imported into this profile. Apply to keep it.";
+            minecraft.keyboardHandler.setClipboard(ShareCode.encode(staged()));
+            sharingMessage = "Copied. Send it to a friend.";
         } catch (IOException e) {
+            sharingMessage = "Could not make a code.";
+        }
+    }
+
+    /** Shows what would change first, because a code comes from someone else. */
+    private void previewCode() {
+        try {
+            pendingImport = ShareCode.decode(codeBox.value);
+            ConfigFile copy = ConfigStore.copy(config());
+            copy.profiles.put(copy.activeProfile, ConfigStore.copy(pendingImport));
+            ConfigEditor comparison = new ConfigEditor(config());
+            comparison.staged().profiles.put(comparison.staged().activeProfile, ConfigStore.copy(pendingImport));
+            sharingMessage = "This code would change " + comparison.changeCount() + " settings.";
+        } catch (IOException e) {
+            pendingImport = null;
             sharingMessage = e.getMessage();
         }
     }
 
-    /** Filled in by the Profile tab work. */
-    private int drawProfile(int left, int right, int y) {
-        ui.text("Your card style", left, y + 4, Theme.ACCENT);
-        return y + 16;
+    private int drawDiagnostics(int left, int right, int y) {
+        if (ui.button(left, y, 90, Ui.SLOT, "Back", false)) {
+            diagnostics = false;
+        }
+        y += ROW;
+        for (String line : Diagnostics.lines()) {
+            ui.text(line, left, y, Theme.TEXT);
+            y += 13;
+        }
+        return y;
     }
 
-    private void drawFooter() {
-        int y = height - FOOTER + 3;
-        boolean dirty = editor.isDirty();
-        String hint = ui.hoverHint();
-        if (hint != null) {
-            ui.text(hint, MARGIN + 2, y + 5, Theme.MUTED);
-        } else if (dirty) {
-            ui.text("Changes staged until Apply", MARGIN + 2, y + 5, Theme.BETA);
+    /** The bottom row: your nine setups, like a hotbar, then Discard and Apply. */
+    private void drawHotbar() {
+        int y = virtualHeight - FOOTER_Y;
+        int center = y + 12;
+        int x = MARGIN + RAIL_W;
+
+        List<String> names = new ArrayList<>(config().profiles.keySet());
+        for (int i = 0; i < 9; i++) {
+            boolean used = i < names.size();
+            boolean active = used && names.get(i).equals(config().activeProfile);
+            if (ui.slot(x, center, active) && used) {
+                editor.switchProfile(names.get(i));
+            }
+            if (used) {
+                ui.graphics.item(new ItemStack(SETUP_ICONS.get(i)), x + 2, center - 8);
+            }
+            x += Ui.SLOT + 1;
         }
 
-        int right = width - MARGIN;
-        if (ui.button(right - 56, y, 56, Ui.CONTROL_HEIGHT, "Apply", true)) {
+        ui.text(config().activeProfile, x + 8, y + 1, 0xFFFFFFFF);
+        ui.text("Press 1 to 9 to swap setups", x + 8, y + 13, Theme.MUTED);
+
+        int right = virtualWidth - MARGIN;
+        int changes = editor.changeCount();
+        if (changes > 0) {
+            String message = changes == 1 ? "1 change staged" : changes + " changes staged";
+            ui.text(message, right - 136 - ui.width(message), center - 4, Theme.BETA);
+        }
+        if (ui.button(right - 56, y, 56, FOOTER_BUTTON, "Apply", true)) {
             apply();
         }
-        if (ui.button(right - 116, y, 56, Ui.CONTROL_HEIGHT, "Discard", false)) {
+        if (ui.button(right - 118, y, 56, FOOTER_BUTTON, "Discard", false)) {
             discard();
-        }
-        if (ui.button(right - 186, y, 66, Ui.CONTROL_HEIGHT, "Reset tab", false)) {
-            resetTab();
         }
     }
 
@@ -609,42 +805,27 @@ public final class SettingsScreen extends Screen {
 
     private void discard() {
         editor.discard();
-        serverBox.setValue(config().global.serverUrl);
-    }
-
-    private void resetTab() {
-        Settings fresh = new Settings().sanitize();
-        Settings current = staged();
-        switch (tab) {
-            case TAGS -> {
-                current.surfaces = fresh.surfaces;
-                current.filters = fresh.filters;
-            }
-            case COLOURS -> current.style = fresh.style;
-            case RULES -> current.rules = fresh.rules;
-            case MORE -> current.card = fresh.card;
-            default -> {
-            }
-        }
+        serverBox.value = config().global.serverUrl;
+        pendingImport = null;
     }
 
     private void drawConfirmClose() {
-        int boxWidth = 220;
-        int boxHeight = 56;
-        int x = (width - boxWidth) / 2;
-        int y = (height - boxHeight) / 2;
+        int boxWidth = 250;
+        int boxHeight = 66;
+        int x = (virtualWidth - boxWidth) / 2;
+        int y = (virtualHeight - boxHeight) / 2;
         ui.setBlocked(false);
-        ui.graphics.fill(0, 0, width, height, 0x88000000);
+        ui.graphics.fill(0, 0, virtualWidth, virtualHeight, 0x88000000);
         ui.panel(x, y, boxWidth, boxHeight);
-        ui.text("You have changes that aren't applied.", x + 8, y + 8, Theme.TEXT);
-        if (ui.button(x + 8, y + 32, 64, 16, "Apply", true)) {
+        ui.text("You have changes that aren't applied.", x + 10, y + 10, Theme.TEXT);
+        if (ui.button(x + 10, y + 36, 72, Ui.SLOT, "Apply", true)) {
             apply();
             finish();
         }
-        if (ui.button(x + 78, y + 32, 64, 16, "Discard", false)) {
+        if (ui.button(x + 88, y + 36, 72, Ui.SLOT, "Discard", false)) {
             finish();
         }
-        if (ui.button(x + 148, y + 32, 64, 16, "Keep editing", false)) {
+        if (ui.button(x + 166, y + 36, 74, Ui.SLOT, "Keep editing", false)) {
             confirmingClose = false;
         }
         ui.consumeClick();
@@ -661,18 +842,52 @@ public final class SettingsScreen extends Screen {
             listeningKey = null;
             return true;
         }
-        if (event.input() == InputConstants.KEY_ESCAPE && colorPicker != null) {
-            colorPicker = null;
+        if (event.input() == InputConstants.KEY_ESCAPE) {
+            return onEscape();
+        }
+        if (search.onKey(event) || serverBox.onKey(event) || nameBox.onKey(event) || codeBox.onKey(event)) {
             return true;
         }
-        return super.keyPressed(event);
+        if (event.key() == InputConstants.KEY_F && event.hasControlDownWithQuirk()) {
+            search.focused = true;
+            return true;
+        }
+        return swapSetupByNumber(event) || super.keyPressed(event);
+    }
+
+    private boolean onEscape() {
+        if (colorPicker != null) {
+            colorPicker = null;
+        } else if (isSearching()) {
+            search.value = "";
+            search.focused = false;
+        } else if (confirmingClose) {
+            confirmingClose = false;
+        } else {
+            onClose();
+        }
+        return true;
+    }
+
+    private boolean swapSetupByNumber(KeyEvent event) {
+        int slot = event.key() - InputConstants.KEY_1;
+        if (slot < 0 || slot > 8) {
+            return false;
+        }
+        List<String> names = new ArrayList<>(config().profiles.keySet());
+        if (slot < names.size()) {
+            editor.switchProfile(names.get(slot));
+        }
+        return true;
+    }
+
+    @Override
+    public boolean charTyped(CharacterEvent event) {
+        return search.onChar(event) || serverBox.onChar(event) || nameBox.onChar(event) || codeBox.onChar(event);
     }
 
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        if (colorPicker == null && !confirmingClose && super.mouseClicked(event, doubleClick)) {
-            return true;
-        }
         ui.onMousePressed(event.button() == InputConstants.MOUSE_BUTTON_RIGHT);
         return true;
     }
@@ -680,13 +895,17 @@ public final class SettingsScreen extends Screen {
     @Override
     public boolean mouseReleased(MouseButtonEvent event) {
         ui.onMouseReleased();
-        return super.mouseReleased(event);
+        return true;
+    }
+
+    @Override
+    public boolean mouseDragged(MouseButtonEvent event, double dx, double dy) {
+        return true;
     }
 
     @Override
     public boolean mouseScrolled(double x, double y, double scrollX, double scrollY) {
-        int visible = height - HEADER - FOOTER;
-        int max = Math.max(0, contentHeight - visible + 6);
+        int max = Math.max(0, contentHeight - visibleHeight + 6);
         int scroll = scrollByTab.getOrDefault(tab, 0) - (int) (scrollY * SCROLL_STEP);
         scrollByTab.put(tab, Math.clamp(scroll, 0, max));
         return true;

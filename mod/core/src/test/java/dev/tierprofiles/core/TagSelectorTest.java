@@ -200,9 +200,9 @@ class TagSelectorTest {
         settings.surface(Surface.NAMETAG).maxTags = 2;
         PlayerProfile profile = player(
                 TierList.MCTIERS, ok(entry("sword", "HT4")),
-                TierList.PVPTIERS, ok(entry("axe", "LT3")),
+                TierList.MCPVP, ok(entry("axe", "LT3")),
                 TierList.SUBTIERS, ok(entry("bed", "HT1")));
-        assertEquals(List.of("mctiers:sword:HT4", "pvptiers:axe:LT3"), labels(select(profile, settings)));
+        assertEquals(List.of("mctiers:sword:HT4", "mcpvp:axe:LT3"), labels(select(profile, settings)));
     }
 
     @Test

@@ -148,6 +148,19 @@ class HighlightEngineTest {
     }
 
     @Test
+    void comparisonsMeanWhatTheySay() {
+        HighlightRule at = redHt3();
+        at.comparison = HighlightRule.Comparison.AT;
+        assertEquals(RED, run(mctiers("HT3"), settings(), at).color());
+        assertTrue(run(mctiers("HT2"), settings(), at).isPlain());
+
+        HighlightRule above = redHt3();
+        above.comparison = HighlightRule.Comparison.ABOVE;
+        assertTrue(run(mctiers("HT3"), settings(), above).isPlain());
+        assertEquals(RED, run(mctiers("HT2"), settings(), above).color());
+    }
+
+    @Test
     void anUnknownPlayerHasNoStyle() {
         assertEquals(NameStyle.NONE, HighlightEngine.evaluate(null, List.of(redHt3()), settings().filters));
     }

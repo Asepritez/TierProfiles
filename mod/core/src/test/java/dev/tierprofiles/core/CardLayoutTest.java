@@ -63,9 +63,9 @@ class CardLayoutTest {
     void steppedLayoutsMatchThePublishedTable() {
         CardGrid real = new CardGrid(REAL);
         assertEquals(366, real.width(real.fit(Detail.STANDARD, 5, 5, 1f, 374, 400)));
-        assertEquals(304, real.width(real.fit(Detail.STANDARD, 5, 5, 1f, 312, 400)));
-        assertEquals(256, real.width(real.fit(Detail.STANDARD, 5, 5, 1f, 264, 400)));
-        assertEquals(Detail.MINIMAL, real.fit(Detail.STANDARD, 5, 5, 1f, 250, 400).detail());
+        assertEquals(298, real.width(real.fit(Detail.STANDARD, 5, 5, 1f, 306, 400)));
+        assertEquals(250, real.width(real.fit(Detail.STANDARD, 5, 5, 1f, 258, 400)));
+        assertEquals(Detail.MINIMAL, real.fit(Detail.STANDARD, 5, 5, 1f, 249, 400).detail());
     }
 
     @ParameterizedTest
@@ -81,6 +81,17 @@ class CardLayoutTest {
         assertEquals(detail, shape.detail());
         assertEquals(kits, shape.kits());
         assertEquals(date, shape.date());
+    }
+
+    @Test
+    void rankFollowsTheLayout() {
+        CardGrid real = new CardGrid(REAL);
+        assertEquals(250, real.rankX(STANDARD));
+        assertEquals(366, real.width(new Shape(Detail.MINIMAL, 0, false, 4, true, 1)));
+        Shape noDate = real.fit(Detail.STANDARD, 5, 5, 1f, 320, 400);
+        assertEquals(real.rightEdge(noDate) - 100, real.rankX(noDate));
+        Shape tight = real.fit(Detail.STANDARD, 5, 5, 1f, 270, 400);
+        assertFalse(real.showsRankList(tight));
     }
 
     @Test

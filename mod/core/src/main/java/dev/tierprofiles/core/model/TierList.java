@@ -9,11 +9,8 @@ public enum TierList {
     SUBTIERS("subtiers", "SubTiers", "SUB", false, false),
     PVPHQ("pvphq", "PVPHQ", "PHQ", false, false);
 
-    /**
-     * MCTiers comes first. McPvP is new and some of its tiers look inflated, so it
-     * stays near the back unless a player moves it up.
-     */
-    public static final List<TierList> DEFAULT_PRIORITY = List.of(MCTIERS, PVPTIERS, SUBTIERS, MCPVP, PVPHQ);
+    /** MCTiers comes first. McPvP is new and some of its tiers look inflated, so it never leads by default. */
+    public static final List<TierList> DEFAULT_PRIORITY = List.of(MCTIERS, MCPVP, PVPTIERS, SUBTIERS, PVPHQ);
 
     private final String id;
     private final String displayName;

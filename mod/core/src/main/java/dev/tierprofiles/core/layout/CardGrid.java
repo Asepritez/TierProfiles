@@ -139,8 +139,10 @@ public final class CardGrid {
 
     public int width(Shape shape) {
         return switch (shape.detail()) {
-            case MINIMAL -> contentX(shape) + Math.max(1, shape.lists()) * minimalStep - GAP + PADDING;
-            case STANDARD -> firstKitX + shape.kits() * slotStep + (shape.date() ? dateWidth : 0) + PADDING;
+            case MINIMAL -> shape.model()
+                    ? firstKitX + STANDARD_KITS * slotStep + dateWidth + PADDING
+                    : PADDING + Math.max(1, shape.lists()) * minimalStep;
+            case STANDARD -> firstKitX + shape.kits() * slotStep + (shape.date() ? dateWidth : -GAP) + PADDING;
             case FULL -> firstKitX + FULL_KITS * fullSlotStep - GAP + PADDING;
         };
     }
@@ -151,6 +153,39 @@ public final class CardGrid {
             case STANDARD -> ROWS_Y + Math.max(1, rows) * ROW + PADDING;
             case FULL -> ROWS_Y + Math.max(1, rows) * FULL_ROW + LEGEND + PADDING;
         };
+    }
+
+    /** The strip's rank is on the Kit 3 column in Standard, and moves in tighter layouts. */
+    public int rankX(Shape shape) {
+        return switch (shape.detail()) {
+            case FULL -> rightEdge(shape) - 116;
+            case MINIMAL -> shape.model() ? kitX(2) : rightEdge(shape) - 36;
+            case STANDARD -> {
+                if (shape.date()) {
+                    yield kitX(2);
+                }
+                yield shape.kits() == STANDARD_KITS ? rightEdge(shape) - 100 : rightEdge(shape) - 36;
+            }
+        };
+    }
+
+    /** In the tightest layouts there's no room for the list's name beneath the rank. */
+    public boolean showsRankList(Shape shape) {
+        return shape.model() && !(shape.detail() == Detail.STANDARD && shape.kits() < STANDARD_KITS);
+    }
+
+    /** With no model, the strip carries only the name and rank. */
+    public boolean showsTitle(Shape shape) {
+        return shape.model();
+    }
+
+    public boolean showsPointsLabel(Shape shape) {
+        return shape.model();
+    }
+
+    /** The moon sits in the strip between the name and the rank. */
+    public int moonX(Shape shape) {
+        return shape.detail() == Detail.FULL ? 268 : 226;
     }
 
     public int fullRow() {
@@ -168,12 +203,14 @@ public final class CardGrid {
 
     private Shape minimal(int availableWidth, int rankedLists, float scale) {
         int wanted = Math.clamp(rankedLists, 1, MINIMAL_MAX_LISTS);
-        for (boolean model : new boolean[] {true, false}) {
-            for (int lists = wanted; lists >= 1; lists--) {
-                Shape shape = new Shape(Detail.MINIMAL, 0, false, lists, model, scale);
-                if (width(shape) * scale <= availableWidth) {
-                    return shape;
-                }
+        Shape withModel = new Shape(Detail.MINIMAL, 0, false, wanted, true, scale);
+        if (width(withModel) * scale <= availableWidth) {
+            return withModel;
+        }
+        for (int lists = wanted; lists > 1; lists--) {
+            Shape shape = new Shape(Detail.MINIMAL, 0, false, lists, false, scale);
+            if (width(shape) * scale <= availableWidth) {
+                return shape;
             }
         }
         return new Shape(Detail.MINIMAL, 0, false, 1, false, scale);

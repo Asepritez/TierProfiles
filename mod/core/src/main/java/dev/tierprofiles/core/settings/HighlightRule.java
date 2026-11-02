@@ -11,9 +11,14 @@ public final class HighlightRule {
     /** Null means any kit. */
     public String kit = null;
     public String minimumTier = "HT3";
+    public Comparison comparison = Comparison.AT_OR_ABOVE;
     public boolean ignoreRetired = false;
     /** Judge players by their best-ever tier rather than their current one. */
     public boolean usePeak = false;
+
+    public enum Comparison {
+        AT, ABOVE, AT_OR_ABOVE
+    }
 
     /** Name colour, or null to leave it alone. */
     public Integer color = 0xFF7777;
@@ -35,10 +40,20 @@ public final class HighlightRule {
         return Tier.parse(minimumTier);
     }
 
+    public boolean accepts(Tier tier) {
+        Tier target = minimum();
+        return switch (comparison) {
+            case AT -> tier.equals(target);
+            case ABOVE -> tier.isAtLeast(target) && !tier.equals(target);
+            case AT_OR_ABOVE -> tier.isAtLeast(target);
+        };
+    }
+
     void sanitize() {
         if (Tier.parse(minimumTier) == null) {
             minimumTier = "HT3";
         }
+        comparison = comparison == null ? Comparison.AT_OR_ABOVE : comparison;
         if (color != null) {
             color &= 0xFFFFFF;
         }

@@ -42,7 +42,11 @@ public final class IconPack implements PackResources {
     private static final String PNG = ".png";
     private static final String PROGRAMMER_ART = "programmer_art";
 
-    private static final int HEALING_PINK = 0xF82423;
+    /** Kits shown as a potion, and the colour of what's in the bottle. */
+    private static final Map<String, Integer> POTIONS = Map.of(
+            "pot", 0xF82423,
+            "speed", 0x33EBFF,
+            "debuff", 0x87A363);
 
     /** Kit id to vanilla item texture. Kits missing here have no flat vanilla image. */
     private static final Map<String, String> ITEMS = Map.ofEntries(
@@ -59,11 +63,9 @@ public final class IconPack implements PackResources {
             Map.entry("og_vanilla", "golden_sword"),
             Map.entry("minecart", "tnt_minecart"),
             Map.entry("trident", "trident"),
-            Map.entry("speed", "sugar"),
-            Map.entry("debuff", "fermented_spider_eye"),
             Map.entry("creeper", "creeper_spawn_egg"),
             Map.entry("early_game", "iron_sword"),
-            Map.entry("late_game", "diamond_sword"),
+            Map.entry("late_game", "netherite_chestplate"),
             Map.entry("end_game", "end_crystal"),
             Map.entry("elytra", "elytra"),
             Map.entry("bow", "bow"));
@@ -75,7 +77,8 @@ public final class IconPack implements PackResources {
             "dia_crystal", "crystal",
             "og_vanilla", "vanilla",
             "minecart", "cart",
-            "debuff", "pot");
+            "debuff", "pot",
+            "late_game", "late_game");
 
     private final PackLocationInfo location =
             new PackLocationInfo("tierprofiles_icons", Component.literal("TierProfiles icons"), PackSource.BUILT_IN, Optional.empty());
@@ -131,8 +134,9 @@ public final class IconPack implements PackResources {
     }
 
     private static byte[] findIcon(String kit, List<PackResources> sources) throws IOException {
-        if (kit.equals("pot")) {
-            return potion(sources);
+        Integer liquid = POTIONS.get(kit);
+        if (liquid != null) {
+            return potion(sources, liquid);
         }
         String item = ITEMS.get(kit);
         return item == null ? null : read(sources, item);
@@ -152,7 +156,7 @@ public final class IconPack implements PackResources {
     }
 
     /** A potion's liquid is a separate tinted layer, so we paint it into the bottle. */
-    private static byte[] potion(List<PackResources> sources) throws IOException {
+    private static byte[] potion(List<PackResources> sources, int color) throws IOException {
         byte[] bottle = read(sources, "splash_potion");
         byte[] liquid = read(sources, "potion_overlay");
         if (bottle == null || liquid == null) {
@@ -167,7 +171,7 @@ public final class IconPack implements PackResources {
             for (int x = 0; x < out.getWidth(); x++) {
                 int pixel = overlay.getRGB(x, y);
                 if (pixel >>> 24 > 0) {
-                    out.setRGB(x, y, 0xFF000000 | tint(pixel, HEALING_PINK));
+                    out.setRGB(x, y, 0xFF000000 | tint(pixel, color));
                 }
             }
         }

@@ -51,6 +51,16 @@ public final class Decorator {
         return build(profile, name, surface, settings, TagSelector.Context.NONE);
     }
 
+    /** The chat line a surface would show, for previews. */
+    public static Component previewChat(PlayerProfile profile, Component message, Settings settings) {
+        SurfaceSettings surface = settings.surface(Surface.CHAT);
+        List<Tag> tags = TagSelector.select(profile, Surface.CHAT, settings, TagSelector.Context.NONE);
+        if (!surface.enabled || tags.isEmpty()) {
+            return message;
+        }
+        return Component.empty().append(TagText.build(TagFormatter.format(tags, surface, settings.style), settings.style)).append(" ").append(message);
+    }
+
     private static Component build(PlayerProfile profile, Component name, Surface surface, Settings settings, TagSelector.Context context) {
         SurfaceSettings surfaceSettings = settings.surface(surface);
         if (profile == null || !surfaceSettings.enabled) {

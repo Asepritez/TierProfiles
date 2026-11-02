@@ -2,7 +2,6 @@ package dev.tierprofiles.core.logic;
 
 import dev.tierprofiles.core.model.ListProfile;
 import dev.tierprofiles.core.model.PlayerProfile;
-import dev.tierprofiles.core.model.Tier;
 import dev.tierprofiles.core.model.TierEntry;
 import dev.tierprofiles.core.model.TierList;
 import dev.tierprofiles.core.settings.Filters;
@@ -33,8 +32,7 @@ public final class HighlightEngine {
     }
 
     private static boolean matches(HighlightRule rule, PlayerProfile profile, Filters filters) {
-        Tier minimum = rule.minimum();
-        if (minimum == null) {
+        if (rule.minimum() == null) {
             return false;
         }
 
@@ -42,14 +40,14 @@ public final class HighlightEngine {
             if (!filters.isEnabled(list) || (rule.list != null && rule.list != list)) {
                 continue;
             }
-            if (hasTierAtLeast(profile.list(list), minimum, rule)) {
+            if (hasMatchingTier(profile.list(list), rule)) {
                 return true;
             }
         }
         return false;
     }
 
-    private static boolean hasTierAtLeast(ListProfile listProfile, Tier minimum, HighlightRule rule) {
+    private static boolean hasMatchingTier(ListProfile listProfile, HighlightRule rule) {
         for (TierEntry entry : listProfile.tiers()) {
             if (rule.ignoreRetired && entry.retired()) {
                 continue;
@@ -57,7 +55,7 @@ public final class HighlightEngine {
             if (rule.kit != null && !rule.kit.equals(entry.kit())) {
                 continue;
             }
-            if (entry.shown(rule.usePeak).isAtLeast(minimum)) {
+            if (rule.accepts(entry.shown(rule.usePeak))) {
                 return true;
             }
         }

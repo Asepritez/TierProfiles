@@ -22,6 +22,8 @@ public final class CardSettings {
     public Anchor anchor = Anchor.TOP_RIGHT;
     public int offsetX = 0;
     public int offsetY = 0;
+    /** Dragging the card pulls it to anchors and edges. */
+    public boolean snap = true;
 
     public boolean showModel = true;
     public boolean spinModel = true;

@@ -20,7 +20,7 @@ public final class Style {
     public Brackets brackets = Brackets.SQUARE;
     public Separator separator = Separator.SPACE;
     public boolean longNames = false;
-    public IconSet iconSet = IconSet.CLASSIC;
+    public IconSet iconSet = IconSet.DEFAULT;
     public RetiredMark retiredMark = RetiredMark.DIM;
 
     public enum Position {
@@ -50,10 +50,10 @@ public final class Style {
     }
 
     public enum IconSet {
-        /** Real items in the older look, from the game's built-in Programmer Art pack. */
+        /** Real items as they look in the game. */
+        DEFAULT,
+        /** The older look from the game's own Programmer Art pack, where it has the item. */
         CLASSIC,
-        /** Real items as they look in the current game. */
-        CURRENT,
         /** Our own 16x16 art. */
         PIXEL
     }
@@ -81,7 +81,7 @@ public final class Style {
         position = position == null ? Position.AFTER : position;
         brackets = brackets == null ? Brackets.SQUARE : brackets;
         separator = separator == null ? Separator.SPACE : separator;
-        iconSet = iconSet == null ? IconSet.CLASSIC : iconSet;
+        iconSet = iconSet == null ? IconSet.DEFAULT : iconSet;
         retiredMark = retiredMark == null ? RetiredMark.DIM : retiredMark;
 
         tierColors = cleanColors(tierColors);

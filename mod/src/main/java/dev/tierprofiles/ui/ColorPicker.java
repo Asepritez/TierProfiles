@@ -5,8 +5,8 @@ import java.util.function.IntConsumer;
 
 /** A small popup with red, green and blue sliders. */
 final class ColorPicker {
-    private static final int WIDTH = 190;
-    private static final int HEIGHT = 92;
+    private static final int WIDTH = 230;
+    private static final int HEIGHT = 112;
 
     private final IntConsumer onPick;
     private final int original;
@@ -37,22 +37,22 @@ final class ColorPicker {
         ui.panel(x, y, WIDTH, HEIGHT);
 
         ui.setBlocked(false);
-        int right = x + WIDTH - 6;
-        ui.text("Pick a colour", x + 6, y + 6, Theme.TEXT);
-        ui.swatch(right - 44, y + 4, 12, original);
-        ui.swatch(right - 30, y + 4, 12, color());
-        ui.text(Colors.toHex(color()).substring(1), right - 16 - 16, y + 18, Theme.MUTED);
+        int left = x + 10;
+        ui.text("Pick a colour", left, y + 8, Theme.TEXT);
+        ui.text(Colors.toHex(color()), x + WIDTH - 104, y + 8, Theme.MUTED);
+        ui.swatch(x + WIDTH - 54, y + 13, original, false);
+        ui.swatch(x + WIDTH - 32, y + 13, color(), false);
 
-        red = row(ui, "R", redId, red, right, y + 32);
-        green = row(ui, "G", greenId, green, right, y + 46);
-        blue = row(ui, "B", blueId, blue, right, y + 60);
+        red = row(ui, "R", redId, red, left, y + 36);
+        green = row(ui, "G", greenId, green, left, y + 54);
+        blue = row(ui, "B", blueId, blue, left, y + 72);
 
         boolean close = false;
-        if (ui.button(right - 56, y + HEIGHT - 18, 56, 14, "Use", true)) {
+        if (ui.button(x + WIDTH - 66, y + HEIGHT - 24, 56, 16, "Use", true)) {
             onPick.accept(color());
             close = true;
         }
-        if (ui.button(right - 112, y + HEIGHT - 18, 52, 14, "Cancel", false)) {
+        if (ui.button(x + WIDTH - 128, y + HEIGHT - 24, 56, 16, "Cancel", false)) {
             close = true;
         }
         ui.consumeClick();
@@ -60,8 +60,8 @@ final class ColorPicker {
         return close;
     }
 
-    private static float row(Ui ui, String label, Object id, float value, int right, int y) {
-        ui.text(label, right - WIDTH + 12, y - 4, Theme.MUTED);
-        return ui.slider(id, right, y, WIDTH - 32, value, 0, 255, Integer.toString(Math.round(value)));
+    private static float row(Ui ui, String label, Object id, float value, int x, int y) {
+        ui.text(label, x, y - 4, Theme.MUTED);
+        return ui.slider(id, x + 14, y, WIDTH - 60, value, 0, 255, Integer.toString(Math.round(value)));
     }
 }

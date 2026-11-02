@@ -16,8 +16,9 @@ import dev.tierprofiles.core.model.TimeAgo;
 import dev.tierprofiles.core.model.Title;
 import dev.tierprofiles.core.settings.CardSettings;
 import dev.tierprofiles.core.settings.CardSettings.AnimationStyle;
+import dev.tierprofiles.core.settings.Cosmetics;
 import dev.tierprofiles.core.settings.Settings;
-import dev.tierprofiles.surface.Icons;
+import dev.tierprofiles.surface.KitIcon;
 import dev.tierprofiles.ui.Theme;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -37,8 +38,8 @@ import net.minecraft.util.Mth;
  */
 public final class ProfileCard {
     private static final int STRIP_BACKGROUND = 0x30000000;
+    private static final int STRIP_LINE = 0xFF2E3338;
     private static final int CARD_COLOR = 0x0C0E10;
-    private static final int CARD_BORDER = 0xFF2E3338;
     private static final int SLOT_FILL = 0xFF151B21;
     private static final int RETIRED_OUTLINE = 0xFF39424B;
     private static final int PEAK_GOLD = 0xFFFFCF4A;
@@ -85,7 +86,7 @@ public final class ProfileCard {
     }
 
     /** One drawing pass, which saves handing the same values to every method. */
-    private record Pass(GuiGraphicsExtractor graphics, Font font, CardGrid grid, Settings settings, Shape shape, float alpha, long elapsed, AnimationStyle style) {
+    private record Pass(GuiGraphicsExtractor graphics, Font font, CardGrid grid, Settings settings, Shape shape, float alpha, long elapsed, AnimationStyle style, Cosmetics look, float outerScale) {
         int color(int argb) {
             return Theme.fade(argb, alpha);
         }
@@ -95,7 +96,7 @@ public final class ProfileCard {
         }
 
         Pass fadedBy(float amount) {
-            return new Pass(graphics, font, grid, settings, shape, alpha * amount, elapsed, style);
+            return new Pass(graphics, font, grid, settings, shape, alpha * amount, elapsed, style, look, outerScale);
         }
     }
 
@@ -117,7 +118,12 @@ public final class ProfileCard {
         int screenHeight = graphics.guiHeight();
         Layout layout = layout(settings, rows, screenWidth, screenHeight);
 
+        // You're using the tab list to pick players, so the card must not cover it.
         CardPlacement.Rect rect = layout.rect();
+        if (tabRight > rect.x() && rect.y() < belowTab && layout.shape().date()) {
+            layout = withoutDate(layout, card, rows.size(), screenWidth, screenHeight);
+            rect = layout.rect();
+        }
         if (tabRight > rect.x() && rect.y() < belowTab) {
             rect = new CardPlacement.Rect(rect.x(), belowTab, rect.width(), rect.height());
         }
@@ -126,7 +132,43 @@ public final class ProfileCard {
         CardPlacement.Glide glide = CardPlacement.glide(card.anchor, rect, screenWidth, screenHeight);
         CardPose pose = CardPose.of(style, CardState.progress(), glide.dx(), glide.dy());
 
-        drawPosed(graphics, uuid, name, profile, rows, rect, layout.shape(), pose, style, CardState.millisSinceOpen(), CardState.remaining());
+        Cosmetics look = TierProfiles.cosmeticsFor(uuid);
+        Pass pass = new Pass(graphics, Minecraft.getInstance().font, grid(), settings, layout.shape(), pose.alpha(), CardState.millisSinceOpen(), style, look, 1);
+        drawPosed(pass, uuid, name, profile, rows, rect, pose, CardState.remaining());
+    }
+
+    private static Shape previewShape(Settings settings) {
+        CardGrid grid = grid();
+        return switch (settings.card.detail) {
+            case MINIMAL -> new Shape(CardSettings.Detail.MINIMAL, 0, false, 4, true, 1);
+            case STANDARD -> CardGrid.standard();
+            case FULL -> new Shape(CardSettings.Detail.FULL, CardGrid.FULL_KITS, true, 0, true, 1);
+        };
+    }
+
+    public static int previewWidth(Settings settings) {
+        return grid().width(previewShape(settings));
+    }
+
+    public static int previewHeight(Settings settings) {
+        return grid().height(previewShape(settings), rows(settings, null).size());
+    }
+
+    /**
+     * Draws the card in the settings Live Stage, with staged settings and no entrance.
+     *
+     * @param outerScale whatever scale the caller's own drawing is already under
+     */
+    public static void drawPreview(GuiGraphicsExtractor graphics, Settings settings, Cosmetics look, PlayerProfile profile, UUID uuid, String name,
+            int x, int y, float scale, float outerScale) {
+        Shape base = previewShape(settings);
+        Shape shape = new Shape(base.detail(), base.kits(), base.date(), base.lists(), base.model(), scale);
+        List<Row> rows = rows(settings, profile);
+        CardGrid grid = grid();
+        CardPlacement.Rect rect = new CardPlacement.Rect(x, y, Math.round(grid.width(shape) * scale), Math.round(grid.height(shape, rows.size()) * scale));
+        long settled = 100_000;
+        Pass pass = new Pass(graphics, Minecraft.getInstance().font, grid, settings, shape, 1, settled, AnimationStyle.OFF, look, outerScale);
+        drawPosed(pass, uuid, name, profile, rows, rect, CardPose.RESTING, 1);
     }
 
     private static Layout layout(Settings settings, List<Row> rows, int screenWidth, int screenHeight) {
@@ -139,6 +181,12 @@ public final class ProfileCard {
                 screenWidth - CardGrid.SCREEN_ROOM, screenHeight - CardGrid.SCREEN_ROOM,
                 candidate -> CardPlacement.isClear(placed(card, grid, candidate, rows.size(), screenWidth, screenHeight), screenWidth, screenHeight));
         return new Layout(placed(card, grid, shape, rows.size(), screenWidth, screenHeight), shape);
+    }
+
+    private static Layout withoutDate(Layout layout, CardSettings card, int rows, int screenWidth, int screenHeight) {
+        Shape old = layout.shape();
+        Shape shape = new Shape(old.detail(), old.kits(), false, old.lists(), old.model(), old.scale());
+        return new Layout(placed(card, grid(), shape, rows, screenWidth, screenHeight), shape);
     }
 
     private static CardPlacement.Rect placed(CardSettings card, CardGrid grid, Shape shape, int rows, int screenWidth, int screenHeight) {
@@ -176,11 +224,12 @@ public final class ProfileCard {
         return entries;
     }
 
-    private static void drawPosed(GuiGraphicsExtractor graphics, UUID uuid, String name, PlayerProfile profile, List<Row> rows,
-            CardPlacement.Rect rect, Shape shape, CardPose pose, AnimationStyle style, long elapsed, float remaining) {
-        Settings settings = TierProfiles.settings();
-        CardGrid grid = grid();
-        Pass pass = new Pass(graphics, Minecraft.getInstance().font, grid, settings, shape, pose.alpha(), elapsed, style);
+    private static void drawPosed(Pass pass, UUID uuid, String name, PlayerProfile profile, List<Row> rows,
+            CardPlacement.Rect rect, CardPose pose, float remaining) {
+        GuiGraphicsExtractor graphics = pass.graphics();
+        Settings settings = pass.settings();
+        CardGrid grid = pass.grid();
+        Shape shape = pass.shape();
 
         int width = grid.width(shape);
         int height = grid.height(shape, rows.size());
@@ -193,11 +242,15 @@ public final class ProfileCard {
         graphics.pose().scale(scale, scale);
 
         graphics.fill(0, 0, width, height, pass.color(Theme.withAlpha(CARD_COLOR, settings.card.overlayOpacity)));
+        CardStyle.drawBackground(graphics, pass.look(), width, height, pass.alpha());
         graphics.fill(0, 0, width, CardGrid.STRIP, pass.color(STRIP_BACKGROUND));
-        graphics.outline(0, 0, width, height, pass.color(CARD_BORDER));
+        graphics.fill(0, CardGrid.STRIP - 1, width, CardGrid.STRIP, pass.color(STRIP_LINE));
 
         drawTopStrip(pass, profile, name);
         drawBody(pass, profile, rows);
+
+        CardStyle.drawEffects(graphics, pass.look(), width, height, pass.alpha());
+        CardStyle.drawBorder(graphics, pass.look(), width, height, pass.alpha());
 
         if (remaining < 1) {
             graphics.fill(1, height - 1, 1 + Math.round((width - 2) * remaining), height, pass.color(Theme.withAlpha(Theme.ACCENT, 0.8f)));
@@ -205,7 +258,8 @@ public final class ProfileCard {
         graphics.pose().popMatrix();
 
         if (shape.model() && pose.alpha() > 0.5f) {
-            drawModel(pass, uuid, name, drawX, drawY, scale, height);
+            float outer = pass.outerScale();
+            drawModel(pass, uuid, name, drawX * outer, drawY * outer, scale * outer, height);
         }
     }
 
@@ -219,7 +273,7 @@ public final class ProfileCard {
         int x1 = Math.round(drawX + (CardGrid.MODEL_X + grid.modelWidth - slide) * scale);
         int y1 = Math.round(drawY + (height - 2) * scale);
         int size = Math.round(Math.min(MODEL_SIZE, (height - 8) / 2.05f) * scale);
-        Portrait.draw(pass.graphics(), uuid, name, x0, y0, x1, y1, size, modelYaw(pass.card()));
+        Portrait.draw(pass.graphics(), uuid, name, x0, y0, x1, y1, size, modelYaw(pass.card()), pass.look());
     }
 
     private static float modelYaw(CardSettings card) {
@@ -254,66 +308,71 @@ public final class ProfileCard {
         CardGrid grid = pass.grid();
         Shape shape = pass.shape();
         int x = grid.contentX(shape);
-        int right = grid.rightEdge(shape);
-
-        CardSummary summary = profile == null ? null : CardSummary.of(profile, settings.filters);
-        int statsLeft = right;
-        if (summary != null) {
-            statsLeft = drawStats(pass, summary);
-        }
-        int room = statsLeft - x - CardGrid.GAP;
+        int rankX = grid.rankX(shape);
+        int room = rankX - x - CardGrid.GAP;
 
         String shownName = fitBig(font, name, room);
+        int nameEnd = x + bigWidth(font, shownName);
+        if (pass.look().background.equals("moon") && nameEnd < grid.moonX(shape) - CardStyle.MOON_REACH) {
+            CardStyle.drawMoon(graphics, grid.moonX(shape), CardGrid.STRIP / 2, CardGrid.STRIP, grid.width(shape), pass.alpha());
+        }
+
         bigText(pass, shownName, x, 3, pass.color(0xFFFFFFFF));
         if (profile == null) {
             return;
         }
 
         String region = profile.region(settings.filters.listPriority);
-        int regionX = x + bigWidth(font, shownName) + 3;
+        int regionX = nameEnd + 3;
         if (region != null && regionX + font.width(region) + 2 < x + room) {
             graphics.fill(regionX, 6, regionX + font.width(region) + 3, 16, pass.color(0x402A6A3A));
             graphics.text(font, region, regionX + 2, 7, pass.color(Theme.GOOD));
         }
 
         Title.Earned title = bestTitle(settings, profile);
-        if (title != null) {
-            String label = font.width(title.label()) <= room ? title.label() : title.title().displayName();
-            graphics.text(font, fit(font, label, room), x, 19, pass.color(Theme.BETA));
+        if (title != null && grid.showsTitle(shape)) {
+            int badge = TitleBadge.draw(graphics, title.title(), x, 18, pass.alpha());
+            String label = font.width(title.label()) <= room - badge ? title.label() : title.title().displayName();
+            graphics.text(font, fit(font, label, room - badge), x + badge, 19, pass.color(Theme.BETA));
         }
+
+        drawStats(pass, CardSummary.of(profile, settings.filters));
     }
 
     private static String fitBig(Font font, String text, int width) {
         return fit(font, text, Math.round(width / BIG_TEXT));
     }
 
-    /** Points end on the shared right edge, and the rank sits to their left. */
-    private static int drawStats(Pass pass, CardSummary summary) {
+    /** The rank sits on its column, and points end on the shared right edge. */
+    private static void drawStats(Pass pass, CardSummary summary) {
         GuiGraphicsExtractor graphics = pass.graphics();
         Font font = pass.font();
         CardGrid grid = pass.grid();
         Shape shape = pass.shape();
         int right = grid.rightEdge(shape);
 
-        int leftmost = right;
         if (pass.card().showPoints) {
             String points = Long.toString(summary.totalPoints());
             bigText(pass, points, right - bigWidth(font, points), 3, pass.color(0xFFFFFFFF));
-            graphics.text(font, "points", right - font.width("points"), 19, pass.color(Theme.MUTED));
-            leftmost = right - Math.max(bigWidth(font, points), font.width("points")) - CardGrid.GAP * 2;
+            if (grid.showsPointsLabel(shape)) {
+                graphics.text(font, "points", right - font.width("points"), 19, pass.color(Theme.MUTED));
+            }
         }
 
         if (summary.bestPosition() != null) {
-            String list = CardGrid.rowName(summary.bestList());
-            int rankX = leftmost - font.width(list);
-            bigText(pass, "#" + summary.bestPosition(), rankX, 3, pass.color(Theme.BETA));
-            graphics.text(font, summary.bestList().displayName(), rankX, 19, pass.color(Theme.MUTED));
-            if (summary.bestList().isBeta()) {
-                graphics.text(font, "beta", rankX + font.width(summary.bestList().displayName() + " "), 19, pass.color(Theme.BETA));
+            int rankX = grid.rankX(shape);
+            String rank = "#" + summary.bestPosition();
+            if (!grid.showsRankList(shape)) {
+                rankX -= bigWidth(font, rank);
             }
-            leftmost = rankX;
+            bigText(pass, rank, rankX, 3, pass.color(Theme.BETA));
+            if (grid.showsRankList(shape)) {
+                graphics.text(font, summary.bestList().displayName(), rankX, 19, pass.color(Theme.MUTED));
+                if (summary.bestList().isBeta()) {
+                    graphics.text(font, "beta", rankX + font.width(summary.bestList().displayName() + " "), 19, pass.color(Theme.BETA));
+                }
+            }
         }
-        return leftmost;
     }
 
     private static Title.Earned bestTitle(Settings settings, PlayerProfile profile) {
@@ -488,11 +547,7 @@ public final class ProfileCard {
             graphics.fill(x, y, x + width, y + CardGrid.SLOT_HEIGHT, pass.color(SLOT_FILL));
         }
 
-        graphics.pose().pushMatrix();
-        graphics.pose().translate(x + 1, y + 1);
-        graphics.pose().scale(2, 2);
-        graphics.text(font, Icons.kit(entry.kit(), pass.settings().style.iconSet), 0, 0, pass.color(0xFFFFFFFF), false);
-        graphics.pose().popMatrix();
+        KitIcon.draw(graphics, entry.kit(), x + 1, y + 1, pass.settings().style.iconSet, pass.alpha());
 
         String label = entry.rank().label();
         int chipX = x + width - grid.chipWidth + (grid.chipWidth - font.width(label) + 1) / 2;

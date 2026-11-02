@@ -46,14 +46,14 @@ public final class FirstRunScreen extends Screen {
 
         fact(left, top + 37, "We send: names and UUIDs of players in your tab list", "They go to the TierProfiles server, which asks the tier lists.", null);
         fact(left, top + 63, "Your login stays with Minecraft", "We never see your account token.", null);
-        fact(left, top + 89, "We send nothing else", "No chat, no server address, no position.", "Your card style is sent only when you save it.");
+        fact(left, top + 89, "We send nothing else", "No chat, no server address, no position.", "Your card style is sent only when you save it. Logos come from each list's site.");
 
         int rowY = top + 125;
         graphics.fill(left, rowY, left + WIDTH - 16, rowY + 24, Theme.ROW);
         graphics.outline(left, rowY, WIDTH - 16, 24, lookups ? Theme.GOOD : Theme.BORDER);
         ui.text("Look up tiers online", left + 5, rowY + 4, 0xFFFFFFFF);
         ui.text("Off means no data is sent and no tiers show.", left + 5, rowY + 14, Theme.MUTED);
-        lookups = ui.toggle(left + WIDTH - 22, rowY + 12, lookups);
+        lookups = ui.toggle(left + WIDTH - 66, rowY + 12, lookups);
 
         int buttonY = y + HEIGHT - 22;
         if (ui.button(x + WIDTH - 158, buttonY, 72, 16, "Read more", false)) {

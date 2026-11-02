@@ -1,9 +1,14 @@
 package dev.tierprofiles.core.config;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import dev.tierprofiles.core.settings.ConfigFile;
 import dev.tierprofiles.core.settings.Settings;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
 /**
  * Staged editing: the settings screen changes a private copy, and nothing affects
@@ -32,6 +37,24 @@ public final class ConfigEditor {
 
     public boolean isDirty() {
         return !json(staged).equals(json(live));
+    }
+
+    /** How many individual values differ from what's live. */
+    public int changeCount() {
+        return differences(ConfigStore.GSON.toJsonTree(live), ConfigStore.GSON.toJsonTree(staged));
+    }
+
+    private static int differences(JsonElement a, JsonElement b) {
+        if (a instanceof JsonObject first && b instanceof JsonObject second) {
+            Set<String> keys = new HashSet<>(first.keySet());
+            keys.addAll(second.keySet());
+            int count = 0;
+            for (String key : keys) {
+                count += differences(first.get(key), second.get(key));
+            }
+            return count;
+        }
+        return Objects.equals(a, b) ? 0 : 1;
     }
 
     /** Returns the new live config, which the caller then saves and publishes. */
