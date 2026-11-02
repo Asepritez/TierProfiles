@@ -1,5 +1,33 @@
 # TierProfiles GUI drafts
 
+## Gallery drafts (0.7.0, Minecraft 1.21.11)
+
+Taken by the game itself in a built arena, playing as Hoseinplays. Swight, ItzRealMe and JokingDK
+are real players with their real skins and tiers. ItzRealMe really does use the Steve skin.
+
+### Nametags in the arena
+![Arena nametags](ingame/v07-gallery-01-arena-nametags.png)
+
+### Swight's card
+![Swight's card](ingame/v07-gallery-02-card.png)
+
+### All ranks
+![All ranks](ingame/v07-gallery-03-all-ranks.png)
+
+### Browsing Tab
+![Browsing Tab](ingame/v07-gallery-04-tab-browsing.png)
+
+### Card from Tab
+![Card from Tab](ingame/v07-gallery-05-tab-card.png)
+
+### Your card, styled
+![Your card](ingame/v07-gallery-06-my-card.png)
+
+### Settings
+![Tags](ingame/v07-gallery-07-settings-tags.png)
+![Profile](ingame/v07-gallery-07-settings-profile.png)
+![Colours](ingame/v07-gallery-07-settings-colours.png)
+
 ## New in this update (0.6.0, Minecraft 1.21.11)
 
 ### Nametags: best tier from any list
