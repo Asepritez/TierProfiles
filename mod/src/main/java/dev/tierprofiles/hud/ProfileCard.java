@@ -45,7 +45,11 @@ public final class ProfileCard {
      * opacity show through each chip instead of a dark box sitting on top.
      */
     private static final int SLOT_FILL = 0x10FFFFFF;
-    private static final int RETIRED_OUTLINE = 0xFF39424B;
+    private static final int SLOT_BORDER = 0xFF39424B;
+    /** Retired keeps the same shape and swaps the border to a muted red, so it reads at a glance. */
+    private static final int RETIRED_OUTLINE = 0xFF8C4A4A;
+    /** A kit this list has no tier in, so the row still lines up with the others. */
+    private static final int EMPTY_BORDER = 0x8039424B;
     private static final int PEAK_GOLD = 0xFFFFCF4A;
     private static final int UNRANKED = 0xFF8E98A2;
     private static final float BIG_TEXT = 1.5f;
@@ -465,17 +469,20 @@ public final class ProfileCard {
         }
     }
 
+    /** The highest title on any list, so it matches the points the card shows. A tie goes to list order. */
     private static Title.Earned bestTitle(Settings settings, PlayerProfile profile) {
+        Title.Earned best = null;
         for (TierList list : settings.filters.listPriority) {
             if (!settings.filters.isEnabled(list)) {
                 continue;
             }
             Title.Earned title = Title.of(list, profile.list(list));
-            if (title != null) {
-                return title;
+            // Titles are listed highest first.
+            if (title != null && (best == null || title.title().ordinal() < best.title().ordinal())) {
+                best = title;
             }
         }
-        return null;
+        return best;
     }
 
     private static void drawBody(Pass pass, PlayerProfile profile, List<Row> rows) {
@@ -567,6 +574,12 @@ public final class ProfileCard {
                     drawSlot(pass.fadedBy(chip), row.list(), row.tiers().get(slot), grid.kitX(slot), y);
                 }
             }
+            for (int slot = slots; slot < pass.shape().kits(); slot++) {
+                float chip = chipProgress(pass, start, slot);
+                if (chip > 0) {
+                    drawEmptySlot(pass.fadedBy(chip), grid.kitX(slot), y);
+                }
+            }
             drawRowDate(rowPass, row, y);
         } else {
             graphics.text(font, emptyRowText(row), grid.kitX(0), y + 5, rowPass.color(UNRANKED));
@@ -636,6 +649,12 @@ public final class ProfileCard {
                             graphics.text(font, date, x, top + CardGrid.SLOT_HEIGHT + 2, chipPass.color(Theme.MUTED));
                         }
                     }
+                    for (int slot = slots; slot < rowLines * perLine; slot++) {
+                        float chip = chipProgress(pass, start, slot);
+                        if (chip > 0) {
+                            drawEmptySlot(pass.fadedBy(chip), grid.fullKitX(slot % perLine), y + slot / perLine * grid.fullRow());
+                        }
+                    }
                 } else {
                     graphics.text(font, emptyRowText(row), grid.fullKitX(0), y + 5, rowPass.color(UNRANKED));
                 }
@@ -644,8 +663,8 @@ public final class ProfileCard {
         }
 
         String legend = shape.wraps()
-                ? "Every rank    Gold corner: peak was higher    Outline: retired"
-                : "Gold corner: peak was higher    Outline: retired    Date: when achieved";
+                ? "Every rank    Gold corner: higher peak    Red edge: retired"
+                : "Gold corner: higher peak    Red edge: retired    Date: when achieved";
         graphics.text(font, Component.literal(legend), grid.listX, y + 2, pass.color(Theme.MUTED));
     }
 
@@ -657,11 +676,8 @@ public final class ProfileCard {
         int width = grid.slotWidth;
         int rgb = pass.settings().style.color(list, entry.rank());
 
-        if (entry.retired()) {
-            graphics.outline(x, y, width, CardGrid.SLOT_HEIGHT, pass.color(RETIRED_OUTLINE));
-        } else {
-            graphics.fill(x, y, x + width, y + CardGrid.SLOT_HEIGHT, pass.color(SLOT_FILL));
-        }
+        graphics.fill(x, y, x + width, y + CardGrid.SLOT_HEIGHT, pass.color(SLOT_FILL));
+        graphics.outline(x, y, width, CardGrid.SLOT_HEIGHT, pass.color(entry.retired() ? RETIRED_OUTLINE : SLOT_BORDER));
 
         KitIcon.draw(graphics, entry.kit(), x + 1, y + 1, pass.settings().style.iconSet, pass.alpha());
 
@@ -673,6 +689,11 @@ public final class ProfileCard {
         if (pass.card().showPeak && entry.peak() != null && !entry.rank().isAtLeast(entry.peak())) {
             drawPeakCorner(pass, x + width, y);
         }
+    }
+
+    private static void drawEmptySlot(Pass pass, int x, int y) {
+        GuiGraphicsExtractor graphics = pass.graphics();
+        graphics.outline(x, y, pass.grid().slotWidth, CardGrid.SLOT_HEIGHT, pass.color(EMPTY_BORDER));
     }
 
     /** A small stepped gold corner, drawn inside the slot's top right. */

@@ -32,7 +32,7 @@ public final class Fixtures {
         return new ListProfile(ListStatus.OK, null, "EU", null, 100.0, 5, List.copyOf(Arrays.asList(entries)));
     }
 
-    /** Build with pairs: player(TierList.MCTIERS, ok(...), TierList.MCPVP, ok(...)). */
+    /** Build with pairs: player(TierList.PVPHQ, ok(...), TierList.MCPVP, ok(...)). */
     public static PlayerProfile player(Object... pairs) {
         Map<TierList, ListProfile> lists = new EnumMap<>(TierList.class);
         for (int i = 0; i < pairs.length; i += 2) {

@@ -42,13 +42,12 @@ class ProfileServiceTest {
                     {"status": "ok", "region": "EU", "tiers": [{"kit": "sword", "rank": "HT3", "retired": false}]}""");
         }
 
-        static String profiles(JsonObject body, String mctiers) {
+        static String profiles(JsonObject body, String first) {
             List<String> out = new ArrayList<>();
             body.getAsJsonArray("players").forEach(player -> {
                 String uuid = player.getAsJsonObject().get("uuid").getAsString();
-                out.add("{\"uuid\":\"" + uuid + "\",\"lists\":{\"mctiers\":" + mctiers
+                out.add("{\"uuid\":\"" + uuid + "\",\"lists\":{\"subtiers\":" + first
                         + ",\"mcpvp\":{\"status\":\"unranked\"},\"pvptiers\":{\"status\":\"unranked\"}"
-                        + ",\"subtiers\":{\"status\":\"unranked\"}"
                         + ",\"pvphq\":{\"status\":\"unavailable\",\"reason\":\"timeout\"}}}");
             });
             return "{\"profiles\":[" + String.join(",", out) + "]}";
@@ -87,7 +86,7 @@ class ProfileServiceTest {
     void fillsTheCacheInTheBackground() {
         lookUp(1);
         service.pump();
-        assertEquals(ListStatus.OK, service.profile(player(1)).list(TierList.MCTIERS).status());
+        assertEquals(ListStatus.OK, service.profile(player(1)).list(TierList.SUBTIERS).status());
     }
 
     @Test
@@ -299,7 +298,7 @@ class ProfileServiceTest {
         lookUp(1);
         service.pump();
 
-        assertEquals(1, service.profile(player(1)).list(TierList.MCTIERS).tiers().size());
+        assertEquals(1, service.profile(player(1)).list(TierList.SUBTIERS).tiers().size());
     }
 
     @Test
@@ -312,7 +311,7 @@ class ProfileServiceTest {
         lookUp(1);
         service.pump();
 
-        assertEquals(ListStatus.UNRANKED, service.profile(player(1)).list(TierList.MCTIERS).status());
+        assertEquals(ListStatus.UNRANKED, service.profile(player(1)).list(TierList.SUBTIERS).status());
     }
 
     @Test

@@ -50,36 +50,32 @@ class ModelTest {
     }
 
     @Test
-    void mctiersTitleIsOfficial() {
-        Title.Earned earned = Title.of(TierList.MCTIERS, withPoints(330));
-        assertEquals(Title.MASTER, earned.title());
-        assertTrue(earned.official());
-        assertEquals("Combat Master", earned.label());
-    }
-
-    @Test
     void mcpvpTitleIsLabelledAsOurs() {
         Title.Earned earned = Title.of(TierList.MCPVP, withPoints(280));
         assertEquals(Title.MASTER, earned.title());
-        assertFalse(earned.official());
         assertEquals("Combat Master (TierProfiles title)", earned.label());
     }
 
     @Test
-    void otherListsHaveNoTitle() {
-        assertNull(Title.of(TierList.PVPTIERS, withPoints(500)));
-        assertNull(Title.of(TierList.SUBTIERS, withPoints(500)));
+    void pvpTiersAndSubTiersPointsUseTheSameLadder() {
+        assertEquals(Title.MASTER, Title.of(TierList.PVPTIERS, withPoints(342)).title());
+        assertEquals(Title.GRANDMASTER, Title.of(TierList.SUBTIERS, withPoints(500)).title());
+    }
+
+    @Test
+    void pvphqHasNoTitle() {
+        assertNull(Title.of(TierList.PVPHQ, withPoints(500)));
     }
 
     @Test
     void noPointsNoTitle() {
-        assertNull(Title.of(TierList.MCTIERS, ListProfile.UNRANKED));
+        assertNull(Title.of(TierList.MCPVP, ListProfile.UNRANKED));
     }
 
     @Test
     void mcpvpIsLabelledBeta() {
         assertTrue(TierList.MCPVP.isBeta());
-        assertFalse(TierList.MCTIERS.isBeta());
+        assertFalse(TierList.PVPTIERS.isBeta());
     }
 
     @ParameterizedTest
@@ -100,7 +96,7 @@ class ModelTest {
     void parsesARealServerProfile() {
         PlayerProfile profile = ProfileParser.parse(json("""
                 {"uuid": "1246a0ec-662b-45de-bb0b-d68cb1cce800", "name": "JokingDK", "lists": {
-                  "mctiers": {"status": "ok", "region": "EU", "country": null, "points": 102, "overall": 56, "tiers": [
+                  "subtiers": {"status": "ok", "region": "EU", "country": null, "points": 102, "overall": 56, "tiers": [
                     {"kit": "smp", "rank": "HT2", "peak": "HT2", "attained": 1707879318, "retired": true},
                     {"kit": "sword", "rank": "LT3", "peak": null, "attained": null, "retired": false}]},
                   "mcpvp": {"status": "ok", "region": "EU", "country": "DK", "points": 280.5, "overall": 1, "tiers": [
@@ -109,22 +105,32 @@ class ModelTest {
                   "pvphq": {"status": "unavailable", "reason": "timeout"}
                 }}"""));
 
-        ListProfile mctiers = profile.list(TierList.MCTIERS);
-        assertEquals(ListStatus.OK, mctiers.status());
-        assertEquals(102.0, mctiers.points());
-        assertEquals(56, mctiers.overall());
+        ListProfile rankings = profile.list(TierList.SUBTIERS);
+        assertEquals(ListStatus.OK, rankings.status());
+        assertEquals(102.0, rankings.points());
+        assertEquals(56, rankings.overall());
 
-        TierEntry smp = mctiers.tiers().getFirst();
+        TierEntry smp = rankings.tiers().getFirst();
         assertEquals("smp", smp.kit());
         assertEquals(Tier.parse("HT2"), smp.rank());
         assertEquals(1707879318L, smp.attained());
         assertTrue(smp.retired());
-        assertNull(mctiers.tiers().get(1).peak());
+        assertNull(rankings.tiers().get(1).peak());
 
         assertEquals(280.5, profile.list(TierList.MCPVP).points());
         assertEquals("DK", profile.list(TierList.MCPVP).country());
         assertEquals(ListStatus.UNRANKED, profile.list(TierList.PVPTIERS).status());
         assertEquals("timeout", profile.list(TierList.PVPHQ).reason());
+    }
+
+    @Test
+    void anOldReplyNamingMctiersStillReadsTheOtherLists() {
+        PlayerProfile profile = ProfileParser.parse(json("""
+                {"uuid": "1246a0ec-662b-45de-bb0b-d68cb1cce800", "lists": {
+                  "mctiers": {"status": "ok", "tiers": [{"kit": "sword", "rank": "HT1"}]},
+                  "mcpvp": {"status": "unranked"}}}"""));
+        assertEquals(ListStatus.UNRANKED, profile.list(TierList.MCPVP).status());
+        assertEquals(ListStatus.UNAVAILABLE, profile.list(TierList.SUBTIERS).status());
     }
 
     @Test
@@ -137,9 +143,9 @@ class ModelTest {
     @Test
     void badTiersAreSkippedNotFatal() {
         PlayerProfile profile = ProfileParser.parse(json("""
-                {"uuid": "1246a0ec-662b-45de-bb0b-d68cb1cce800", "lists": {"mctiers": {"status": "ok", "tiers": [
+                {"uuid": "1246a0ec-662b-45de-bb0b-d68cb1cce800", "lists": {"subtiers": {"status": "ok", "tiers": [
                   {"kit": "sword", "rank": "ZZ9"}, {"rank": "HT1"}, "junk", {"kit": "axe", "rank": "LT2"}]}}}"""));
-        assertEquals(List.of("axe"), profile.list(TierList.MCTIERS).tiers().stream().map(TierEntry::kit).toList());
+        assertEquals(List.of("axe"), profile.list(TierList.SUBTIERS).tiers().stream().map(TierEntry::kit).toList());
     }
 
     @Test

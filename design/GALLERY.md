@@ -1,35 +1,27 @@
 # TierProfiles GUI drafts
 
-## New in this update (in the real game)
+## New in this update (0.6.0, Minecraft 1.21.11)
 
-### While in Tab: small card
-Move through players with Tab held and the small card shows straight away.
-![Small card while in Tab](ingame/u2-tp-02b-tab-small-card.png)
+### Nametags: best tier from any list
+"Best from any list" is on, so the tag shows the highest tier whichever list it's from.
+![Nametags](ingame/v06-tp-01-nametags.png)
 
-### While in Tab: big card
-Set "While in Tab" to Big card and the full card swaps as you move. Enter keeps it.
-![Big card while in Tab](ingame/u2-tp-02c-tab-big-card.png)
+### Card: tier chips match the background
+The chips are a faint tint now, so the card's see-through background shows through.
+![Card on screen](ingame/v06-tp-05-card-on-hud.png)
 
-### Last column: 4th tier
-![Four tiers instead of a date](ingame/u2-tp-last-fourth_tier.png)
+### Tab card with a tall Tab list
+The card stays inside the window instead of running off the bottom.
+![Tab card with a tall footer](ingame/v06-tp-02d-tab-big-card-tall-footer.png)
 
-### All ranks (Right Shift)
-Every kit on every list, wrapping onto more lines. Here PVPHQ and SMP are hidden on the Lists tab.
-![All ranks](ingame/u2-tp-all-ranks.png)
+### Profile: trims in the main section
+![Trims in Profile essentials](ingame/v06-tp-config-profile-trims.png)
 
-At GUI scale 4 it drops to a sharp smaller size instead of leaving kits out:
-![All ranks at GUI 4](ingame/u2-tp-all-ranks-gui4.png)
+### Apply message
+![Changes applied](ingame/v06-tp-config-applied-note.png)
 
-### Lists tab
-Click a list or a kit to remove it everywhere.
-![Lists tab](ingame/u2-tp-config-lists.png)
-
-### Profile: trims per piece, kits on my card
-![Profile advanced](ingame/u2-tp-config-profile-advanced.png)
-
-### Hover help
-![Tooltip on a setting](ingame/u2-tp-config-tooltip-setting.png)
-![Tooltip on a tab](ingame/u2-tp-config-tooltip-rail.png)
+### Welcome page with the Card styles switch
+![Welcome page](ingame/v06-tp-first-run.png)
 
 ## In the real game
 

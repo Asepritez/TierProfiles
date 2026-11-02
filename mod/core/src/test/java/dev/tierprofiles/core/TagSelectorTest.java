@@ -35,12 +35,12 @@ class TagSelectorTest {
         return out;
     }
 
-    private static final PlayerProfile HT4_ONLY = player(TierList.MCTIERS, ok(entry("sword", "HT4")));
+    private static final PlayerProfile HT4_ONLY = player(TierList.PVPHQ, ok(entry("sword", "HT4")));
 
     @Test
     void picksTheStrongestKitOnAList() {
-        PlayerProfile profile = player(TierList.MCTIERS, ok(entry("axe", "LT4"), entry("sword", "HT2"), entry("mace", "HT5")));
-        assertEquals(List.of("mctiers:sword:HT2"), labels(select(profile, settings())));
+        PlayerProfile profile = player(TierList.PVPHQ, ok(entry("axe", "LT4"), entry("sword", "HT2"), entry("mace", "HT5")));
+        assertEquals(List.of("pvphq:sword:HT2"), labels(select(profile, settings())));
     }
 
     @Test
@@ -54,8 +54,8 @@ class TagSelectorTest {
     void onlyLt3AndAboveKeepsLt3AndHt3() {
         Settings settings = settings();
         settings.surface(Surface.NAMETAG).minimumTier = "LT3";
-        assertEquals(1, select(player(TierList.MCTIERS, ok(entry("sword", "LT3"))), settings).size());
-        assertEquals(1, select(player(TierList.MCTIERS, ok(entry("sword", "HT3"))), settings).size());
+        assertEquals(1, select(player(TierList.PVPHQ, ok(entry("sword", "LT3"))), settings).size());
+        assertEquals(1, select(player(TierList.PVPHQ, ok(entry("sword", "HT3"))), settings).size());
     }
 
     @Test
@@ -72,8 +72,8 @@ class TagSelectorTest {
     void aFailedFilterFallsBackToTheNextStrongestKitNotNothing() {
         Settings settings = settings();
         settings.surface(Surface.NAMETAG).hideRetired = true;
-        PlayerProfile profile = player(TierList.MCTIERS, ok(entry("sword", "HT1", null, true), entry("axe", "LT2")));
-        assertEquals(List.of("mctiers:axe:LT2"), labels(select(profile, settings)));
+        PlayerProfile profile = player(TierList.PVPHQ, ok(entry("sword", "HT1", null, true), entry("axe", "LT2")));
+        assertEquals(List.of("pvphq:axe:LT2"), labels(select(profile, settings)));
     }
 
     @Test
@@ -90,16 +90,16 @@ class TagSelectorTest {
         settings.filters.listMinimums.put(TierList.MCPVP, "HT2");
         settings.surface(Surface.NAMETAG).maxTags = 5;
         PlayerProfile profile = player(
-                TierList.MCTIERS, ok(entry("sword", "HT4")),
+                TierList.PVPHQ, ok(entry("sword", "HT4")),
                 TierList.MCPVP, ok(entry("sword", "HT4")));
-        assertEquals(List.of("mctiers:sword:HT4"), labels(select(profile, settings)));
+        assertEquals(List.of("pvphq:sword:HT4"), labels(select(profile, settings)));
     }
 
     @Test
     void surfaceAndListMinimumsMustBothPass() {
         Settings settings = settings();
         settings.surface(Surface.NAMETAG).minimumTier = "HT4";
-        settings.filters.listMinimums.put(TierList.MCTIERS, "HT3");
+        settings.filters.listMinimums.put(TierList.PVPHQ, "HT3");
         assertEquals(0, select(HT4_ONLY, settings).size());
     }
 
@@ -118,7 +118,7 @@ class TagSelectorTest {
 
     @Test
     void retiredTiersShowUnlessHidden() {
-        PlayerProfile profile = player(TierList.MCTIERS, ok(entry("sword", "HT2", null, true)));
+        PlayerProfile profile = player(TierList.PVPHQ, ok(entry("sword", "HT2", null, true)));
         Tag tag = select(profile, settings()).getFirst();
         assertTrue(tag.retired());
 
@@ -131,25 +131,25 @@ class TagSelectorTest {
     void peakModeShowsThePeak() {
         Settings settings = settings();
         settings.surface(Surface.NAMETAG).tierMode = SurfaceSettings.TierMode.PEAK;
-        PlayerProfile profile = player(TierList.MCTIERS, ok(entry("sword", "HT3", "HT2", false)));
-        assertEquals(List.of("mctiers:sword:HT2"), labels(select(profile, settings)));
+        PlayerProfile profile = player(TierList.PVPHQ, ok(entry("sword", "HT3", "HT2", false)));
+        assertEquals(List.of("pvphq:sword:HT2"), labels(select(profile, settings)));
     }
 
     @Test
     void peakModeFallsBackToCurrentWhenThereIsNoPeak() {
         Settings settings = settings();
         settings.surface(Surface.NAMETAG).tierMode = SurfaceSettings.TierMode.PEAK;
-        assertEquals(List.of("mctiers:sword:HT4"), labels(select(HT4_ONLY, settings)));
+        assertEquals(List.of("pvphq:sword:HT4"), labels(select(HT4_ONLY, settings)));
     }
 
     @Test
     void peakModePicksTheBestPeakNotTheBestCurrent() {
         Settings settings = settings();
         settings.surface(Surface.NAMETAG).tierMode = SurfaceSettings.TierMode.PEAK;
-        PlayerProfile profile = player(TierList.MCTIERS, ok(
+        PlayerProfile profile = player(TierList.PVPHQ, ok(
                 entry("sword", "HT3", "HT3", false),
                 entry("axe", "LT4", "HT1", false)));
-        assertEquals(List.of("mctiers:axe:HT1"), labels(select(profile, settings)));
+        assertEquals(List.of("pvphq:axe:HT1"), labels(select(profile, settings)));
     }
 
     @Test
@@ -157,14 +157,14 @@ class TagSelectorTest {
         Settings settings = settings();
         settings.surface(Surface.NAMETAG).tierMode = SurfaceSettings.TierMode.PEAK;
         settings.surface(Surface.NAMETAG).minimumTier = "HT2";
-        PlayerProfile profile = player(TierList.MCTIERS, ok(entry("sword", "LT4", "HT2", false)));
+        PlayerProfile profile = player(TierList.PVPHQ, ok(entry("sword", "LT4", "HT2", false)));
         assertEquals(1, select(profile, settings).size());
     }
 
     @Test
     void theBestTierWinsWhicheverListItsOnByDefault() {
         PlayerProfile profile = player(
-                TierList.MCTIERS, ok(entry("sword", "HT4")),
+                TierList.PVPHQ, ok(entry("sword", "HT4")),
                 TierList.MCPVP, ok(entry("sword", "HT1")));
         assertEquals(List.of("mcpvp:sword:HT1"), labels(select(profile, settings())));
     }
@@ -172,32 +172,32 @@ class TagSelectorTest {
     @Test
     void listOrderBreaksTiesBetweenEqualTiers() {
         PlayerProfile profile = player(
-                TierList.MCTIERS, ok(entry("sword", "HT2")),
+                TierList.PVPHQ, ok(entry("sword", "HT2")),
                 TierList.MCPVP, ok(entry("axe", "HT2")));
-        assertEquals(List.of("mctiers:sword:HT2"), labels(select(profile, settings())));
+        assertEquals(List.of("pvphq:sword:HT2"), labels(select(profile, settings())));
     }
 
     @Test
     void withBestFromAnyListOffMctiersBeatsMcpvp() {
         Settings settings = inOrder(settings());
         PlayerProfile profile = player(
-                TierList.MCTIERS, ok(entry("sword", "HT4")),
+                TierList.PVPHQ, ok(entry("sword", "HT4")),
                 TierList.MCPVP, ok(entry("sword", "HT1")));
-        assertEquals(List.of("mctiers:sword:HT4"), labels(select(profile, settings)));
+        assertEquals(List.of("pvphq:sword:HT4"), labels(select(profile, settings)));
     }
 
     @Test
     void mcpvpIsNeverTopPriorityByDefault() {
-        assertEquals(TierList.MCTIERS, settings().filters.listPriority.getFirst());
+        assertEquals(TierList.PVPHQ, settings().filters.listPriority.getFirst());
         assertTrue(settings().filters.listPriority.indexOf(TierList.MCPVP) > 0);
     }
 
     @Test
     void listPriorityCanBeChanged() {
         Settings settings = inOrder(settings());
-        settings.filters.listPriority = new ArrayList<>(List.of(TierList.MCPVP, TierList.MCTIERS));
+        settings.filters.listPriority = new ArrayList<>(List.of(TierList.MCPVP, TierList.PVPHQ));
         PlayerProfile profile = player(
-                TierList.MCTIERS, ok(entry("sword", "HT1")),
+                TierList.PVPHQ, ok(entry("sword", "HT1")),
                 TierList.MCPVP, ok(entry("sword", "HT4")));
         assertEquals(List.of("mcpvp:sword:HT4"), labels(select(profile, settings)));
     }
@@ -205,7 +205,7 @@ class TagSelectorTest {
     @Test
     void theNextListGetsTheSlotWhenTheFirstOffersNothing() {
         PlayerProfile profile = player(
-                TierList.MCTIERS, ListProfile.UNRANKED,
+                TierList.PVPHQ, ListProfile.UNRANKED,
                 TierList.PVPTIERS, ListProfile.unavailable("timeout"),
                 TierList.SUBTIERS, ok(entry("minecart", "LT3")));
         assertEquals(List.of("subtiers:minecart:LT3"), labels(select(profile, settings())));
@@ -216,10 +216,10 @@ class TagSelectorTest {
         Settings settings = inOrder(settings());
         settings.surface(Surface.NAMETAG).maxTags = 2;
         PlayerProfile profile = player(
-                TierList.MCTIERS, ok(entry("sword", "HT4")),
+                TierList.PVPHQ, ok(entry("sword", "HT4")),
                 TierList.MCPVP, ok(entry("axe", "LT3")),
                 TierList.SUBTIERS, ok(entry("bed", "HT1")));
-        assertEquals(List.of("mctiers:sword:HT4", "mcpvp:axe:LT3"), labels(select(profile, settings)));
+        assertEquals(List.of("pvphq:sword:HT4", "mcpvp:axe:LT3"), labels(select(profile, settings)));
     }
 
     @Test
@@ -227,7 +227,7 @@ class TagSelectorTest {
         Settings settings = settings();
         settings.surface(Surface.NAMETAG).maxTags = 2;
         PlayerProfile profile = player(
-                TierList.MCTIERS, ok(entry("sword", "HT4")),
+                TierList.PVPHQ, ok(entry("sword", "HT4")),
                 TierList.MCPVP, ok(entry("axe", "LT3")),
                 TierList.SUBTIERS, ok(entry("bed", "HT1")));
         assertEquals(List.of("subtiers:bed:HT1", "mcpvp:axe:LT3"), labels(select(profile, settings)));
@@ -242,9 +242,9 @@ class TagSelectorTest {
     @Test
     void disabledListsAreSkipped() {
         Settings settings = settings();
-        settings.filters.disabledLists.add(TierList.MCTIERS);
+        settings.filters.disabledLists.add(TierList.PVPHQ);
         PlayerProfile profile = player(
-                TierList.MCTIERS, ok(entry("sword", "HT1")),
+                TierList.PVPHQ, ok(entry("sword", "HT1")),
                 TierList.PVPTIERS, ok(entry("sword", "HT4")));
         assertEquals(List.of("pvptiers:sword:HT4"), labels(select(profile, settings)));
     }
@@ -253,8 +253,8 @@ class TagSelectorTest {
     void hiddenKitsNeverMakeATag() {
         Settings settings = settings();
         settings.filters.hiddenKits.add("smp");
-        PlayerProfile profile = player(TierList.MCTIERS, ok(entry("smp", "HT1"), entry("sword", "LT3")));
-        assertEquals(List.of("mctiers:sword:LT3"), labels(select(profile, settings)));
+        PlayerProfile profile = player(TierList.PVPHQ, ok(entry("smp", "HT1"), entry("sword", "LT3")));
+        assertEquals(List.of("pvphq:sword:LT3"), labels(select(profile, settings)));
     }
 
     @Test
@@ -262,8 +262,8 @@ class TagSelectorTest {
         Settings settings = settings();
         settings.surface(Surface.NAMETAG).kitMode = KitMode.SELECTED;
         settings.filters.selectedKits = new ArrayList<>(List.of("axe"));
-        PlayerProfile profile = player(TierList.MCTIERS, ok(entry("sword", "HT1"), entry("axe", "LT4")));
-        assertEquals(List.of("mctiers:axe:LT4"), labels(select(profile, settings)));
+        PlayerProfile profile = player(TierList.PVPHQ, ok(entry("sword", "HT1"), entry("axe", "LT4")));
+        assertEquals(List.of("pvphq:axe:LT4"), labels(select(profile, settings)));
     }
 
     @Test
@@ -271,31 +271,31 @@ class TagSelectorTest {
         Settings settings = settings();
         settings.surface(Surface.NAMETAG).kitMode = KitMode.SELECTED;
         settings.filters.selectedKits = new ArrayList<>(List.of("axe", "sword"));
-        PlayerProfile profile = player(TierList.MCTIERS, ok(entry("sword", "HT2"), entry("axe", "HT2")));
-        assertEquals(List.of("mctiers:axe:HT2"), labels(select(profile, settings)));
+        PlayerProfile profile = player(TierList.PVPHQ, ok(entry("sword", "HT2"), entry("axe", "HT2")));
+        assertEquals(List.of("pvphq:axe:HT2"), labels(select(profile, settings)));
     }
 
     @Test
     void anActiveTierBeatsAnEqualRetiredOne() {
-        PlayerProfile profile = player(TierList.MCTIERS, ok(entry("sword", "HT2", null, true), entry("axe", "HT2", null, false)));
-        assertEquals(List.of("mctiers:axe:HT2"), labels(select(profile, settings())));
+        PlayerProfile profile = player(TierList.PVPHQ, ok(entry("sword", "HT2", null, true), entry("axe", "HT2", null, false)));
+        assertEquals(List.of("pvphq:axe:HT2"), labels(select(profile, settings())));
     }
 
     @Test
     void autoModeUsesTheDetectedKit() {
         Settings settings = settings();
         settings.surface(Surface.NAMETAG).kitMode = KitMode.AUTO;
-        PlayerProfile profile = player(TierList.MCTIERS, ok(entry("sword", "HT1"), entry("mace", "LT4")));
+        PlayerProfile profile = player(TierList.PVPHQ, ok(entry("sword", "HT1"), entry("mace", "LT4")));
         List<Tag> tags = TagSelector.select(profile, Surface.NAMETAG, settings, new Context(false, "mace"));
-        assertEquals(List.of("mctiers:mace:LT4"), labels(tags));
+        assertEquals(List.of("pvphq:mace:LT4"), labels(tags));
     }
 
     @Test
     void autoModeWithNoGuessActsLikeHighest() {
         Settings settings = settings();
         settings.surface(Surface.NAMETAG).kitMode = KitMode.AUTO;
-        PlayerProfile profile = player(TierList.MCTIERS, ok(entry("sword", "HT1"), entry("mace", "LT4")));
-        assertEquals(List.of("mctiers:sword:HT1"), labels(select(profile, settings)));
+        PlayerProfile profile = player(TierList.PVPHQ, ok(entry("sword", "HT1"), entry("mace", "LT4")));
+        assertEquals(List.of("pvphq:sword:HT1"), labels(select(profile, settings)));
     }
 
     @Test
@@ -310,9 +310,8 @@ class TagSelectorTest {
     void unrankedShowsOnlyWhenAsked() {
         Settings settings = settings();
         PlayerProfile profile = player(
-                TierList.MCTIERS, ListProfile.UNRANKED, TierList.MCPVP, ListProfile.UNRANKED,
-                TierList.PVPTIERS, ListProfile.UNRANKED, TierList.SUBTIERS, ListProfile.UNRANKED,
-                TierList.PVPHQ, ListProfile.UNRANKED);
+                TierList.PVPHQ, ListProfile.UNRANKED, TierList.MCPVP, ListProfile.UNRANKED,
+                TierList.PVPTIERS, ListProfile.UNRANKED, TierList.SUBTIERS, ListProfile.UNRANKED);
         assertEquals(0, select(profile, settings).size());
 
         settings.surface(Surface.NAMETAG).hideUnranked = false;
@@ -323,7 +322,7 @@ class TagSelectorTest {
     void aListBeingDownMeansWeDontClaimUnranked() {
         Settings settings = settings();
         settings.surface(Surface.NAMETAG).hideUnranked = false;
-        PlayerProfile profile = player(TierList.MCTIERS, ListProfile.UNRANKED, TierList.PVPHQ, ListProfile.unavailable("timeout"));
+        PlayerProfile profile = player(TierList.PVPHQ, ListProfile.UNRANKED, TierList.SUBTIERS, ListProfile.unavailable("timeout"));
         assertEquals(0, select(profile, settings).size());
     }
 
@@ -339,7 +338,7 @@ class TagSelectorTest {
     void hidingRetiredIsPerSurface() {
         Settings settings = settings();
         settings.surface(Surface.NAMETAG).hideRetired = true;
-        PlayerProfile profile = player(TierList.MCTIERS, ok(entry("sword", "HT1", null, true)));
+        PlayerProfile profile = player(TierList.PVPHQ, ok(entry("sword", "HT1", null, true)));
         assertEquals(0, TagSelector.select(profile, Surface.NAMETAG, settings, Context.NONE).size());
         assertEquals(1, TagSelector.select(profile, Surface.TAB, settings, Context.NONE).size());
     }
@@ -348,7 +347,7 @@ class TagSelectorTest {
     void bothModeShowsCurrentAndAHigherPeak() {
         Settings settings = settings();
         settings.surface(Surface.NAMETAG).tierMode = SurfaceSettings.TierMode.BOTH;
-        Tag tag = select(player(TierList.MCTIERS, ok(entry("sword", "HT3", "HT2", false))), settings).getFirst();
+        Tag tag = select(player(TierList.PVPHQ, ok(entry("sword", "HT3", "HT2", false))), settings).getFirst();
         assertEquals("HT3", tag.tier().label());
         assertEquals("HT2", tag.higherPeak().label());
     }
@@ -357,7 +356,7 @@ class TagSelectorTest {
     void bothModeLeavesPeakOutWhenItIsNoBetter() {
         Settings settings = settings();
         settings.surface(Surface.NAMETAG).tierMode = SurfaceSettings.TierMode.BOTH;
-        Tag tag = select(player(TierList.MCTIERS, ok(entry("sword", "HT3", "HT3", false))), settings).getFirst();
+        Tag tag = select(player(TierList.PVPHQ, ok(entry("sword", "HT3", "HT3", false))), settings).getFirst();
         assertEquals(null, tag.higherPeak());
     }
 

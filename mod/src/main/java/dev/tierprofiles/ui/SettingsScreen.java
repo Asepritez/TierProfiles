@@ -105,7 +105,7 @@ public final class SettingsScreen extends Screen {
     private boolean importColours = true;
     private boolean importRules = true;
     private boolean importCard = true;
-    private TierList colourList = TierList.MCTIERS;
+    private TierList colourList = TierList.DEFAULT_PRIORITY.getFirst();
     private Tier colourTier = Tier.parse("HT3");
     private int selectedRule;
     private String sharingMessage = "";

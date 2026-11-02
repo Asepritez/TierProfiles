@@ -7,8 +7,6 @@ const MINUTE = 60_000;
 
 function liveLists(url: string) {
   switch (hostOf(url)) {
-    case "mctiers.gg":
-      return reply(200, fixture("mctiers-full.json"));
     case "www.mcpvp.com":
       return reply(200, fixture("mcpvp-full.json"));
     case "pvptiers.com":
@@ -31,7 +29,7 @@ describe("merging", () => {
   it("merges every list for one player", async () => {
     const { fn } = fakeFetch(liveLists);
     const [profile] = await getProfiles([JOKING], makeDeps(fn));
-    expect(profile?.lists.mctiers.status).toBe("ok");
+    expect(profile?.lists.subtiers.status).toBe("ok");
     expect(profile?.lists.mcpvp.status).toBe("ok");
     expect(profile?.lists.pvptiers.status).toBe("ok");
     expect(profile?.lists.subtiers.status).toBe("ok");
@@ -40,15 +38,14 @@ describe("merging", () => {
 
   it("names the cause of each failure, and one list failing leaves the others alone", async () => {
     const { fn } = fakeFetch((url) => {
-      if (hostOf(url) === "mctiers.gg") return reply(500, "boom");
+      if (hostOf(url) === "subtiers.net") return reply(500, "boom");
       if (hostOf(url) === "pvptiers.com") return reply(200, "<html>captcha</html>");
       return liveLists(url);
     });
     const [profile] = await getProfiles([JOKING], makeDeps(fn));
-    expect(profile?.lists.mctiers).toEqual({ status: "unavailable", reason: "http_500" });
+    expect(profile?.lists.subtiers).toEqual({ status: "unavailable", reason: "http_500" });
     expect(profile?.lists.pvptiers).toEqual({ status: "unavailable", reason: "bad_json" });
     expect(profile?.lists.mcpvp.status).toBe("ok");
-    expect(profile?.lists.subtiers.status).toBe("ok");
   });
 
   it("gives up on a list that hangs, as PVPHQ does", async () => {
@@ -62,7 +59,7 @@ describe("merging", () => {
     deps.timeoutMs = 20;
     const [profile] = await getProfiles([JOKING], deps);
     expect(profile?.lists.pvphq).toEqual({ status: "unavailable", reason: "timeout" });
-    expect(profile?.lists.mctiers).toEqual({ status: "unranked" });
+    expect(profile?.lists.subtiers).toEqual({ status: "unranked" });
   });
 
   it("still works without the name McPvP needs", async () => {
@@ -98,12 +95,12 @@ describe("caching", () => {
 
     clock.now += 29 * MINUTE;
     let later = await lookup(clock, edge, liveLists);
-    expect(later.calls.some(isList("mctiers.gg"))).toBe(false);
-    expect(later.profile?.lists.mctiers.status).toBe("ok");
+    expect(later.calls.some(isList("subtiers.net"))).toBe(false);
+    expect(later.profile?.lists.subtiers.status).toBe("ok");
 
     clock.now += 2 * MINUTE;
     later = await lookup(clock, edge, liveLists);
-    expect(later.calls.some(isList("mctiers.gg"))).toBe(true);
+    expect(later.calls.some(isList("subtiers.net"))).toBe(true);
   });
 
   it("remembers 'not ranked' for 2 hours", async () => {
@@ -115,7 +112,7 @@ describe("caching", () => {
     expect((await lookup(clock, edge, allNotFound)).calls).toHaveLength(0);
 
     clock.now += 2 * MINUTE;
-    expect((await lookup(clock, edge, allNotFound)).calls).toHaveLength(5);
+    expect((await lookup(clock, edge, allNotFound)).calls).toHaveLength(4);
   });
 
   it("retries a failed list after a minute without refetching the good ones", async () => {
@@ -135,7 +132,7 @@ describe("caching", () => {
     const reborn = await lookup(clock, edge, () => {
       throw new Error("should not be called");
     });
-    expect(reborn.profile?.lists.mctiers).toEqual({ status: "unranked" });
+    expect(reborn.profile?.lists.subtiers).toEqual({ status: "unranked" });
     expect(edge.matches).toBe(2);
   });
 
@@ -144,7 +141,7 @@ describe("caching", () => {
     const deps = makeDeps(fake.fn, { edge: null });
     await getProfiles([JOKING], deps);
     await getProfiles([JOKING], deps);
-    expect(fake.calls).toHaveLength(5);
+    expect(fake.calls).toHaveLength(4);
   });
 
   it("carries on if the edge cache throws", async () => {
@@ -156,7 +153,7 @@ describe("caching", () => {
     const deps = makeDeps(fake.fn, { edge: broken });
     const [profile] = await getProfiles([JOKING], deps);
     await deps.settle();
-    expect(profile?.lists.mctiers).toEqual({ status: "unranked" });
+    expect(profile?.lists.subtiers).toEqual({ status: "unranked" });
   });
 });
 
@@ -200,18 +197,17 @@ describe("the 50 subrequest limit", () => {
     expect(profiles).toHaveLength(8);
   });
 
-  it("gives every player the four reliable lists and lets PVPHQ go short", async () => {
+  it("fits every list for a full batch now that there are four", async () => {
     const fake = fakeFetch(allNotFound);
     const deps = makeDeps(fake.fn, { edge: new FakeEdge() });
     const profiles = await getProfiles(randomPlayers(8), deps);
 
     for (const profile of profiles) {
-      expect(profile.lists.mctiers.status).toBe("unranked");
       expect(profile.lists.mcpvp.status).toBe("unranked");
       expect(profile.lists.pvptiers.status).toBe("unranked");
       expect(profile.lists.subtiers.status).toBe("unranked");
+      expect(profile.lists.pvphq.status).toBe("unranked");
     }
-    expect(profiles.some((p) => p.lists.pvphq.status === "unavailable")).toBe(true);
   });
 
   it("doesn't cache 'busy', so the next request can fill the gap", async () => {
@@ -233,7 +229,7 @@ describe("batches", () => {
   it("keeps two players apart in one request", async () => {
     const { fn } = fakeFetch((url) => (url.includes(ITZ.uuid) ? reply(200, fixture("mctiers-ranked.json")) : reply(404)));
     const [itz, joking] = await getProfiles([ITZ, JOKING], makeDeps(fn));
-    expect(itz?.lists.mctiers.status).toBe("ok");
-    expect(joking?.lists.mctiers.status).toBe("unranked");
+    expect(itz?.lists.subtiers.status).toBe("ok");
+    expect(joking?.lists.subtiers.status).toBe("unranked");
   });
 });

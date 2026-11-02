@@ -43,7 +43,7 @@ dependencies {
     modImplementation("net.fabricmc.fabric-api:fabric-api:${sc.properties.get<String>("deps.fabric_api")}")
     implementation(project(":core"))
 
-    // Reads WebP, because SubTiers and the MCTiers badges publish nothing else.
+    // Reads WebP, because SubTiers publishes nothing else.
     // Pure Java, BSD licensed, and only used on downloaded images.
     for (library in listOf(
         "imageio:imageio-webp", "imageio:imageio-core", "imageio:imageio-metadata",
@@ -91,6 +91,13 @@ tasks.withType<Jar> {
 loom {
     runs.named("clientGameTest") {
         runDir("run/gametest")
+        // `-Pgallery` takes the draft gallery shots instead of the tests, as Hoseinplays so
+        // your own card has your public skin. No token, so it's still an offline account.
+        if (project.hasProperty("gallery")) {
+            runDir("run/gallery")
+            vmArg("-Dtierprofiles.gallery=true")
+            programArgs("--username", "Hoseinplays", "--uuid", "835b345e23d8408da9313adee61ca1d4")
+        }
     }
 }
 

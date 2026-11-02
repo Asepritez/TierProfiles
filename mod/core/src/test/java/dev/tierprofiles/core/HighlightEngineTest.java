@@ -24,17 +24,17 @@ class HighlightEngineTest {
     private static final int PURPLE = 0xAA00FF;
 
     private static HighlightRule purpleBoldHt1() {
-        HighlightRule rule = HighlightRule.of(TierList.MCTIERS, "HT1", PURPLE);
+        HighlightRule rule = HighlightRule.of(TierList.PVPHQ, "HT1", PURPLE);
         rule.bold = true;
         return rule;
     }
 
     private static HighlightRule redHt3() {
-        return HighlightRule.of(TierList.MCTIERS, "HT3", RED);
+        return HighlightRule.of(TierList.PVPHQ, "HT3", RED);
     }
 
-    private static PlayerProfile mctiers(String rank) {
-        return player(TierList.MCTIERS, ok(entry("sword", rank)));
+    private static PlayerProfile onFirstList(String rank) {
+        return player(TierList.PVPHQ, ok(entry("sword", rank)));
     }
 
     private static NameStyle run(PlayerProfile profile, Settings settings, HighlightRule... rules) {
@@ -43,38 +43,38 @@ class HighlightEngineTest {
 
     @Test
     void ht3AboveTurnsTheNameRed() {
-        assertEquals(RED, run(mctiers("HT3"), settings(), redHt3()).color());
-        assertEquals(RED, run(mctiers("LT2"), settings(), redHt3()).color());
-        assertEquals(RED, run(mctiers("HT1"), settings(), redHt3()).color());
+        assertEquals(RED, run(onFirstList("HT3"), settings(), redHt3()).color());
+        assertEquals(RED, run(onFirstList("LT2"), settings(), redHt3()).color());
+        assertEquals(RED, run(onFirstList("HT1"), settings(), redHt3()).color());
     }
 
     @Test
     void belowHt3LeavesTheNameAlone() {
-        assertTrue(run(mctiers("LT3"), settings(), redHt3()).isPlain());
-        assertTrue(run(mctiers("HT4"), settings(), redHt3()).isPlain());
+        assertTrue(run(onFirstList("LT3"), settings(), redHt3()).isPlain());
+        assertTrue(run(onFirstList("HT4"), settings(), redHt3()).isPlain());
     }
 
     @Test
     void firstMatchWinsSoOrderMatters() {
-        NameStyle top = run(mctiers("HT1"), settings(), purpleBoldHt1(), redHt3());
+        NameStyle top = run(onFirstList("HT1"), settings(), purpleBoldHt1(), redHt3());
         assertEquals(PURPLE, top.color());
         assertTrue(top.bold());
 
-        NameStyle lower = run(mctiers("HT2"), settings(), purpleBoldHt1(), redHt3());
+        NameStyle lower = run(onFirstList("HT2"), settings(), purpleBoldHt1(), redHt3());
         assertEquals(RED, lower.color());
         assertFalse(lower.bold());
     }
 
     @Test
     void puttingTheBroadRuleFirstShadowsTheNarrowOne() {
-        assertEquals(RED, run(mctiers("HT1"), settings(), redHt3(), purpleBoldHt1()).color());
+        assertEquals(RED, run(onFirstList("HT1"), settings(), redHt3(), purpleBoldHt1()).color());
     }
 
     @Test
     void disabledRulesAreSkipped() {
         HighlightRule off = redHt3();
         off.enabled = false;
-        assertTrue(run(mctiers("HT1"), settings(), off).isPlain());
+        assertTrue(run(onFirstList("HT1"), settings(), off).isPlain());
     }
 
     @Test
@@ -93,13 +93,13 @@ class HighlightEngineTest {
     void aRuleCanRequireAKit() {
         HighlightRule rule = HighlightRule.of(null, "HT3", RED);
         rule.kit = "mace";
-        assertTrue(run(player(TierList.MCTIERS, ok(entry("sword", "HT1"))), settings(), rule).isPlain());
-        assertEquals(RED, run(player(TierList.MCTIERS, ok(entry("mace", "HT3"))), settings(), rule).color());
+        assertTrue(run(player(TierList.PVPHQ, ok(entry("sword", "HT1"))), settings(), rule).isPlain());
+        assertEquals(RED, run(player(TierList.PVPHQ, ok(entry("mace", "HT3"))), settings(), rule).color());
     }
 
     @Test
     void anyKitOnTheListCanMatch() {
-        PlayerProfile profile = player(TierList.MCTIERS, ok(entry("axe", "LT5"), entry("sword", "HT2")));
+        PlayerProfile profile = player(TierList.PVPHQ, ok(entry("axe", "LT5"), entry("sword", "HT2")));
         assertEquals(RED, run(profile, settings(), redHt3()).color());
     }
 
@@ -107,7 +107,7 @@ class HighlightEngineTest {
     void retiredTiersDontCountWhenHidden() {
         HighlightRule rule = redHt3();
         rule.ignoreRetired = true;
-        PlayerProfile profile = player(TierList.MCTIERS, ok(entry("sword", "HT1", null, true)));
+        PlayerProfile profile = player(TierList.PVPHQ, ok(entry("sword", "HT1", null, true)));
         assertTrue(run(profile, settings(), rule).isPlain());
         assertEquals(RED, run(profile, settings(), redHt3()).color());
     }
@@ -116,7 +116,7 @@ class HighlightEngineTest {
     void peakModeAppliesToRules() {
         HighlightRule rule = redHt3();
         rule.usePeak = true;
-        PlayerProfile profile = player(TierList.MCTIERS, ok(entry("sword", "LT5", "HT1", false)));
+        PlayerProfile profile = player(TierList.PVPHQ, ok(entry("sword", "LT5", "HT1", false)));
         assertEquals(RED, run(profile, settings(), rule).color());
         assertTrue(run(profile, settings(), redHt3()).isPlain());
     }
@@ -125,21 +125,21 @@ class HighlightEngineTest {
     void hiddenTagsCanStillTriggerRules() {
         Settings settings = settings();
         settings.surface(dev.tierprofiles.core.settings.Surface.NAMETAG).minimumTier = "HT1";
-        assertEquals(RED, run(mctiers("HT3"), settings, redHt3()).color());
+        assertEquals(RED, run(onFirstList("HT3"), settings, redHt3()).color());
     }
 
     @Test
     void disabledListsDontTriggerRules() {
         Settings settings = settings();
-        settings.filters.disabledLists.add(TierList.MCTIERS);
-        assertTrue(run(mctiers("HT1"), settings, redHt3()).isPlain());
+        settings.filters.disabledLists.add(TierList.PVPHQ);
+        assertTrue(run(onFirstList("HT1"), settings, redHt3()).isPlain());
     }
 
     @Test
     void hiddenKitsDontTriggerRules() {
         Settings settings = settings();
         settings.filters.hiddenKits.add("sword");
-        assertTrue(run(mctiers("HT1"), settings, redHt3()).isPlain());
+        assertTrue(run(onFirstList("HT1"), settings, redHt3()).isPlain());
     }
 
     @Test
@@ -149,7 +149,7 @@ class HighlightEngineTest {
         rule.bold = true;
         rule.glow = true;
         rule.star = true;
-        NameStyle style = run(mctiers("HT1"), settings(), rule);
+        NameStyle style = run(onFirstList("HT1"), settings(), rule);
         assertEquals(new NameStyle(RED, PURPLE, true, true, true), style);
         assertTrue(style.isGradient());
     }
@@ -158,13 +158,13 @@ class HighlightEngineTest {
     void comparisonsMeanWhatTheySay() {
         HighlightRule at = redHt3();
         at.comparison = HighlightRule.Comparison.AT;
-        assertEquals(RED, run(mctiers("HT3"), settings(), at).color());
-        assertTrue(run(mctiers("HT2"), settings(), at).isPlain());
+        assertEquals(RED, run(onFirstList("HT3"), settings(), at).color());
+        assertTrue(run(onFirstList("HT2"), settings(), at).isPlain());
 
         HighlightRule above = redHt3();
         above.comparison = HighlightRule.Comparison.ABOVE;
-        assertTrue(run(mctiers("HT3"), settings(), above).isPlain());
-        assertEquals(RED, run(mctiers("HT2"), settings(), above).color());
+        assertTrue(run(onFirstList("HT3"), settings(), above).isPlain());
+        assertEquals(RED, run(onFirstList("HT2"), settings(), above).color());
     }
 
     @Test

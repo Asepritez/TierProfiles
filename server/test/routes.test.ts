@@ -34,7 +34,7 @@ describe("routes", () => {
       const body = (await response.json()) as { uuid: string; name: string; lists: Record<string, unknown> };
       expect(body.uuid).toBe(ITZ.uuid);
       expect(body.name).toBe("ItzRealMe");
-      expect(Object.keys(body.lists)).toEqual(["mctiers", "mcpvp", "pvptiers", "subtiers", "pvphq"]);
+      expect(Object.keys(body.lists)).toEqual(["mcpvp", "pvptiers", "subtiers", "pvphq"]);
     }
   });
 

@@ -2,7 +2,7 @@ import { canonicalKit } from "../kits";
 import type { ListResult, TierEntry } from "../types";
 import { checkStatus, isRecord, numberOrNull, parseJson, ProviderError, stringOrNull } from "./provider";
 
-// MCTiers, PvPTiers and SubTiers share a response format, so they share a parser:
+// PvPTiers and SubTiers share a response format, so they share a parser:
 //   { region, points, overall, rankings: { sword: { tier, pos, peak_tier, peak_pos, attained, retired } } }
 // `pos` 0 is High and 1 is Low, so tier 3 pos 1 is LT3.
 
@@ -27,7 +27,7 @@ export function parseRankings(status: number, body: string): ListResult {
     const rank = rankLabel(value.tier, value.pos);
     if (!rank) continue;
 
-    // MCTiers sends both "nethop" and "neth_pot", which become one kit here.
+    // A list can send both "nethop" and "neth_pot", which become one kit here.
     const kit = canonicalKit(rawKit);
     if (seen.has(kit)) continue;
     seen.add(kit);

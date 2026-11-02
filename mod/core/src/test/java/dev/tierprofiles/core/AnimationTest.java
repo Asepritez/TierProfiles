@@ -237,7 +237,7 @@ class AnimationTest {
     @Test
     void headlineIsTheBestPositionAndTheSumOfAllPoints() {
         PlayerProfile profile = player(
-                TierList.MCTIERS, standing(56, 102),
+                TierList.PVPHQ, standing(56, 102),
                 TierList.MCPVP, standing(1, 280),
                 TierList.PVPTIERS, standing(175, 64),
                 TierList.SUBTIERS, standing(160, 83));
@@ -250,15 +250,15 @@ class AnimationTest {
 
     @Test
     void aTieGoesToTheListYouTrustMost() {
-        PlayerProfile profile = player(TierList.MCPVP, standing(3, 10), TierList.MCTIERS, standing(3, 10));
-        assertEquals(TierList.MCTIERS, CardSummary.of(profile, settings().filters).bestList());
+        PlayerProfile profile = player(TierList.MCPVP, standing(3, 10), TierList.PVPHQ, standing(3, 10));
+        assertEquals(TierList.PVPHQ, CardSummary.of(profile, settings().filters).bestList());
     }
 
     @Test
     void disabledListsDontCount() {
         Settings settings = settings();
         settings.filters.disabledLists.add(TierList.MCPVP);
-        PlayerProfile profile = player(TierList.MCTIERS, standing(9, 50), TierList.MCPVP, standing(1, 280));
+        PlayerProfile profile = player(TierList.PVPHQ, standing(9, 50), TierList.MCPVP, standing(1, 280));
         CardSummary summary = CardSummary.of(profile, settings.filters);
 
         assertEquals(9, summary.bestPosition());
@@ -267,7 +267,7 @@ class AnimationTest {
 
     @Test
     void aPlayerWithNoStandingsHasNoPosition() {
-        CardSummary summary = CardSummary.of(player(TierList.MCTIERS, ListProfile.UNRANKED), settings().filters);
+        CardSummary summary = CardSummary.of(player(TierList.PVPHQ, ListProfile.UNRANKED), settings().filters);
         assertNull(summary.bestPosition());
         assertEquals(0, summary.totalPoints());
     }

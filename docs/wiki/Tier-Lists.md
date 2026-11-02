@@ -1,12 +1,13 @@
-## The five lists
+## The four lists
 
 | List | Shows | Notes |
 |---|---|---|
-| **MCTiers** | Tiers, peak tiers, region, rank and points | Shown first by default |
+| **PVPHQ** | Ranked tiers | Shown first by default |
 | **McPvP** | Tiers and rank | Marked **beta**: it's a new list |
 | **PvPTiers** | Tiers, peak tiers and dates | |
 | **SubTiers** | Tiers and dates | |
-| **PVPHQ** | Ranked tiers | |
+
+MCTiers used to be here too. It shut down in November 2026, so TierProfiles 0.7.0 and later no longer ask it.
 
 Each list tests players separately, so the same player can be HT3 on one list and LT2 on another. The card shows each list's own result. Tags show the highest one by default, whichever list it's from. See **Best from any list** in [[Settings]].
 
@@ -26,7 +27,7 @@ A tier belongs to a kit (gamemode), such as Sword, Axe, Crystal, NethPot, UHC or
 | Mark | Meaning |
 |---|---|
 | **Peak** (gold corner on a card) | The player was once higher in this kit than they are now |
-| **Retired** (dimmed tier) | The player has retired from this kit, so the tier is their last one |
+| **Retired** (red border, dimmed tier) | The player has retired from this kit, so the tier is their last one |
 | **Region** (e.g. NA, EU, AS) | Where the list says the player plays |
 | **#12** and **points** | Their rank and points on the list shown at the top of the card |
 | **Unranked** | The list has no tiers for this player |
@@ -45,4 +46,4 @@ Titles come from points:
 | Combat Novice | 10 |
 | Rookie | 1 |
 
-MCTiers gives these titles itself. For lists without their own titles, the card uses the same ladder and says **(TierProfiles title)** so nobody mistakes it for an official one.
+None of the lists give titles themselves now, so the card uses this ladder on McPvP, PvPTiers and SubTiers points, shows the highest title of the three, and says **(TierProfiles title)** so nobody mistakes it for an official one.

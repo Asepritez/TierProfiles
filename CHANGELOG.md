@@ -3,6 +3,15 @@
 Each version's jar is named `tierprofiles-<version>+mc<minecraft>.jar`, for example
 `tierprofiles-0.3.0+mc1.21.11.jar`.
 
+## 0.7.0 (2 Nov 2026)
+
+- MCTiers is gone. It shut down, so the mod no longer asks it, and its logo, badges and settings are removed. Your other settings are kept, and old share codes still import.
+- The default list order is now PVPHQ, McPvP, PvPTiers, SubTiers. If you never changed your order, you get the new one.
+- Every tier chip on the card has a border now, and retired tiers have a muted red one, so they stand out from current ones.
+- Where a list has fewer kits than the other rows, the gaps show as empty outlined boxes instead of blank space.
+- New Manhunt kit icon (a compass), for SubTiers' Manhunt tiers.
+- Titles such as Combat Master now come from PvPTiers and SubTiers points too, and the card shows the highest one.
+
 ## 0.6.0 (2 Nov 2026)
 
 - Much faster lookups. Each list now has its own queue and works on several players at once, and each list's tiers show the moment they arrive. A 40-player lobby went from 20 to 40 seconds to about 2 seconds for MCTiers and 5 seconds for every list.

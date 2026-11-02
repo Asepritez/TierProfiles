@@ -1,6 +1,6 @@
 package dev.tierprofiles.core.model;
 
-/** The MCTiers title ladder, highest first. */
+/** The title ladder MCTiers made popular, highest first. */
 public enum Title {
     GRANDMASTER("Combat Grandmaster", 400),
     MASTER("Combat Master", 250),
@@ -37,12 +37,12 @@ public enum Title {
     }
 
     /**
-     * A title earned on a list. `official` is true for MCTiers. McPvP has no titles
-     * of its own, so its title is ours, and the UI must say so.
+     * A title earned on a list. None of the lists we read give titles themselves, so
+     * every title is ours, and the UI must say so.
      */
-    public record Earned(Title title, TierList list, boolean official) {
+    public record Earned(Title title, TierList list) {
         public String label() {
-            return official ? title.displayName : title.displayName + " (TierProfiles title)";
+            return title.displayName + " (TierProfiles title)";
         }
     }
 
@@ -52,6 +52,6 @@ public enum Title {
             return null;
         }
         Title title = forPoints(profile.points());
-        return title == null ? null : new Earned(title, list, list == TierList.MCTIERS);
+        return title == null ? null : new Earned(title, list);
     }
 }

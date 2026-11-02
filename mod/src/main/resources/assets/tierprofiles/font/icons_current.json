@@ -24,10 +24,10 @@
     {"type": "bitmap", "file": "tierprofiles:icon/current/end_game.png", "ascent": 7, "height": 8, "chars": ["\uE115"]},
     {"type": "bitmap", "file": "tierprofiles:icon/current/elytra.png", "ascent": 7, "height": 8, "chars": ["\uE116"]},
     {"type": "bitmap", "file": "tierprofiles:icon/current/bow.png", "ascent": 7, "height": 8, "chars": ["\uE117"]},
-    {"type": "bitmap", "file": "tierprofiles:logo/mctiers.png", "ascent": 7, "height": 8, "chars": ["\uE200"]},
-    {"type": "bitmap", "file": "tierprofiles:logo/mcpvp.png", "ascent": 7, "height": 8, "chars": ["\uE201"]},
-    {"type": "bitmap", "file": "tierprofiles:logo/pvptiers.png", "ascent": 7, "height": 8, "chars": ["\uE202"]},
-    {"type": "bitmap", "file": "tierprofiles:logo/subtiers.png", "ascent": 7, "height": 8, "chars": ["\uE203"]},
-    {"type": "bitmap", "file": "tierprofiles:logo/pvphq.png", "ascent": 7, "height": 8, "chars": ["\uE204"]}
+    {"type": "bitmap", "file": "tierprofiles:icon/current/manhunt.png", "ascent": 7, "height": 8, "chars": ["\uE118"]},
+    {"type": "bitmap", "file": "tierprofiles:logo/mcpvp.png", "ascent": 7, "height": 8, "chars": ["\uE200"]},
+    {"type": "bitmap", "file": "tierprofiles:logo/pvptiers.png", "ascent": 7, "height": 8, "chars": ["\uE201"]},
+    {"type": "bitmap", "file": "tierprofiles:logo/subtiers.png", "ascent": 7, "height": 8, "chars": ["\uE202"]},
+    {"type": "bitmap", "file": "tierprofiles:logo/pvphq.png", "ascent": 7, "height": 8, "chars": ["\uE203"]}
   ]
 }

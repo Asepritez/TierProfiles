@@ -25,7 +25,7 @@ public final class Icons {
     private static final List<String> KITS = List.of(
             "sword", "crystal", "axe", "mace", "pot", "neth_pot", "smp", "uhc", "spear", "shield", "dia_smp",
             "dia_crystal", "og_vanilla", "minecart", "trident", "bed", "speed", "debuff", "creeper", "early_game",
-            "late_game", "end_game", "elytra", "bow");
+            "late_game", "end_game", "elytra", "bow", "manhunt");
 
     private Icons() {
     }

@@ -29,6 +29,41 @@ class ConfigTest {
         return new ConfigFile().sanitize();
     }
 
+    /** A 0.6 settings file, from when MCTiers was a list. */
+    private static final String WITH_MCTIERS = """
+            {"version": 3, "global": {"noticeSeen": true}, "activeProfile": "Default", "profiles": {"Default": {
+              "filters": {"listPriority": ["MCTIERS", "MCPVP", "PVPTIERS", "SUBTIERS", "PVPHQ"],
+                          "disabledLists": ["MCTIERS", "PVPHQ"], "listMinimums": {"MCTIERS": "LT3", "MCPVP": "HT2"}},
+              "style": {"longNames": true, "listColors": {"MCTIERS": {"HT1": 1122867}}},
+              "rules": [{"list": "MCTIERS", "minimumTier": "HT1", "color": 11141375},
+                        {"list": "MCPVP", "minimumTier": "HT2", "color": 16711680}]}}}""";
+
+    @Test
+    void settingsFromWhenMctiersExistedStillLoad(@TempDir Path dir) throws IOException {
+        Path file = dir.resolve("tierprofiles.json");
+        Files.writeString(file, WITH_MCTIERS);
+        ConfigFile config = new ConfigStore(file).load();
+
+        assertFalse(Files.exists(dir.resolve("tierprofiles.json.broken")), "must not be treated as broken");
+        Settings settings = config.active();
+        assertTrue(settings.style.longNames, "their other settings are kept");
+        assertTrue(config.global.noticeSeen);
+        assertEquals(TierList.DEFAULT_PRIORITY, settings.filters.listPriority, "the old default order moves to the new one");
+        assertEquals(java.util.Set.of(TierList.PVPHQ), settings.filters.disabledLists);
+        assertEquals(java.util.Map.of(TierList.MCPVP, "HT2"), settings.filters.listMinimums);
+        assertTrue(settings.style.listColors.isEmpty());
+        assertEquals(1, settings.rules.size(), "a rule on MCTiers can't become a rule on every list");
+        assertEquals(TierList.MCPVP, settings.rules.getFirst().list);
+    }
+
+    @Test
+    void aChosenOrderIsKeptWithoutMctiers(@TempDir Path dir) throws IOException {
+        Path file = dir.resolve("tierprofiles.json");
+        Files.writeString(file, WITH_MCTIERS.replace("[\"MCTIERS\", \"MCPVP\", \"PVPTIERS\", \"SUBTIERS\", \"PVPHQ\"]", "[\"SUBTIERS\", \"MCTIERS\", \"MCPVP\"]"));
+        Settings settings = new ConfigStore(file).load().active();
+        assertEquals(List.of(TierList.SUBTIERS, TierList.MCPVP, TierList.PVPHQ, TierList.PVPTIERS), settings.filters.listPriority);
+    }
+
     @Test
     void stagedChangesDontTouchLiveUntilApply() {
         ConfigFile live = fresh();
@@ -140,12 +175,12 @@ class ConfigTest {
         config.global.lookupsEnabled = false;
         Settings settings = config.active();
         settings.surface(Surface.NAMETAG).minimumTier = "LT3";
-        settings.filters.listPriority = new ArrayList<>(List.of(TierList.SUBTIERS, TierList.MCTIERS));
+        settings.filters.listPriority = new ArrayList<>(List.of(TierList.SUBTIERS, TierList.SUBTIERS));
         settings.filters.listMinimums.put(TierList.MCPVP, "HT2");
         settings.filters.disabledLists.add(TierList.PVPHQ);
         settings.style.brackets = Style.Brackets.ANGLE;
         settings.style.listColors.put(TierList.MCPVP, new java.util.LinkedHashMap<>(java.util.Map.of("HT1", 0x112233)));
-        settings.rules.add(HighlightRule.of(TierList.MCTIERS, "HT1", 0xAA00FF));
+        settings.rules.add(HighlightRule.of(TierList.SUBTIERS, "HT1", 0xAA00FF));
 
         new ConfigStore(file).save(config);
         ConfigFile loaded = new ConfigStore(file).load();

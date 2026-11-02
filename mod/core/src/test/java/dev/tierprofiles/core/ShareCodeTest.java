@@ -46,7 +46,7 @@ class ShareCodeTest {
         Settings settings = new Settings().sanitize();
         settings.surface(Surface.NAMETAG).minimumTier = "LT3";
         settings.style.brackets = Style.Brackets.ROUND;
-        settings.rules.add(HighlightRule.of(TierList.MCTIERS, "HT1", 0xAA00FF));
+        settings.rules.add(HighlightRule.of(TierList.PVPHQ, "HT1", 0xAA00FF));
         return settings;
     }
 
@@ -140,14 +140,26 @@ class ShareCodeTest {
     }
 
     @Test
+    void anOldCodeWithMctiersStillImports() throws IOException {
+        String old = """
+                {"filters": {"listPriority": ["MCTIERS", "MCPVP"], "disabledLists": ["MCTIERS"]},
+                 "rules": [{"list": "MCTIERS", "minimumTier": "HT1"}, {"minimumTier": "HT3"}]}""";
+        Settings settings = ShareCode.decode(craft(old));
+
+        assertEquals(TierList.MCPVP, settings.filters.listPriority.getFirst());
+        assertTrue(settings.filters.disabledLists.isEmpty());
+        assertEquals(1, settings.rules.size(), "only the rule that wasn't tied to MCTiers is left");
+    }
+
+    @Test
     void unknownListsInACodeAreDroppedRatherThanCrashing() throws IOException {
         String future = """
-                {"filters": {"disabledLists": ["FUTURELIST", "MCPVP"], "listMinimums": {"FUTURELIST": "HT1", "MCTIERS": "LT3"}},
+                {"filters": {"disabledLists": ["FUTURELIST", "MCPVP"], "listMinimums": {"FUTURELIST": "HT1", "PVPHQ": "LT3"}},
                  "style": {"listColors": {"FUTURELIST": {"HT1": 1}}}}""";
         Settings settings = ShareCode.decode(craft(future));
 
         assertEquals(java.util.Set.of(TierList.MCPVP), settings.filters.disabledLists);
-        assertEquals(java.util.Map.of(TierList.MCTIERS, "LT3"), settings.filters.listMinimums);
+        assertEquals(java.util.Map.of(TierList.PVPHQ, "LT3"), settings.filters.listMinimums);
     }
 
     @Test

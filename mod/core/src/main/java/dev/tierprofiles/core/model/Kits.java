@@ -38,6 +38,7 @@ public final class Kits {
         NAMES.put("end_game", "End Game");
         NAMES.put("elytra", "Elytra");
         NAMES.put("bow", "Bow");
+        NAMES.put("manhunt", "Manhunt");
     }
 
     private Kits() {

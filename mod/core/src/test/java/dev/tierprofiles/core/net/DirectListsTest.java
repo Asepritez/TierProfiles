@@ -82,29 +82,28 @@ class DirectListsTest {
 
     @Test
     void readsEveryListStraightFromItsSite() {
-        sites.pages.put(DirectLists.url(TierList.MCTIERS, JOKING, "JokingDK"), fixture("mctiers-ranked.json"));
+        sites.pages.put(DirectLists.url(TierList.PVPTIERS, JOKING, "JokingDK"), fixture("mctiers-ranked.json"));
         sites.pages.put(DirectLists.url(TierList.MCPVP, JOKING, "JokingDK"), fixture("mcpvp-full.json"));
         sites.pages.put(DirectLists.url(TierList.PVPHQ, JOKING, "JokingDK"), fixture("pvphq-ranked.json"));
         sites.downHost = "subtiers.net";
 
         PlayerProfile profile = lookUp(JOKING, "JokingDK");
 
-        ListProfile mctiers = profile.list(TierList.MCTIERS);
-        assertEquals("NA", mctiers.region());
-        assertEquals(330, mctiers.points());
-        assertEquals("HT3", kit(mctiers, "sword").rank().label());
-        assertEquals("HT2", kit(mctiers, "sword").peak().label());
-        assertEquals(1772946009L, kit(mctiers, "sword").attained());
-        assertTrue(kit(mctiers, "axe").retired());
-        assertEquals(1, mctiers.tiers().stream().filter(entry -> entry.kit().equals("neth_pot")).count(), "nethop and neth_pot are one kit");
-        assertNull(kit(mctiers, "nethop"));
+        ListProfile rankings = profile.list(TierList.PVPTIERS);
+        assertEquals("NA", rankings.region());
+        assertEquals(330, rankings.points());
+        assertEquals("HT3", kit(rankings, "sword").rank().label());
+        assertEquals("HT2", kit(rankings, "sword").peak().label());
+        assertEquals(1772946009L, kit(rankings, "sword").attained());
+        assertTrue(kit(rankings, "axe").retired());
+        assertEquals(1, rankings.tiers().stream().filter(entry -> entry.kit().equals("neth_pot")).count(), "nethop and neth_pot are one kit");
+        assertNull(kit(rankings, "nethop"));
 
         ListProfile mcpvp = profile.list(TierList.MCPVP);
         assertEquals("EU", mcpvp.region());
         assertEquals("MT3", kit(mcpvp, "spear").rank().label());
         assertEquals("LT1", kit(mcpvp, "minecart").rank().label());
 
-        assertEquals(ListStatus.UNRANKED, profile.list(TierList.PVPTIERS).status());
         assertEquals(ListStatus.UNAVAILABLE, profile.list(TierList.SUBTIERS).status());
         assertEquals("LT5", kit(profile.list(TierList.PVPHQ), "spear").rank().label());
         assertNull(profile.list(TierList.PVPHQ).overall(), "99999 means no position");
@@ -124,27 +123,27 @@ class DirectListsTest {
 
     @Test
     void aListThatKeepsFailingIsLeftAloneForAMinute() {
-        sites.downHost = "mctiers.gg";
+        sites.downHost = "subtiers.net";
         for (int i = 0; i < DirectLists.STRIKES_TO_REST; i++) {
-            assertEquals("network", lookUp(JOKING, "JokingDK").list(TierList.MCTIERS).reason());
+            assertEquals("network", lookUp(JOKING, "JokingDK").list(TierList.SUBTIERS).reason());
         }
         int before = sites.asked.size();
 
-        assertEquals("circuit_open", lookUp(JOKING, "JokingDK").list(TierList.MCTIERS).reason());
-        assertEquals(before + TierList.values().length - 1, sites.asked.size(), "MCTiers wasn't asked again");
+        assertEquals("circuit_open", lookUp(JOKING, "JokingDK").list(TierList.SUBTIERS).reason());
+        assertEquals(before + TierList.values().length - 1, sites.asked.size(), "SubTiers wasn't asked again");
 
         clock[0] += DirectLists.COOLDOWN_MILLIS;
         sites.downHost = null;
         lookUp(JOKING, "JokingDK");
-        assertTrue(sites.asked.stream().filter(url -> url.contains("mctiers.gg")).count() >= 2);
+        assertTrue(sites.asked.stream().filter(url -> url.contains("subtiers.net")).count() >= 2);
     }
 
     @Test
     void aOneOffHiccupIsTriedAgainRatherThanCountedAsDown() {
-        sites.pages.put(DirectLists.url(TierList.MCTIERS, JOKING, "JokingDK"), fixture("mctiers-ranked.json"));
-        sites.hiccupHost = "mctiers.gg";
-        assertEquals(ListStatus.OK, lookUp(JOKING, "JokingDK").list(TierList.MCTIERS).status());
-        assertEquals(2, sites.asked.stream().filter(url -> url.contains("mctiers.gg")).count());
+        sites.pages.put(DirectLists.url(TierList.SUBTIERS, JOKING, "JokingDK"), fixture("mctiers-ranked.json"));
+        sites.hiccupHost = "subtiers.net";
+        assertEquals(ListStatus.OK, lookUp(JOKING, "JokingDK").list(TierList.SUBTIERS).status());
+        assertEquals(2, sites.asked.stream().filter(url -> url.contains("subtiers.net")).count());
     }
 
     @Test

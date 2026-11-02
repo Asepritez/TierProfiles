@@ -1,7 +1,7 @@
 // The normalized shape the mod receives. Every list, however odd its own API,
 // ends up looking like this. docs/SPEC.md describes the same shape in prose.
 
-export const LIST_IDS = ["mctiers", "mcpvp", "pvptiers", "subtiers", "pvphq"] as const;
+export const LIST_IDS = ["mcpvp", "pvptiers", "subtiers", "pvphq"] as const;
 export type ListId = (typeof LIST_IDS)[number];
 
 export interface TierEntry {

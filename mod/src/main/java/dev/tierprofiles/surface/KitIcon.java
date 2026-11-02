@@ -52,7 +52,8 @@ public final class KitIcon {
             item("late_game", Items.NETHERITE_CHESTPLATE),
             item("end_game", Items.END_CRYSTAL),
             item("elytra", Items.ELYTRA),
-            item("bow", Items.BOW));
+            item("bow", Items.BOW),
+            item("manhunt", Items.COMPASS));
 
     private KitIcon() {
     }

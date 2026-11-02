@@ -14,6 +14,11 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.client.player.RemotePlayer;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 
 /**
@@ -60,6 +65,61 @@ final class TestWorld {
         body.setYBodyRot(client.player.getYRot() + 180);
         client.level.addEntity(body);
         bodies.add(body);
+    }
+
+    /**
+     * A gallery player: their real public skin from Mojang's profile lookup, which needs
+     * no account, plus netherite armour and a weapon, turned `turn` degrees off the camera.
+     */
+    static void addDuelist(Minecraft client, UUID uuid, String name, double side, double ahead, float turn, String weapon) {
+        GameProfile profile = withSkin(uuid, name);
+        ClientPacketListener connection = client.getConnection();
+        addTabEntry(connection, new PlayerInfo(profile, false));
+
+        RemotePlayer body = new RemotePlayer(client.level, profile);
+        body.setId(FIRST_ENTITY_ID + bodies.size());
+        Vec3 look = client.player.getLookAngle().multiply(1, 0, 1).normalize();
+        Vec3 right = new Vec3(-look.z, 0, look.x);
+        body.setPos(client.player.position().add(look.scale(ahead)).add(right.scale(side)));
+        float yaw = client.player.getYRot() + 180 + turn;
+        body.setYRot(yaw);
+        body.setYHeadRot(yaw);
+        body.setYBodyRot(yaw);
+        body.setItemSlot(EquipmentSlot.HEAD, shiny("netherite_helmet"));
+        body.setItemSlot(EquipmentSlot.CHEST, shiny("netherite_chestplate"));
+        body.setItemSlot(EquipmentSlot.LEGS, shiny("netherite_leggings"));
+        body.setItemSlot(EquipmentSlot.FEET, shiny("netherite_boots"));
+        body.setItemSlot(EquipmentSlot.MAINHAND, shiny(weapon));
+        body.setItemSlot(EquipmentSlot.OFFHAND, new ItemStack(BuiltInRegistries.ITEM.getValue(Identifier.withDefaultNamespace("totem_of_undying"))));
+        client.level.addEntity(body);
+        bodies.add(body);
+    }
+
+    private static ItemStack shiny(String item) {
+        ItemStack stack = new ItemStack(BuiltInRegistries.ITEM.getValue(Identifier.withDefaultNamespace(item)));
+        stack.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, true);
+        return stack;
+    }
+
+    private static GameProfile withSkin(UUID uuid, String name) {
+        try {
+            java.net.http.HttpClient http = java.net.http.HttpClient.newHttpClient();
+            String url = "https://sessionserver.mojang.com/session/minecraft/profile/" + uuid.toString().replace("-", "") + "?unsigned=false";
+            String body = http.send(java.net.http.HttpRequest.newBuilder(java.net.URI.create(url)).build(),
+                    java.net.http.HttpResponse.BodyHandlers.ofString()).body();
+            com.google.gson.JsonObject json = com.google.gson.JsonParser.parseString(body).getAsJsonObject();
+            com.google.common.collect.ImmutableMultimap.Builder<String, com.mojang.authlib.properties.Property> properties =
+                    com.google.common.collect.ImmutableMultimap.builder();
+            for (var element : json.getAsJsonArray("properties")) {
+                com.google.gson.JsonObject property = element.getAsJsonObject();
+                String signature = property.has("signature") ? property.get("signature").getAsString() : null;
+                properties.put(property.get("name").getAsString(), new com.mojang.authlib.properties.Property(
+                        property.get("name").getAsString(), property.get("value").getAsString(), signature));
+            }
+            return new GameProfile(uuid, name, new com.mojang.authlib.properties.PropertyMap(properties.build()));
+        } catch (Exception e) {
+            return new GameProfile(uuid, name);
+        }
     }
 
     @SuppressWarnings("unchecked")

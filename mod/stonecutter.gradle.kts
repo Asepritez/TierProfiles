@@ -25,6 +25,7 @@ stonecutter parameters {
             replace("gui.setScreen(", "setScreen(")
             replace("gui.screen()", "screen")
             replace("gui.hud.getTabList()", "gui.getTabList()")
+            replace("gui.hud.getChat()", "gui.getChat()")
             replace("minecraft.gui.hud.isHidden()", "minecraft.options.hideGui")
             replace("net.minecraft.client.multiplayer.chat.GuiMessageTag", "net.minecraft.client.GuiMessageTag")
             // Fabric API's key helper had the older name.

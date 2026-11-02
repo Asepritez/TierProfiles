@@ -137,7 +137,7 @@ final class SettingsCatalog {
     }
 
     private int colorOf(Tier tier) {
-        return active().style.color(TierList.MCTIERS, tier);
+        return active().style.color(TierList.MCPVP, tier);
     }
 
     private void addSurface(Surface surface) {
@@ -330,7 +330,7 @@ final class SettingsCatalog {
         });
         add(tab, "Colours", "Tier colours", "Click a tier for the full colour picker.", false, (ui, x, y, width) -> {
             for (Tier tier : Tier.STANDARD) {
-                int rgb = style.get().color(TierList.MCTIERS, tier);
+                int rgb = style.get().color(TierList.MCPVP, tier);
                 if (ui.swatch(x, y, rgb, false)) {
                     screen.pickColor(rgb, picked -> style.get().tierColors.put(tier.label(), picked));
                 }
@@ -345,7 +345,7 @@ final class SettingsCatalog {
             add(tab, advanced, list.displayName() + " colours", "Only used with Colours per list on.", true, (ui, x, y, width) -> {
                 Style target = style.get();
                 for (Tier tier : Tier.STANDARD) {
-                    int rgb = target.listColors.getOrDefault(list, java.util.Map.of()).getOrDefault(tier.label(), target.color(TierList.MCTIERS, tier));
+                    int rgb = target.listColors.getOrDefault(list, java.util.Map.of()).getOrDefault(tier.label(), target.color(TierList.MCPVP, tier));
                     if (ui.swatch(x, y, rgb, false)) {
                         screen.pickColor(rgb, picked -> style.get().listColors
                                 .computeIfAbsent(list, unused -> new java.util.LinkedHashMap<>())

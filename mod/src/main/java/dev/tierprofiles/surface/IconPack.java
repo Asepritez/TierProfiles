@@ -68,7 +68,9 @@ public final class IconPack implements PackResources {
             Map.entry("late_game", "netherite_chestplate"),
             Map.entry("end_game", "end_crystal"),
             Map.entry("elytra", "elytra"),
-            Map.entry("bow", "bow"));
+            Map.entry("bow", "bow"),
+            // The compass is animated, so this is its frame pointing straight up.
+            Map.entry("manhunt", "compass_00"));
 
     /** Where our own art differs from the kit id. */
     private static final Map<String, String> OWN_ART = Map.of(

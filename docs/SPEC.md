@@ -8,7 +8,7 @@ change something here, change it here too.
 
 ## Goals
 
-1. **One profile across every list.** MCTiers, McPvP, PvPTiers, SubTiers and PVPHQ on one card.
+1. **One profile across every list.** PVPHQ, McPvP, PvPTiers and SubTiers on one card.
 2. **Heavy customization.** The main complaint about TierTagger is that it's too rigid. Everyone
    having HT4 above their head is noise, so players must be able to filter it out.
 3. **Works mid-fight.** Looking someone up must never stop you moving.
@@ -21,25 +21,26 @@ provider must fail softly: one list going down must never break the others.
 
 | List | Lookup | Notes |
 |---|---|---|
-| MCTiers | `https://mctiers.gg/api/profile/<uuid>` | Also `/api/profile/by-name/<name>`. Accepts dashed or plain UUID. Returns `rankings`, `region`, `points`, `overall`, `badges`. Sends `max-age=600`. The old `mctiers.com` is dead (registrar hold). |
 | McPvP | `https://www.mcpvp.com/tiers/search?q=<name>` | Name search, not exact: it matches substrings, so filter results by UUID. Query must be 3 to 16 characters. Capped at 50 results sorted by points, so a full page with no match means "unknown", not "unranked". Returns `points`, `region`, `country`, `kitRanks`, `kitPeakRanks`, `kitRetired`, `trend`. Beta tiers will reset. Add `&version=legacy` for the old list (not used). |
 | PvPTiers | `https://pvptiers.com/api/profile/<uuid>` | UUID must have **no dashes**; dashed returns 400. |
 | SubTiers | `https://subtiers.net/api/v2/profile/<uuid>` | Dashed UUID. Returns `rankings`, `region`, `points`, `overall`, `badges`. |
 | PVPHQ | `https://pvphq.com/api/ranked/<uuid>` | Down for most of 2026-11-01 (hung, then 502), answering again on 2026-11-02 and verified against real replies. Returns `{data: {LADDER: {rating, peakRating, gamesPlayed, grantedTier, ...}}, globalPosition, rank}`. `globalPosition` is 0-based and `99999` means no position. Unknown players get 200 with empty `data`. Ladders include `SPEAR_MACE`, `HT_CART`, `DIAMOND_POT`, `NETHERITE_OP`. Needs a hard timeout. |
 
-MCTiers-style rankings use `{tier, pos, peak_tier, peak_pos, attained, retired}`, where `pos` 0 is
+PvPTiers and SubTiers rankings use `{tier, pos, peak_tier, peak_pos, attained, retired}`, where `pos` 0 is
 High and 1 is Low, so `tier 3, pos 1` is LT3. McPvP uses strings such as `HT2`, and has an extra
 `MT` (mid) and `ST` (lowest) tier, with levels 1 to 6. `peak_tier` and `peak_pos` can be null. All lists
 answer 404 for a player they don't know, except McPvP, which returns an empty result, and PVPHQ,
 which returns 200 with empty `data`.
 
-McPvP is mainstream but new, and some of its tiers look inflated, so it is included but must not be
-the default top-priority list. MCTiers comes first by default, and the UI labels McPvP as beta.
+MCTiers was a list until it shut down in Nov 2026; every tier it still served was marked retired.
+It was removed in 0.7.0, and old settings and share codes that name it load without it. The default
+order is PVPHQ, McPvP, PvPTiers, SubTiers, and the UI labels McPvP as beta.
 `mcpvp.club` is the practice server, not a data source. `mcpvp.gg` had no website when checked.
 
-Titles come from points on the MCTiers ladder: Grandmaster 400+, Master 250+, Ace 100+,
-Specialist 50+, Cadet 20+, Novice 10+, Rookie 1+. McPvP has no titles of its own, so TierProfiles
-applies this ladder to McPvP points and calls it a TierProfiles title.
+Titles come from points on the ladder MCTiers made popular: Grandmaster 400+, Master 250+, Ace 100+,
+Specialist 50+, Cadet 20+, Novice 10+, Rookie 1+. No list gives titles of its own, so TierProfiles
+applies this ladder to McPvP, PvPTiers and SubTiers points, shows the highest, and calls it a
+TierProfiles title.
 
 ## Server
 
@@ -69,9 +70,9 @@ cache**: use the Workers Cache API.
 **Budget.** Cache calls share the 50-per-request quota with `fetch`, so 8 players on 5 lists can't
 have one cache entry per list (40 match + 40 fetch + 40 put = 120). The server keeps **one entry per
 player**, with an expiry per list inside it, and spends a budget of 48 subrequests. A full cold batch
-is 8 matches, 8 puts and 32 fetches, which covers every list but PVPHQ. Lists are served in the order
-MCTiers, McPvP, PvPTiers, SubTiers, PVPHQ, and a list that misses out reports `reason: "busy"` and is
-not cached, so the next request fills the gap.
+is 8 matches, 8 puts and 32 fetches, which covers all four lists. Lists are served in the order
+McPvP, PvPTiers, SubTiers, PVPHQ, and a list that misses out reports `reason: "busy"` and is not
+cached, so the next request fills the gap.
 
 **Failure handling.** Each list call times out after 3.5 seconds. A failed call is remembered for one
 minute. Two failures in a row stop calls to that list for a minute (`circuit_open`).
@@ -88,7 +89,7 @@ Merged profile:
   "uuid": "1246a0ec-662b-45de-bb0b-d68cb1cce800",
   "name": "JokingDK",
   "lists": {
-    "mctiers": {
+    "subtiers": {
       "status": "ok", "region": "EU", "country": null, "points": 102, "overall": 56,
       "tiers": [{"kit": "sword", "rank": "LT3", "peak": "HT3", "attained": 1772946009, "retired": false}]
     },
@@ -223,6 +224,7 @@ drafts and the mod:
 - Every list row uses the same columns, including rows with no tiers. Empty slots stay empty.
 - Column widths are measured from the font, so text can never touch or overlap its neighbour.
 - Retired and peak markers live inside the chip's own slot, never spilling into the next one.
+- Every chip has a border. A retired chip swaps it for a muted red. Kits a list has no tier in, where other rows have more, show as an empty outlined box so rows line up.
 - One line-height, one padding value, one gap value. The top strip's right edge meets the date column.
 - The date shown belongs to the row's best tier. Say so in the tooltip or Full detail.
 - A list with no result shows muted **Unranked** in the Kit 1 column. Never "offline". If the list
@@ -301,7 +303,7 @@ stays on screen, and is drawn above everything.
 
 Based on Tallium's look. Dark, flat, sharp corners, thin borders, no vanilla stone textures. Not too
 bright. The default profile card blends Card A's compact rows with Card C's esports presentation.
-Reference sites: `mctiers.gg` and `mcpvp.com`.
+Reference sites: `mctiers.gg` (the look, before it shut down) and `mcpvp.com`.
 
 The config should feel unlike any other mod's config: distinctive, Minecraft-flavoured and pleasing,
 with deep customization. Keep a live preview on screen wherever a setting changes appearance. The

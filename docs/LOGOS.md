@@ -15,26 +15,12 @@ Minecraft's `NativeImage` reads **PNG only**. Prefer the PNG sources below. Form
 
 | List id | Use | URL | Size | Format | Notes |
 |---|---|---|---|---|---|
-| `mctiers` | Logo mark | `https://mctiers.gg/logo.png` | 512×512 | PNG | Gold trophy. Used in the mockups. |
-| `mctiers` | Small mark | `https://mctiers.gg/icon.png` | 192×192 | PNG | Same mark, smaller download. |
 | `mcpvp` | Logo mark | `https://www.mcpvp.com/apple-touch-icon.png` | 180×180 | PNG | Crossed swords. Used in the mockups. Label McPvP as beta wherever it appears. |
 | `mcpvp` | Wordmark | `https://www.mcpvp.com/LOGONEW.png` | 3007×831 | PNG | Too wide for a row. Use for headers only. |
 | `pvptiers` | Logo mark | `https://pvptiers.com/hex-logo.png` | 2138×2138 | PNG | Orange hexagon. Use this, not the ICO. Scale it down once and cache it. |
 | `pvptiers` | Small mark | `https://pvptiers.com/hex-logo.ico` | 256×256 | ICO | Used in the mockups. Not readable by `NativeImage`. |
 | `subtiers` | Logo mark | `https://subtiers.net/subtiers-icon.webp` | 526×526 | WebP | Blue mark. **No PNG exists** (`/subtiers-icon.png` and `/icon.png` return 404), so this needs a WebP decoder or the fallback. |
 | `pvphq` | Logo mark | `https://pvphq.com/assets/pvphq-logo.png` | 1652×1861 | PNG | Shield. Not square: fit it, do not stretch it. The PVPHQ tier API was down in testing (502), but this logo loads. |
-
-## MCTiers title badges
-
-| Title | URL | Size | Format |
-|---|---|---|---|
-| Combat Grandmaster | `https://mctiers.gg/titles/combat_grandmaster.webp` | 64×64 | WebP |
-| Combat Master | `https://mctiers.gg/titles/combat_master.webp` | 64×64 | WebP |
-| Combat Ace | `https://mctiers.gg/titles/combat_ace.webp` | 64×64 | WebP |
-
-Other titles were not found: `combat_specialist`, `combat_cadet`, `combat_novice` and `rookie` all
-return 404 at those guessed names. The three files above are large for their size (100 to 230 KB),
-so they may be animated. Treat badges as optional.
 
 ## Official kit icons
 
@@ -54,11 +40,6 @@ there is no flat vanilla item.
 | `early.png` | 166×184 | PNG | Custom bold art |
 | `shield.png` | 168×210 | PNG | Custom bold art |
 | `netherite-sword.png`, `ender-pearl.png`, `bow.png`, `cart.png`, `creeper.png`, `diamond-chestplate.png`, `netherite-chestplate.png` | 16×16 | PNG | Pixel-match the default game textures. Use the game's own texture instead. |
-
-### MCTiers, `https://mctiers.gg/tier_icons/<name>.svg`
-
-`overall`, `sword`, `axe`, `mace`, `nethop`, `pot`, `smp`, `uhc`, `vanilla`. All SVG, so they need a
-rasteriser. Skip unless one is added.
 
 ### SubTiers, `https://subtiers.net/assets/<file>`
 

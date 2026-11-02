@@ -2,15 +2,15 @@ package dev.tierprofiles.core.model;
 
 import java.util.List;
 
+/** The lists we read. Their order here is the font's logo glyph order, so a new list goes on the end. */
 public enum TierList {
-    MCTIERS("mctiers", "MCTiers", "MCT", false, true),
     MCPVP("mcpvp", "McPvP", "MPV", true, true),
-    PVPTIERS("pvptiers", "PvPTiers", "PVT", false, false),
-    SUBTIERS("subtiers", "SubTiers", "SUB", false, false),
+    PVPTIERS("pvptiers", "PvPTiers", "PVT", false, true),
+    SUBTIERS("subtiers", "SubTiers", "SUB", false, true),
     PVPHQ("pvphq", "PVPHQ", "PHQ", false, false);
 
-    /** MCTiers comes first. McPvP is new and some of its tiers look inflated, so it never leads by default. */
-    public static final List<TierList> DEFAULT_PRIORITY = List.of(MCTIERS, MCPVP, PVPTIERS, SUBTIERS, PVPHQ);
+    /** PVPHQ comes first, then McPvP. MCTiers led until it shut down in Nov 2026. */
+    public static final List<TierList> DEFAULT_PRIORITY = List.of(PVPHQ, MCPVP, PVPTIERS, SUBTIERS);
 
     private final String id;
     private final String displayName;
@@ -45,7 +45,7 @@ public enum TierList {
         return beta;
     }
 
-    /** Whether the MCTiers title ladder applies to this list's points. */
+    /** Whether the title ladder (Combat Ace and so on) applies to this list's points. */
     public boolean hasTitles() {
         return titled;
     }

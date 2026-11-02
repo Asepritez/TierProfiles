@@ -1,4 +1,4 @@
-**TierProfiles** shows a player's PvP tiers from **MCTiers, McPvP, PvPTiers, SubTiers and PVPHQ** in one place: on their nametag, in the tab list, in chat, and on a profile card you can open on anyone.
+**TierProfiles** shows a player's PvP tiers from **PVPHQ, McPvP, PvPTiers and SubTiers** in one place: on their nametag, in the tab list, in chat, and on a profile card you can open on anyone.
 
 ## Start here
 
@@ -23,4 +23,4 @@
 
 TierProfiles is client-side only. Servers don't need it, and it never changes anything in the world.
 
-*TierProfiles is not affiliated with MCTiers, McPvP, PvPTiers, SubTiers, PVPHQ or Mojang.*
+*TierProfiles is not affiliated with PVPHQ, McPvP, PvPTiers, SubTiers or Mojang.*

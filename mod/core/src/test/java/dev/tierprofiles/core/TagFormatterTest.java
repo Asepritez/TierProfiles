@@ -21,11 +21,11 @@ import org.junit.jupiter.api.Test;
 
 class TagFormatterTest {
     private static Tag tag(String tier) {
-        return new Tag(TierList.MCTIERS, "sword", Tier.parse(tier), null, false, "EU");
+        return new Tag(TierList.PVPHQ, "sword", Tier.parse(tier), null, false, "EU");
     }
 
     private static Tag retired(String tier) {
-        return new Tag(TierList.MCTIERS, "sword", Tier.parse(tier), null, true, "EU");
+        return new Tag(TierList.PVPHQ, "sword", Tier.parse(tier), null, true, "EU");
     }
 
     private final Settings settings = settings();
@@ -78,7 +78,7 @@ class TagFormatterTest {
     @Test
     void regionIsLeftOutWhenUnknown() {
         surface.region = true;
-        assertEquals("[HT3]", text(new Tag(TierList.PVPHQ, "sword", Tier.parse("HT3"), null, false, null)));
+        assertEquals("[HT3]", text(new Tag(TierList.SUBTIERS, "sword", Tier.parse("HT3"), null, false, null)));
     }
 
     @Test
@@ -87,7 +87,7 @@ class TagFormatterTest {
         surface.listLogo = true;
         List<Segment> both = TagFormatter.format(List.of(tag("HT3")), surface, style);
         assertTrue(both.contains(new Segment(Segment.Kind.KIT_ICON, "sword", 0xFFFFFF)));
-        assertTrue(both.contains(new Segment(Segment.Kind.LIST_ICON, "mctiers", 0xFFFFFF)));
+        assertTrue(both.contains(new Segment(Segment.Kind.LIST_ICON, "pvphq", 0xFFFFFF)));
 
         surface.kitIcon = false;
         surface.listLogo = false;
@@ -107,8 +107,8 @@ class TagFormatterTest {
     @Test
     void customColourBeatsThePalette() {
         style.tierColors.put("HT1", 0x123456);
-        assertEquals(0x123456, style.color(TierList.MCTIERS, Tier.parse("HT1")));
-        assertEquals(Palette.DEFAULT.color(Tier.parse("HT2")), style.color(TierList.MCTIERS, Tier.parse("HT2")));
+        assertEquals(0x123456, style.color(TierList.PVPHQ, Tier.parse("HT1")));
+        assertEquals(Palette.DEFAULT.color(Tier.parse("HT2")), style.color(TierList.PVPHQ, Tier.parse("HT2")));
     }
 
     @Test
@@ -119,7 +119,7 @@ class TagFormatterTest {
 
         style.perListColors = true;
         assertEquals(0x222222, style.color(TierList.MCPVP, Tier.parse("HT1")));
-        assertEquals(0x111111, style.color(TierList.MCTIERS, Tier.parse("HT1")));
+        assertEquals(0x111111, style.color(TierList.PVPHQ, Tier.parse("HT1")));
     }
 
     @Test
@@ -139,7 +139,7 @@ class TagFormatterTest {
 
     @Test
     void aHigherPeakFollowsInBrackets() {
-        assertEquals("[HT3 (HT2)]", text(new Tag(TierList.MCTIERS, "sword", Tier.parse("HT3"), Tier.parse("HT2"), false, "EU")));
+        assertEquals("[HT3 (HT2)]", text(new Tag(TierList.PVPHQ, "sword", Tier.parse("HT3"), Tier.parse("HT2"), false, "EU")));
     }
 
     @Test

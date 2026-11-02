@@ -1,6 +1,9 @@
 package dev.tierprofiles.core.settings;
 
+import dev.tierprofiles.core.model.TierList;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /** Everything saved to disk: PC-wide settings plus every named profile. */
@@ -10,7 +13,7 @@ public final class ConfigFile {
     public static final int MAX_NAME_LENGTH = 32;
 
     /** Bumped when saved settings need a one-time change on load. */
-    public static final int CURRENT_VERSION = 3;
+    public static final int CURRENT_VERSION = 4;
 
     public int version = CURRENT_VERSION;
     public Global global = new Global();
@@ -51,6 +54,15 @@ public final class ConfigFile {
         if (version < 3 && Global.LOCAL_SERVER_URL.equals(global.serverUrl)) {
             // Before the server was online the default pointed at this PC, which only worked in tests.
             global.serverUrl = Global.DEFAULT_SERVER_URL;
+        }
+        if (version < 4) {
+            // MCTiers shut down. Anyone still on the old default order gets the new one, led by PVPHQ.
+            List<TierList> oldDefault = List.of(TierList.MCPVP, TierList.PVPTIERS, TierList.SUBTIERS, TierList.PVPHQ);
+            for (Settings settings : profiles.values()) {
+                if (settings.filters.listPriority.equals(oldDefault)) {
+                    settings.filters.listPriority = new ArrayList<>(TierList.DEFAULT_PRIORITY);
+                }
+            }
         }
         version = CURRENT_VERSION;
 

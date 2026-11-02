@@ -32,6 +32,10 @@ public final class SurfaceGameTest implements FabricClientGameTest {
 
     @Override
     public void runTest(ClientGameTestContext context) {
+        if (GalleryGameTest.ON) {
+            GalleryGameTest.run(context);
+            return;
+        }
         context.waitFor(client -> client.gui.screen() instanceof dev.tierprofiles.ui.FirstRunScreen, 600);
         context.waitTicks(20);
         SurfaceGameTest.check(context.computeOnClient(client -> client.gui.screen() instanceof dev.tierprofiles.ui.FirstRunScreen),
@@ -73,11 +77,11 @@ public final class SurfaceGameTest implements FabricClientGameTest {
 
     private static void assertRealData() {
         PlayerProfile joking = TierProfiles.profiles().profile(TestWorld.JOKING);
-        check(joking.list(TierList.MCTIERS).status() == ListStatus.OK, "MCTiers should know JokingDK");
-        check(!joking.list(TierList.MCTIERS).tiers().isEmpty(), "JokingDK should have tiers");
+        check(joking.list(TierList.SUBTIERS).status() == ListStatus.OK, "SubTiers should know JokingDK");
+        check(!joking.list(TierList.SUBTIERS).tiers().isEmpty(), "JokingDK should have tiers");
 
         PlayerProfile nobody = TierProfiles.profiles().profile(TestWorld.NOBODY);
-        check(nobody.list(TierList.MCTIERS).status() == ListStatus.UNRANKED, "the made-up player should be unranked");
+        check(nobody.list(TierList.SUBTIERS).status() == ListStatus.UNRANKED, "the made-up player should be unranked");
     }
 
     /** Compares the actual image bytes, so this can't pass just because something showed up. */

@@ -17,8 +17,8 @@ function tier(result: ListOk, kit: string) {
   return result.tiers.find((t) => t.kit === kit);
 }
 
-describe("MCTiers-style parser, from real responses", () => {
-  it("reads MCTiers, including pos, peak and retired", () => {
+describe("Rankings parser (PvPTiers and SubTiers), from real responses", () => {
+  it("reads pos, peak and retired", () => {
     const result = ok(parseRankings(200, fixture("mctiers-ranked.json")));
     expect(result.region).toBe("NA");
     expect(result.points).toBe(330);
@@ -37,7 +37,7 @@ describe("MCTiers-style parser, from real responses", () => {
     expect(tier(result, "nethop")).toBeUndefined();
   });
 
-  it("calls MCTiers vanilla the same thing PvPTiers calls crystal", () => {
+  it("calls vanilla the same thing PvPTiers calls crystal", () => {
     expect(tier(ok(parseRankings(200, fixture("mctiers-ranked.json"))), "crystal")?.attained).toBe(1729201725);
     expect(tier(ok(parseRankings(200, fixture("pvptiers-ranked.json"))), "crystal")?.attained).toBe(1729201725);
   });
@@ -163,13 +163,13 @@ describe("URLs", () => {
 
   it("sends PvPTiers a plain UUID and everyone else a dashed one", () => {
     expect(urls.pvptiers).toBe("https://pvptiers.com/api/profile/06ec3577329945fabbdf613b1f86c8ab");
-    expect(urls.mctiers).toBe(`https://mctiers.gg/api/profile/${ITZ.uuid}`);
+    expect(urls.mctiers).toBeUndefined();
     expect(urls.subtiers).toBe(`https://subtiers.net/api/v2/profile/${ITZ.uuid}`);
     expect(urls.pvphq).toBe(`https://pvphq.com/api/ranked/${ITZ.uuid}`);
   });
 
-  it("asks MCTiers first and PVPHQ last", () => {
-    expect(PROVIDERS[0]?.id).toBe("mctiers");
+  it("asks McPvP first and PVPHQ last", () => {
+    expect(PROVIDERS[0]?.id).toBe("mcpvp");
     expect(PROVIDERS.at(-1)?.id).toBe("pvphq");
   });
 });

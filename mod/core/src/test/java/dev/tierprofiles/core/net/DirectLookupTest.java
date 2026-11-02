@@ -93,7 +93,7 @@ class DirectLookupTest {
         service.request(REAL, "JokingDK");
         service.pump();
 
-        waitFor(() -> service.profile(REAL) != null && service.profile(REAL).list(TierList.MCTIERS).isOk(), "MCTiers");
+        waitFor(() -> service.profile(REAL) != null && service.profile(REAL).list(TierList.SUBTIERS).isOk(), "SubTiers");
         PlayerProfile early = service.profile(REAL);
         assertEquals("missing", early.list(TierList.PVPHQ).reason(), "PVPHQ is still being asked");
         assertEquals(ListStatus.OK, early.list(TierList.MCPVP).status());
@@ -129,7 +129,7 @@ class DirectLookupTest {
         ProfileService next = service(file);
         next.load();
         assertNotNull(next.profile(REAL), "known before anything is asked");
-        assertTrue(next.profile(REAL).list(TierList.MCTIERS).isOk());
+        assertTrue(next.profile(REAL).list(TierList.SUBTIERS).isOk());
 
         next.request(REAL, "JokingDK");
         next.pump();
