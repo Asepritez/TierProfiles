@@ -1,37 +1,38 @@
 package dev.tierprofiles.core.anim;
 
 /**
- * Something that opens and closes over time, such as a card. Position comes from
+ * Something that opens and closes over time, such as a card. Its position comes from
  * timestamps and never from counting frames, so the speed doesn't depend on frame
- * rate. Reversing part way carries on from where it is, so nothing ever jumps.
+ * rate. Each move starts from wherever it currently is, so reversing part way can't jump.
  */
 public final class Reveal {
     private boolean open;
     private float from;
     private long startedAt;
     private long duration;
+    private Easing easing = Easing.LINEAR;
+
+    public void set(boolean open, long now, long durationMillis) {
+        set(open, now, durationMillis, Easing.LINEAR);
+    }
 
     /** Starts moving towards open or closed. Zero duration means go there at once. */
-    public void set(boolean open, long now, long durationMillis) {
+    public void set(boolean open, long now, long durationMillis, Easing curve) {
         from = position(now);
         this.open = open;
         startedAt = now;
         duration = durationMillis;
+        easing = curve;
     }
 
-    /** Linear position from 0 (closed) to 1 (open). */
+    /** Where it is now, from 0 (closed) to 1 (open). */
     public float position(long now) {
         float target = open ? 1 : 0;
         if (duration <= 0) {
             return target;
         }
         float t = Math.clamp((float) (now - startedAt) / duration, 0, 1);
-        return from + (target - from) * t;
-    }
-
-    /** Eased position, which is what drawing code should use. */
-    public float eased(long now) {
-        return Easing.OUT_CUBIC.apply(position(now));
+        return from + (target - from) * easing.apply(t);
     }
 
     public boolean isOpen() {

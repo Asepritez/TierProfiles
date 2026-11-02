@@ -18,8 +18,6 @@ import dev.tierprofiles.core.logic.CardSummary;
 import dev.tierprofiles.core.model.ListProfile;
 import dev.tierprofiles.core.model.ListStatus;
 import dev.tierprofiles.core.model.PlayerProfile;
-import dev.tierprofiles.core.model.Tier;
-import dev.tierprofiles.core.model.TierEntry;
 import dev.tierprofiles.core.model.TierList;
 import dev.tierprofiles.core.model.TimeAgo;
 import dev.tierprofiles.core.settings.CardSettings;
@@ -76,11 +74,19 @@ class AnimationTest {
     @Test
     void reversingPartWayDoesntJump() {
         Reveal reveal = new Reveal();
-        reveal.set(true, 0, 200);
+        reveal.set(true, 0, 500, Easing.OUT_QUART);
         float before = reveal.position(100);
-        reveal.set(false, 100, 200);
+        reveal.set(false, 100, 300, Easing.IN_CUBIC);
         assertEquals(before, reveal.position(100), CLOSE);
-        assertTrue(reveal.position(150) < before);
+        assertTrue(reveal.position(300) < before);
+    }
+
+    @Test
+    void openingEasesOut() {
+        Reveal reveal = new Reveal();
+        reveal.set(true, 0, 500, Easing.OUT_QUART);
+        assertTrue(reveal.position(150) > 0.7f);
+        assertEquals(1, reveal.position(500), CLOSE);
     }
 
     @Test
@@ -162,32 +168,33 @@ class AnimationTest {
 
     @Test
     void glideStartsOffToTheSideAndLands() {
-        CardPose start = CardPose.of(AnimationStyle.GLIDE, 0, 200);
+        CardPose start = CardPose.of(AnimationStyle.GLIDE, 0, 200, 0);
         assertEquals(200, start.offsetX(), CLOSE);
         assertEquals(0, start.alpha(), CLOSE);
-        assertEquals(CardPose.RESTING, CardPose.of(AnimationStyle.GLIDE, 1, 200));
+        assertEquals(CardPose.RESTING, CardPose.of(AnimationStyle.GLIDE, 1, 200, 0));
     }
 
     @Test
     void glideDirectionFollowsTheSign() {
-        assertTrue(CardPose.of(AnimationStyle.GLIDE, 0.5f, -200).offsetX() < 0);
+        assertTrue(CardPose.of(AnimationStyle.GLIDE, 0.5f, -200, 0).offsetX() < 0);
+        assertTrue(CardPose.of(AnimationStyle.GLIDE, 0.5f, 0, 90).offsetY() > 0);
     }
 
     @Test
     void fadeOnlyChangesOpacity() {
-        CardPose pose = CardPose.of(AnimationStyle.FADE, 0.5f, 200);
-        assertEquals(new CardPose(0, 1, 0.5f), pose);
+        CardPose pose = CardPose.of(AnimationStyle.FADE, 0.5f, 200, 0);
+        assertEquals(new CardPose(0, 0, 1, 0.5f), pose);
     }
 
     @Test
     void scaleGrowsIntoPlace() {
-        assertTrue(CardPose.of(AnimationStyle.SCALE, 0, 200).scale() < 1);
-        assertEquals(CardPose.RESTING, CardPose.of(AnimationStyle.SCALE, 1, 200));
+        assertTrue(CardPose.of(AnimationStyle.SCALE, 0, 200, 0).scale() < 1);
+        assertEquals(CardPose.RESTING, CardPose.of(AnimationStyle.SCALE, 1, 200, 0));
     }
 
     @Test
     void offIsAlwaysAtRest() {
-        assertEquals(CardPose.RESTING, CardPose.of(AnimationStyle.OFF, 0, 200));
+        assertEquals(CardPose.RESTING, CardPose.of(AnimationStyle.OFF, 0, 200, 0));
     }
 
     @Test
@@ -263,19 +270,5 @@ class AnimationTest {
         CardSummary summary = CardSummary.of(player(TierList.MCTIERS, ListProfile.UNRANKED), settings().filters);
         assertNull(summary.bestPosition());
         assertEquals(0, summary.totalPoints());
-    }
-
-    @Test
-    void rowDateIsTheNewestActiveTier() {
-        ListProfile result = ok(
-                new TierEntry("sword", Tier.parse("HT3"), null, 100L, false, null, null),
-                new TierEntry("axe", Tier.parse("LT3"), null, 300L, false, null, null),
-                new TierEntry("mace", Tier.parse("HT2"), null, 900L, true, null, null));
-        assertEquals(300L, CardSummary.latestDate(result));
-    }
-
-    @Test
-    void aListWithNoDatesHasNoRowDate() {
-        assertNull(CardSummary.latestDate(ok(entry("sword", "HT3"))));
     }
 }

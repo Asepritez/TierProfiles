@@ -16,6 +16,21 @@ public enum Easing {
             return 1 - rest * rest * rest;
         }
     },
+    /** Like OUT_CUBIC with a longer, softer landing. */
+    OUT_QUART {
+        @Override
+        public float apply(float t) {
+            float rest = 1 - t;
+            return 1 - rest * rest * rest * rest;
+        }
+    },
+    /** Starts slowly and speeds up, for things leaving. */
+    IN_CUBIC {
+        @Override
+        public float apply(float t) {
+            return t * t * t;
+        }
+    },
     /** Overshoots slightly before settling, for a small pop. */
     OUT_BACK {
         @Override

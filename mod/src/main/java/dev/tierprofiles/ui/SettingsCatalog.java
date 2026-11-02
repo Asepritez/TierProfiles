@@ -240,7 +240,9 @@ final class SettingsCatalog {
         String motion = "Animation";
 
         choice(tab, overlay, "Card detail", "How much each row says. Standard adds dates.", false, CardSettings.Detail.values(), SettingsCatalog::words, card, c -> c.detail, (c, v) -> c.detail = v);
-        choice(tab, overlay, "Position", "Which side of the screen.", false, CardSettings.OverlayAnchor.values(), SettingsCatalog::words, card, c -> c.overlayAnchor, (c, v) -> c.overlayAnchor = v);
+        choice(tab, overlay, "Position", "Where the card is pinned. It's kept clear of the crosshair and hotbar.", false, CardSettings.Anchor.values(), SettingsCatalog::words, card, c -> c.anchor, (c, v) -> c.anchor = v);
+        number(tab, overlay, "Offset X", "Fine adjustment across.", true, -300, 300, "", card, c -> c.offsetX, (c, v) -> c.offsetX = v);
+        number(tab, overlay, "Offset Y", "Fine adjustment down.", true, -200, 200, "", card, c -> c.offsetY, (c, v) -> c.offsetY = v);
         percent(tab, overlay, "Card scale", "Shrinks by itself if it would reach the crosshair.", true, CardSettings.MIN_SCALE, CardSettings.MAX_SCALE, card, c -> c.overlayScale, (c, v) -> c.overlayScale = v);
         percent(tab, overlay, "Card opacity", "How solid the background is.", true, 0, 1, card, c -> c.overlayOpacity, (c, v) -> c.overlayOpacity = v);
         number(tab, overlay, "Close after", "Zero keeps it open until you close it.", true, 0, CardSettings.MAX_CLOSE_SECONDS, "s", card, c -> c.overlayCloseSeconds, (c, v) -> c.overlayCloseSeconds = v);
@@ -249,8 +251,7 @@ final class SettingsCatalog {
         toggle(tab, overlay, "Peak marks", "Mark tiers whose peak was higher.", true, card, c -> c.showPeak, (c, v) -> c.showPeak = v);
         toggle(tab, overlay, "Dates", "Show when tiers were achieved.", true, card, c -> c.showAttained, (c, v) -> c.showAttained = v);
         toggle(tab, overlay, "Retired tiers", "Include retired tiers on the card.", true, card, c -> c.showRetired, (c, v) -> c.showRetired = v);
-        toggle(tab, overlay, "Lists that are offline", "Keep a row for a list that's down.", true, card, c -> c.showUnavailableLists, (c, v) -> c.showUnavailableLists = v);
-        toggle(tab, overlay, "Total points", "Show points at the top of the card.", true, card, c -> c.showPoints, (c, v) -> c.showPoints = v);
+                toggle(tab, overlay, "Total points", "Show points at the top of the card.", true, card, c -> c.showPoints, (c, v) -> c.showPoints = v);
 
         choice(tab, motion, "Animation style", "How cards enter and leave.", false, CardSettings.AnimationStyle.values(), SettingsCatalog::words, card, c -> c.animationStyle, (c, v) -> c.animationStyle = v);
         percent(tab, motion, "Animation speed", "100% is normal.", true, CardSettings.MIN_SPEED, CardSettings.MAX_SPEED, card, c -> c.animationSpeed, (c, v) -> c.animationSpeed = v);
@@ -267,6 +268,7 @@ final class SettingsCatalog {
         String group = "Privacy and network";
 
         toggle(tab, group, "Look up tiers online", "Off means no data is sent and no tiers show.", false, this::global, g -> g.lookupsEnabled, (g, v) -> g.lookupsEnabled = v);
+        toggle(tab, group, "Official list logos", "Downloads each list's logo from its own website. Off uses letter marks.", true, this::global, g -> g.officialLogos, (g, v) -> g.officialLogos = v);
         add(tab, group, "Server address", "Where lookups go.", true, (ui, right, y) -> screen.drawServerBox(ui, right, y));
     }
 

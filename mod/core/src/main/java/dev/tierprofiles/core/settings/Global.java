@@ -18,6 +18,8 @@ public final class Global {
     public boolean noticeSeen = false;
     /** Turns off every animation in our GUI. */
     public boolean reduceMotion = false;
+    /** Download each list's real logo from its own website. */
+    public boolean officialLogos = true;
 
     public static boolean isValidServerUrl(String url) {
         if (url == null) {

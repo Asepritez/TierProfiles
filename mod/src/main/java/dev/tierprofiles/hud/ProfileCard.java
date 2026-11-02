@@ -3,9 +3,11 @@ package dev.tierprofiles.hud;
 import dev.tierprofiles.TierProfiles;
 import dev.tierprofiles.core.anim.CardPose;
 import dev.tierprofiles.core.anim.Stagger;
+import dev.tierprofiles.core.layout.CardGrid;
+import dev.tierprofiles.core.layout.CardGrid.Shape;
+import dev.tierprofiles.core.layout.CardPlacement;
 import dev.tierprofiles.core.logic.CardSummary;
 import dev.tierprofiles.core.model.ListProfile;
-import dev.tierprofiles.core.model.ListStatus;
 import dev.tierprofiles.core.model.PlayerProfile;
 import dev.tierprofiles.core.model.Tier;
 import dev.tierprofiles.core.model.TierEntry;
@@ -14,7 +16,6 @@ import dev.tierprofiles.core.model.TimeAgo;
 import dev.tierprofiles.core.model.Title;
 import dev.tierprofiles.core.settings.CardSettings;
 import dev.tierprofiles.core.settings.CardSettings.AnimationStyle;
-import dev.tierprofiles.core.settings.CardSettings.Detail;
 import dev.tierprofiles.core.settings.Settings;
 import dev.tierprofiles.surface.Icons;
 import dev.tierprofiles.ui.Theme;
@@ -25,53 +26,66 @@ import java.util.UUID;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 
 /**
- * The full profile card, drawn on the HUD. The default look is deliberately quiet:
- * a top strip with the player, their best rank and total points, then one row per
- * list. "Card detail" decides how much each row says. Everything moves by the
- * clock, so the card can glide while the player keeps fighting.
+ * The full profile card, drawn on the HUD. Every position comes from CardGrid, which
+ * measures the font, so this class only says what goes in which column and can't make
+ * text collide. Everything moves by the clock, so the card can glide while the player
+ * keeps fighting.
  */
 public final class ProfileCard {
-    public static final int WIDTH = 296;
+    private static final int STRIP_BACKGROUND = 0x30000000;
+    private static final int CARD_COLOR = 0x0C0E10;
+    private static final int CARD_BORDER = 0xFF2E3338;
+    private static final int SLOT_FILL = 0xFF151B21;
+    private static final int RETIRED_OUTLINE = 0xFF39424B;
+    private static final int PEAK_GOLD = 0xFFFFCF4A;
+    private static final int UNRANKED = 0xFF8E98A2;
+    private static final float BIG_TEXT = 1.5f;
+    private static final float RETIRED_TEXT = 0.72f;
+    private static final int MODEL_SIZE = 58;
 
-    private static final int MARGIN = 4;
-    private static final int MODEL_WIDTH = 44;
-    private static final int TOP_STRIP = 24;
-    private static final int ROW_HEIGHT = 12;
-    private static final int BOTTOM_PADDING = 3;
-    private static final int LIST_NAME_WIDTH = 76;
-    private static final int ICON_WIDTH = 10;
-    private static final int TIER_WIDTH = 26;
-    private static final int RIGHT_EDGE = WIDTH - 4;
-    private static final int STAT_CELL_RANK = 74;
-    private static final int STAT_CELL_POINTS = 38;
-    private static final int MODEL_SIZE = 35;
-    private static final int LOADING_HEIGHT = TOP_STRIP + ROW_HEIGHT + BOTTOM_PADDING;
-    private static final int CHIP_FILL_ALPHA = 0x26;
-    private static final int STAT_CELL = 0x40000000;
-
-    private static final long ROW_DELAY = 45;
-    private static final long CHIP_DELAY = 22;
-    private static final long ITEM_MILLIS = 200;
-    private static final float ROW_SLIDE = 7;
+    private static final long MODEL_START = 220;
+    private static final long MODEL_MILLIS = 340;
+    private static final float MODEL_SLIDE = 9;
+    private static final long ROW_START = 360;
+    private static final long ROW_STEP = 85;
+    private static final long ROW_MILLIS = 300;
+    private static final float ROW_SLIDE = 13;
+    private static final long CHIP_START = 60;
+    private static final long CHIP_STEP = 40;
+    private static final long CHIP_MILLIS = 220;
     private static final float SWAY_DEGREES = 25;
     private static final float RESTING_YAW = -20;
-    /** The card always stays above this far past the middle, clear of the crosshair. */
-    private static final int CROSSHAIR_CLEARANCE = 16;
+
+    private static CardGrid grid;
 
     private ProfileCard() {
     }
 
-    private record Row(TierList list, ListProfile result, List<List<TierEntry>> lines) {
-        int height() {
-            return Math.max(1, lines.size()) * ROW_HEIGHT;
+    private static CardGrid grid() {
+        if (grid == null) {
+            Font font = Minecraft.getInstance().font;
+            grid = new CardGrid(font::width);
+        }
+        return grid;
+    }
+
+    /** The font can change with a resource pack, so the next card measures it again. */
+    public static void forgetMeasurements() {
+        grid = null;
+    }
+
+    private record Row(TierList list, ListProfile result, List<TierEntry> tiers) {
+        boolean hasTiers() {
+            return !tiers.isEmpty();
         }
     }
 
     /** One drawing pass, which saves handing the same values to every method. */
-    private record Pass(GuiGraphicsExtractor graphics, Font font, Settings settings, float alpha, long elapsed, AnimationStyle style) {
+    private record Pass(GuiGraphicsExtractor graphics, Font font, CardGrid grid, Settings settings, Shape shape, float alpha, long elapsed, AnimationStyle style) {
         int color(int argb) {
             return Theme.fade(argb, alpha);
         }
@@ -81,8 +95,12 @@ public final class ProfileCard {
         }
 
         Pass fadedBy(float amount) {
-            return new Pass(graphics, font, settings, alpha * amount, elapsed, style);
+            return new Pass(graphics, font, grid, settings, shape, alpha * amount, elapsed, style);
         }
+    }
+
+    /** Where and how the card sits once fitted to a screen. */
+    private record Layout(CardPlacement.Rect rect, Shape shape) {
     }
 
     /**
@@ -94,130 +112,114 @@ public final class ProfileCard {
         CardSettings card = settings.card;
         PlayerProfile profile = TierProfiles.profiles().profile(uuid);
         List<Row> rows = rows(settings, profile);
-        int height = height(rows);
 
-        float scale = fitScale(card.overlayScale, height, graphics.guiWidth(), graphics.guiHeight());
-        int width = Math.round(WIDTH * scale);
-        int x = switch (card.overlayAnchor) {
-            case LEFT -> MARGIN;
-            case CENTER -> (graphics.guiWidth() - width) / 2;
-            case RIGHT -> graphics.guiWidth() - width - MARGIN;
-        };
-        // You're using the tab list to pick players, so the card must not cover it.
-        int y = tabRight > x ? belowTab : MARGIN;
+        int screenWidth = graphics.guiWidth();
+        int screenHeight = graphics.guiHeight();
+        Layout layout = layout(settings, rows, screenWidth, screenHeight);
+
+        CardPlacement.Rect rect = layout.rect();
+        if (tabRight > rect.x() && rect.y() < belowTab) {
+            rect = new CardPlacement.Rect(rect.x(), belowTab, rect.width(), rect.height());
+        }
 
         AnimationStyle style = card.effectiveStyle(TierProfiles.config().global.reduceMotion);
-        float travel = card.overlayAnchor == CardSettings.OverlayAnchor.LEFT ? -(x + width) : graphics.guiWidth() - x;
-        CardPose pose = CardPose.of(style, CardState.progress(), travel);
+        CardPlacement.Glide glide = CardPlacement.glide(card.anchor, rect, screenWidth, screenHeight);
+        CardPose pose = CardPose.of(style, CardState.progress(), glide.dx(), glide.dy());
 
-        drawPosed(graphics, uuid, name, profile, rows, height, x, y, scale, pose, style, CardState.millisSinceOpen(), CardState.remaining());
+        drawPosed(graphics, uuid, name, profile, rows, rect, layout.shape(), pose, style, CardState.millisSinceOpen(), CardState.remaining());
     }
 
-    /** Shrinks the card if it would otherwise reach the crosshair or leave the screen. */
-    static float fitScale(float wanted, int height, int screenWidth, int screenHeight) {
-        float widest = (screenWidth - 2f * MARGIN) / WIDTH;
-        float tallest = (screenHeight / 2f - CROSSHAIR_CLEARANCE - MARGIN) / height;
-        return Math.min(wanted, Math.min(widest, tallest));
+    private static Layout layout(Settings settings, List<Row> rows, int screenWidth, int screenHeight) {
+        CardSettings card = settings.card;
+        CardGrid grid = grid();
+        int ranked = (int) rows.stream().filter(Row::hasTiers).count();
+        int guiScale = Math.max(1, Minecraft.getInstance().getWindow().getGuiScale());
+
+        Shape shape = grid.fit(card.detail, rows.size(), ranked, card.overlayScale, guiScale,
+                screenWidth - CardGrid.SCREEN_ROOM, screenHeight - CardGrid.SCREEN_ROOM,
+                candidate -> CardPlacement.isClear(placed(card, grid, candidate, rows.size(), screenWidth, screenHeight), screenWidth, screenHeight));
+        return new Layout(placed(card, grid, shape, rows.size(), screenWidth, screenHeight), shape);
     }
 
-    private static int height(List<Row> rows) {
-        int height = TOP_STRIP + BOTTOM_PADDING;
-        for (Row row : rows) {
-            height += row.height();
+    private static CardPlacement.Rect placed(CardSettings card, CardGrid grid, Shape shape, int rows, int screenWidth, int screenHeight) {
+        int width = Math.round(grid.width(shape) * shape.scale());
+        int height = Math.round(grid.height(shape, rows) * shape.scale());
+        return CardPlacement.place(card.anchor, card.offsetX, card.offsetY, width, height, screenWidth, screenHeight);
+    }
+
+    /** Where the card would sit, for the position editor. */
+    public static CardPlacement.Rect previewRect(Settings settings, int screenWidth, int screenHeight) {
+        List<Row> rows = new ArrayList<>();
+        for (TierList list : settings.filters.listPriority) {
+            if (settings.filters.isEnabled(list)) {
+                rows.add(new Row(list, ListProfile.UNRANKED, List.of()));
+            }
         }
-        return rows.isEmpty() ? LOADING_HEIGHT : height;
+        return layout(settings, rows, screenWidth, screenHeight).rect();
     }
 
     private static List<Row> rows(Settings settings, PlayerProfile profile) {
         List<Row> rows = new ArrayList<>();
-        if (profile == null) {
-            return rows;
-        }
-
-        Detail detail = settings.card.detail;
         for (TierList list : settings.filters.listPriority) {
-            if (!settings.filters.isEnabled(list)) {
-                continue;
+            if (settings.filters.isEnabled(list)) {
+                ListProfile result = profile == null ? ListProfile.UNRANKED : profile.list(list);
+                rows.add(new Row(list, result, tiersOn(settings, result)));
             }
-            ListProfile result = profile.list(list);
-            if (result.status() == ListStatus.UNAVAILABLE && !settings.card.showUnavailableLists) {
-                continue;
-            }
-            if (result.status() == ListStatus.UNRANKED && detail == Detail.MINIMAL) {
-                continue;
-            }
-            rows.add(new Row(list, result, lines(settings, result, detail)));
         }
         return rows;
     }
 
-    private static List<List<TierEntry>> lines(Settings settings, ListProfile result, Detail detail) {
+    private static List<TierEntry> tiersOn(Settings settings, ListProfile result) {
         List<TierEntry> entries = new ArrayList<>(result.tiers());
         entries.removeIf(entry -> entry.retired() && !settings.card.showRetired);
         entries.sort(Comparator.comparing(TierEntry::rank, Tier.STRONGEST_FIRST));
-
-        int perLine = chipsPerLine(detail);
-        int wanted = detail == Detail.FULL ? entries.size() : Math.min(perLine, entries.size());
-        List<List<TierEntry>> lines = new ArrayList<>();
-        for (int start = 0; start < wanted; start += perLine) {
-            lines.add(entries.subList(start, Math.min(start + perLine, wanted)));
-        }
-        return lines;
+        return entries;
     }
 
-    private static int chipsPerLine(Detail detail) {
-        return detail == Detail.MINIMAL ? 4 : 3;
-    }
+    private static void drawPosed(GuiGraphicsExtractor graphics, UUID uuid, String name, PlayerProfile profile, List<Row> rows,
+            CardPlacement.Rect rect, Shape shape, CardPose pose, AnimationStyle style, long elapsed, float remaining) {
+        Settings settings = TierProfiles.settings();
+        CardGrid grid = grid();
+        Pass pass = new Pass(graphics, Minecraft.getInstance().font, grid, settings, shape, pose.alpha(), elapsed, style);
 
-    private static int chipStep(Detail detail) {
-        return detail == Detail.FULL ? 54 : 37;
-    }
-
-    private static void drawPosed(
-            GuiGraphicsExtractor graphics,
-            UUID uuid,
-            String name,
-            PlayerProfile profile,
-            List<Row> rows,
-            int height,
-            int x,
-            int y,
-            float scale,
-            CardPose pose,
-            AnimationStyle style,
-            long elapsed,
-            float remaining) {
-        CardSettings card = TierProfiles.settings().card;
-        Pass pass = new Pass(graphics, Minecraft.getInstance().font, TierProfiles.settings(), pose.alpha(), elapsed, style);
-
-        float shownScale = scale * pose.scale();
-        float drawX = x + pose.offsetX() + WIDTH * scale * (1 - pose.scale()) / 2;
-        float drawY = y + height * scale * (1 - pose.scale()) / 2;
+        int width = grid.width(shape);
+        int height = grid.height(shape, rows.size());
+        float scale = shape.scale() * pose.scale();
+        float drawX = rect.x() + pose.offsetX() + rect.width() * (1 - pose.scale()) / 2;
+        float drawY = rect.y() + pose.offsetY() + rect.height() * (1 - pose.scale()) / 2;
 
         graphics.pose().pushMatrix();
         graphics.pose().translate(drawX, drawY);
-        graphics.pose().scale(shownScale, shownScale);
+        graphics.pose().scale(scale, scale);
 
-        graphics.fill(0, 0, WIDTH, height, pass.color(Theme.withAlpha(0x0C0E10, card.overlayOpacity)));
-        graphics.outline(0, 0, WIDTH, height, pass.color(0xFF2E3338));
+        graphics.fill(0, 0, width, height, pass.color(Theme.withAlpha(CARD_COLOR, settings.card.overlayOpacity)));
+        graphics.fill(0, 0, width, CardGrid.STRIP, pass.color(STRIP_BACKGROUND));
+        graphics.outline(0, 0, width, height, pass.color(CARD_BORDER));
 
-        int left = card.showModel ? MODEL_WIDTH : 3;
-        drawTopStrip(pass, profile, name, left);
-        drawRows(pass, profile, rows, left + 2);
+        drawTopStrip(pass, profile, name);
+        drawBody(pass, profile, rows);
 
         if (remaining < 1) {
-            graphics.fill(1, height - 1, 1 + Math.round((WIDTH - 2) * remaining), height, pass.color(Theme.withAlpha(Theme.ACCENT, 0.8f)));
+            graphics.fill(1, height - 1, 1 + Math.round((width - 2) * remaining), height, pass.color(Theme.withAlpha(Theme.ACCENT, 0.8f)));
         }
         graphics.pose().popMatrix();
 
-        if (card.showModel && pose.alpha() > 0.5f) {
-            int x0 = Math.round(drawX + 1 * shownScale);
-            int y0 = Math.round(drawY + 2 * shownScale);
-            int x1 = Math.round(drawX + (MODEL_WIDTH - 1) * shownScale);
-            int y1 = Math.round(drawY + (height - 2) * shownScale);
-            int size = Math.round(Math.min(MODEL_SIZE, (height - 6) / 2f) * shownScale);
-            Portrait.draw(graphics, uuid, name, x0, y0, x1, y1, size, modelYaw(card));
+        if (shape.model() && pose.alpha() > 0.5f) {
+            drawModel(pass, uuid, name, drawX, drawY, scale, height);
         }
+    }
+
+    /** The model settles in by itself, just after the card arrives. */
+    private static void drawModel(Pass pass, UUID uuid, String name, float drawX, float drawY, float scale, int height) {
+        CardGrid grid = pass.grid();
+        float settle = stagger(pass, MODEL_START, MODEL_MILLIS);
+        float slide = (1 - settle) * MODEL_SLIDE;
+        int x0 = Math.round(drawX + (CardGrid.MODEL_X - slide) * scale);
+        int y0 = Math.round(drawY + 2 * scale);
+        int x1 = Math.round(drawX + (CardGrid.MODEL_X + grid.modelWidth - slide) * scale);
+        int y1 = Math.round(drawY + (height - 2) * scale);
+        int size = Math.round(Math.min(MODEL_SIZE, (height - 8) / 2.05f) * scale);
+        Portrait.draw(pass.graphics(), uuid, name, x0, y0, x1, y1, size, modelYaw(pass.card()));
     }
 
     private static float modelYaw(CardSettings card) {
@@ -227,53 +229,91 @@ public final class ProfileCard {
         return Mth.sin(CardState.now() / 1500f) * SWAY_DEGREES;
     }
 
-    private static void drawTopStrip(Pass pass, PlayerProfile profile, String name, int left) {
+    /** Cuts text to fit, so a long name stops at its column rather than running on. */
+    private static String fit(Font font, String text, int width) {
+        return font.width(text) <= width ? text : font.plainSubstrByWidth(text, width - font.width("..")) + "..";
+    }
+
+    private static void bigText(Pass pass, String text, int x, int y, int color) {
+        GuiGraphicsExtractor graphics = pass.graphics();
+        graphics.pose().pushMatrix();
+        graphics.pose().translate(x, y);
+        graphics.pose().scale(BIG_TEXT, BIG_TEXT);
+        graphics.text(pass.font(), text, 0, 0, color);
+        graphics.pose().popMatrix();
+    }
+
+    private static int bigWidth(Font font, String text) {
+        return Math.round(font.width(text) * BIG_TEXT);
+    }
+
+    private static void drawTopStrip(Pass pass, PlayerProfile profile, String name) {
         GuiGraphicsExtractor graphics = pass.graphics();
         Font font = pass.font();
         Settings settings = pass.settings();
-        int x = left + 2;
+        CardGrid grid = pass.grid();
+        Shape shape = pass.shape();
+        int x = grid.contentX(shape);
+        int right = grid.rightEdge(shape);
 
-        graphics.text(font, name, x, 3, pass.color(0xFFFFFFFF));
+        CardSummary summary = profile == null ? null : CardSummary.of(profile, settings.filters);
+        int statsLeft = right;
+        if (summary != null) {
+            statsLeft = drawStats(pass, summary);
+        }
+        int room = statsLeft - x - CardGrid.GAP;
+
+        String shownName = fitBig(font, name, room);
+        bigText(pass, shownName, x, 3, pass.color(0xFFFFFFFF));
         if (profile == null) {
             return;
         }
 
         String region = profile.region(settings.filters.listPriority);
-        if (region != null) {
-            int regionX = x + font.width(name) + 4;
-            graphics.fill(regionX - 1, 2, regionX + font.width(region) + 1, 12, pass.color(0x402A6A3A));
-            graphics.text(font, region, regionX, 3, pass.color(Theme.GOOD));
+        int regionX = x + bigWidth(font, shownName) + 3;
+        if (region != null && regionX + font.width(region) + 2 < x + room) {
+            graphics.fill(regionX, 6, regionX + font.width(region) + 3, 16, pass.color(0x402A6A3A));
+            graphics.text(font, region, regionX + 2, 7, pass.color(Theme.GOOD));
         }
 
         Title.Earned title = bestTitle(settings, profile);
         if (title != null) {
-            graphics.text(font, title.label(), x, 13, pass.color(Theme.BETA));
+            String label = font.width(title.label()) <= room ? title.label() : title.title().displayName();
+            graphics.text(font, fit(font, label, room), x, 19, pass.color(Theme.BETA));
         }
-        drawStats(pass, CardSummary.of(profile, settings.filters));
     }
 
-    /** Two small cells at the top right: best position, then total points. */
-    private static void drawStats(Pass pass, CardSummary summary) {
+    private static String fitBig(Font font, String text, int width) {
+        return fit(font, text, Math.round(width / BIG_TEXT));
+    }
+
+    /** Points end on the shared right edge, and the rank sits to their left. */
+    private static int drawStats(Pass pass, CardSummary summary) {
         GuiGraphicsExtractor graphics = pass.graphics();
         Font font = pass.font();
-        int pointsX = RIGHT_EDGE - STAT_CELL_POINTS;
-        int rankX = pointsX - STAT_CELL_RANK;
+        CardGrid grid = pass.grid();
+        Shape shape = pass.shape();
+        int right = grid.rightEdge(shape);
+
+        int leftmost = right;
+        if (pass.card().showPoints) {
+            String points = Long.toString(summary.totalPoints());
+            bigText(pass, points, right - bigWidth(font, points), 3, pass.color(0xFFFFFFFF));
+            graphics.text(font, "points", right - font.width("points"), 19, pass.color(Theme.MUTED));
+            leftmost = right - Math.max(bigWidth(font, points), font.width("points")) - CardGrid.GAP * 2;
+        }
 
         if (summary.bestPosition() != null) {
-            graphics.fill(rankX, 1, pointsX - 1, TOP_STRIP - 1, pass.color(STAT_CELL));
-            graphics.text(font, "#" + summary.bestPosition(), rankX + 3, 3, pass.color(Theme.BETA));
-            int listX = rankX + 3;
-            graphics.text(font, summary.bestList().displayName(), listX, 13, pass.color(Theme.MUTED));
+            String list = CardGrid.rowName(summary.bestList());
+            int rankX = leftmost - font.width(list);
+            bigText(pass, "#" + summary.bestPosition(), rankX, 3, pass.color(Theme.BETA));
+            graphics.text(font, summary.bestList().displayName(), rankX, 19, pass.color(Theme.MUTED));
             if (summary.bestList().isBeta()) {
-                graphics.text(font, "beta", listX + font.width(summary.bestList().displayName()) + 3, 13, pass.color(Theme.BETA));
+                graphics.text(font, "beta", rankX + font.width(summary.bestList().displayName() + " "), 19, pass.color(Theme.BETA));
             }
+            leftmost = rankX;
         }
-
-        if (pass.card().showPoints) {
-            graphics.fill(pointsX, 1, RIGHT_EDGE + 2, TOP_STRIP - 1, pass.color(STAT_CELL));
-            graphics.text(font, Long.toString(summary.totalPoints()), pointsX + 3, 3, pass.color(0xFFFFFFFF));
-            graphics.text(font, "points", pointsX + 3, 13, pass.color(Theme.MUTED));
-        }
+        return leftmost;
     }
 
     private static Title.Earned bestTitle(Settings settings, PlayerProfile profile) {
@@ -286,35 +326,73 @@ public final class ProfileCard {
         return null;
     }
 
-    private static void drawRows(Pass pass, PlayerProfile profile, List<Row> rows, int x) {
-        int y = TOP_STRIP + 1;
+    private static void drawBody(Pass pass, PlayerProfile profile, List<Row> rows) {
         if (profile == null) {
             String message = TierProfiles.config().global.lookupsEnabled ? "Looking up..." : "Lookups are off";
-            pass.graphics().text(pass.font(), message, x, y, pass.color(Theme.MUTED));
+            pass.graphics().text(pass.font(), message, pass.grid().contentX(pass.shape()), CardGrid.ROWS_Y + 5, pass.color(Theme.MUTED));
             return;
         }
 
-        int index = 0;
-        for (Row row : rows) {
-            drawRow(pass, row, x, y, index);
-            y += row.height();
-            index += 1;
+        switch (pass.shape().detail()) {
+            case MINIMAL -> drawMinimal(pass, rows);
+            case STANDARD -> {
+                int y = CardGrid.ROWS_Y;
+                int index = 0;
+                for (Row row : rows) {
+                    drawStandardRow(pass, row, y, index);
+                    y += CardGrid.ROW;
+                    index += 1;
+                }
+            }
+            case FULL -> drawFull(pass, rows);
         }
     }
 
-    private static float stagger(Pass pass, long delay) {
+    private static float stagger(Pass pass, long delay, long duration) {
         if (pass.style() == AnimationStyle.OFF) {
             return 1;
         }
         CardSettings card = pass.card();
-        return Stagger.progress(pass.elapsed(), card.scaled(delay), card.scaled(ITEM_MILLIS));
+        return Stagger.progress(pass.elapsed(), card.scaled(delay), card.scaled(duration));
     }
 
-    private static void drawRow(Pass pass, Row row, int x, int y, int index) {
+    private static long rowStart(int index) {
+        return ROW_START + index * ROW_STEP;
+    }
+
+    private static float chipProgress(Pass pass, long rowStart, int chip) {
+        return stagger(pass, rowStart + CHIP_START + chip * CHIP_STEP, CHIP_MILLIS);
+    }
+
+    /** One line: each ranked list's logo and best tier. */
+    private static void drawMinimal(Pass pass, List<Row> rows) {
+        CardGrid grid = pass.grid();
+        Shape shape = pass.shape();
+        int y = CardGrid.ROWS_Y;
+        int slot = 0;
+        for (Row row : rows) {
+            if (!row.hasTiers() || slot >= shape.lists()) {
+                continue;
+            }
+            float progress = stagger(pass, rowStart(slot), ROW_MILLIS);
+            if (progress > 0) {
+                Pass rowPass = pass.fadedBy(progress);
+                Logos.draw(pass.graphics(), row.list(), grid.minimalX(shape, slot), y + 1, CardGrid.ICON, rowPass.alpha());
+                drawSlot(rowPass, row.list(), row.tiers().getFirst(), grid.minimalSlotX(shape, slot), y);
+            }
+            slot += 1;
+        }
+        if (slot == 0) {
+            pass.graphics().text(pass.font(), "Unranked", grid.contentX(shape), y + 5, pass.color(UNRANKED));
+        }
+    }
+
+    private static void drawStandardRow(Pass pass, Row row, int y, int index) {
         GuiGraphicsExtractor graphics = pass.graphics();
         Font font = pass.font();
-        long rowDelay = CardState.OPEN_DELAY_FOR_ROWS + index * ROW_DELAY;
-        float progress = stagger(pass, rowDelay);
+        CardGrid grid = pass.grid();
+        long start = rowStart(index);
+        float progress = stagger(pass, start, ROW_MILLIS);
         if (progress <= 0) {
             return;
         }
@@ -323,91 +401,114 @@ public final class ProfileCard {
         graphics.pose().pushMatrix();
         graphics.pose().translate((1 - progress) * ROW_SLIDE, 0);
 
-        graphics.text(font, Icons.list(row.list()), x, y, rowPass.color(0xFFFFFFFF));
-        int nameX = x + ICON_WIDTH + 1;
-        graphics.text(font, row.list().displayName(), nameX, y, rowPass.color(Theme.TEXT));
-
-        int contentX = x + LIST_NAME_WIDTH;
+        Logos.draw(graphics, row.list(), grid.listX, y + 1, CardGrid.ICON, rowPass.alpha());
+        graphics.text(font, row.list().displayName(), grid.nameX, y + 5, rowPass.color(Theme.TEXT));
         if (row.list().isBeta()) {
-            graphics.text(font, "beta", nameX + font.width(row.list().displayName()) + 3, y, rowPass.color(Theme.BETA));
+            graphics.text(font, "beta", grid.nameX + font.width(row.list().displayName() + " "), y + 5, rowPass.color(Theme.BETA));
         }
 
-        switch (row.result().status()) {
-            case OK -> {
-                drawChips(pass, row, contentX, y, rowDelay);
-                drawDate(rowPass, row, y);
-            }
-            case UNRANKED -> graphics.text(font, "Not ranked", contentX, y, rowPass.color(Theme.MUTED));
-            case UNAVAILABLE -> graphics.text(font, "Offline", contentX, y, rowPass.color(Theme.MUTED));
-        }
-        graphics.pose().popMatrix();
-    }
-
-    /** Standard detail shows one date per row, on the right. */
-    private static void drawDate(Pass pass, Row row, int y) {
-        if (pass.card().detail != Detail.STANDARD || !pass.card().showAttained) {
-            return;
-        }
-        Long date = CardSummary.latestDate(row.result());
-        if (date != null) {
-            String text = TimeAgo.date(date);
-            pass.graphics().text(pass.font(), text, RIGHT_EDGE - pass.font().width(text), y, pass.color(Theme.MUTED));
-        }
-    }
-
-    private static void drawChips(Pass pass, Row row, int x, int y, long rowDelay) {
-        Detail detail = pass.card().detail;
-        int step = chipStep(detail);
-        long now = System.currentTimeMillis() / 1000;
-
-        int chip = 0;
-        for (int line = 0; line < row.lines().size(); line++) {
-            int chipX = x;
-            for (TierEntry entry : row.lines().get(line)) {
-                float progress = stagger(pass, rowDelay + chip * CHIP_DELAY);
-                if (progress > 0) {
-                    Pass chipPass = pass.fadedBy(progress);
-                    int chipY = y + line * ROW_HEIGHT;
-                    pass.graphics().text(pass.font(), Icons.kit(entry.kit(), pass.settings().style.iconSet), chipX, chipY, chipPass.color(0xFFFFFFFF));
-                    drawTier(chipPass, row.list(), entry, chipX + ICON_WIDTH, chipY);
-                    if (detail == Detail.FULL && pass.card().showAttained && entry.attained() != null) {
-                        drawSmallText(chipPass, TimeAgo.compact(entry.attained(), now), chipX + ICON_WIDTH + TIER_WIDTH, chipY + 1);
-                    }
+        if (row.hasTiers()) {
+            int slots = Math.min(pass.shape().kits(), row.tiers().size());
+            for (int slot = 0; slot < slots; slot++) {
+                float chip = chipProgress(pass, start, slot);
+                if (chip > 0) {
+                    drawSlot(pass.fadedBy(chip), row.list(), row.tiers().get(slot), grid.kitX(slot), y);
                 }
-                chipX += step;
-                chip += 1;
             }
+            drawRowDate(rowPass, row, y);
+        } else {
+            graphics.text(font, "Unranked", grid.kitX(0), y + 5, rowPass.color(UNRANKED));
         }
-    }
-
-    private static void drawSmallText(Pass pass, String text, int x, int y) {
-        GuiGraphicsExtractor graphics = pass.graphics();
-        graphics.pose().pushMatrix();
-        graphics.pose().translate(x, y);
-        graphics.pose().scale(0.75f, 0.75f);
-        graphics.text(pass.font(), text, 0, 0, pass.color(Theme.MUTED), false);
         graphics.pose().popMatrix();
     }
 
-    /** Coloured text on a faint tint. Retired tiers are dimmed and marked R. */
-    private static void drawTier(Pass pass, TierList list, TierEntry entry, int x, int y) {
+    /** The date belongs to the row's best tier, which is the first slot. */
+    private static void drawRowDate(Pass pass, Row row, int y) {
+        Long date = row.tiers().getFirst().attained();
+        if (pass.shape().date() && pass.card().showAttained && date != null) {
+            String text = TimeAgo.date(date);
+            int right = pass.grid().rightEdge(pass.shape());
+            pass.graphics().text(pass.font(), text, right - pass.font().width(text), y + 5, pass.color(Theme.MUTED));
+        }
+    }
+
+    /** Five kits per list, each with its own date beneath. */
+    private static void drawFull(Pass pass, List<Row> rows) {
         GuiGraphicsExtractor graphics = pass.graphics();
         Font font = pass.font();
-        Settings settings = pass.settings();
-        int rgb = settings.style.color(list, entry.rank());
-        String label = entry.rank().label();
-
-        if (entry.retired()) {
-            int dim = pass.color(Theme.withAlpha(rgb, 0.6f));
-            graphics.text(font, label + "R", x, y, dim, false);
-        } else {
-            int width = font.width(label) + 1;
-            graphics.fill(x - 1, y - 1, x + width, y + 8, pass.color(CHIP_FILL_ALPHA << 24 | rgb));
-            graphics.text(font, label, x, y, pass.color(Theme.opaque(rgb)), false);
+        CardGrid grid = pass.grid();
+        int y = CardGrid.ROWS_Y;
+        int index = 0;
+        for (Row row : rows) {
+            long start = rowStart(index);
+            float progress = stagger(pass, start, ROW_MILLIS);
+            index += 1;
+            if (progress > 0) {
+                Pass rowPass = pass.fadedBy(progress);
+                Logos.draw(graphics, row.list(), grid.listX, y + 1, CardGrid.ICON, rowPass.alpha());
+                graphics.text(font, row.list().displayName(), grid.nameX, y + 1, rowPass.color(Theme.TEXT));
+                if (row.list().isBeta()) {
+                    graphics.text(font, "beta", grid.nameX, y + 11, rowPass.color(Theme.BETA));
+                }
+                if (row.hasTiers()) {
+                    int slots = Math.min(CardGrid.FULL_KITS, row.tiers().size());
+                    for (int slot = 0; slot < slots; slot++) {
+                        TierEntry entry = row.tiers().get(slot);
+                        float chip = chipProgress(pass, start, slot);
+                        if (chip > 0) {
+                            Pass chipPass = pass.fadedBy(chip);
+                            int x = grid.fullKitX(slot);
+                            drawSlot(chipPass, row.list(), entry, x, y);
+                            String date = entry.attained() == null ? "No date" : TimeAgo.monthYear(entry.attained());
+                            graphics.text(font, date, x, y + CardGrid.SLOT_HEIGHT + 2, chipPass.color(Theme.MUTED));
+                        }
+                    }
+                } else {
+                    graphics.text(font, "Unranked", grid.fullKitX(0), y + 5, rowPass.color(UNRANKED));
+                }
+            }
+            y += grid.fullRow();
         }
 
+        Component legend = Component.literal("Gold corner: peak was higher    Outline: retired    Date: when achieved");
+        graphics.text(font, legend, grid.listX, y + 2, pass.color(Theme.MUTED));
+    }
+
+    /** Icon and tier as one shape. Retired and peak live inside it and never change its size. */
+    private static void drawSlot(Pass pass, TierList list, TierEntry entry, int x, int y) {
+        GuiGraphicsExtractor graphics = pass.graphics();
+        Font font = pass.font();
+        CardGrid grid = pass.grid();
+        int width = grid.slotWidth;
+        int rgb = pass.settings().style.color(list, entry.rank());
+
+        if (entry.retired()) {
+            graphics.outline(x, y, width, CardGrid.SLOT_HEIGHT, pass.color(RETIRED_OUTLINE));
+        } else {
+            graphics.fill(x, y, x + width, y + CardGrid.SLOT_HEIGHT, pass.color(SLOT_FILL));
+        }
+
+        graphics.pose().pushMatrix();
+        graphics.pose().translate(x + 1, y + 1);
+        graphics.pose().scale(2, 2);
+        graphics.text(font, Icons.kit(entry.kit(), pass.settings().style.iconSet), 0, 0, pass.color(0xFFFFFFFF), false);
+        graphics.pose().popMatrix();
+
+        String label = entry.rank().label();
+        int chipX = x + width - grid.chipWidth + (grid.chipWidth - font.width(label) + 1) / 2;
+        int color = entry.retired() ? Theme.withAlpha(rgb, RETIRED_TEXT) : Theme.opaque(rgb);
+        graphics.text(font, label, chipX, y + 5, pass.color(color), false);
+
         if (pass.card().showPeak && entry.peak() != null && !entry.rank().isAtLeast(entry.peak())) {
-            graphics.fill(x + font.width(label) + (entry.retired() ? 6 : 1), y, x + font.width(label) + (entry.retired() ? 8 : 3), y + 2, pass.color(Theme.TEXT));
+            drawPeakCorner(pass, x + width, y);
+        }
+    }
+
+    /** A small stepped gold corner, drawn inside the slot's top right. */
+    private static void drawPeakCorner(Pass pass, int right, int top) {
+        GuiGraphicsExtractor graphics = pass.graphics();
+        for (int step = 0; step < 4; step++) {
+            graphics.fill(right - 4 + step, top + step, right, top + step + 1, pass.color(PEAK_GOLD));
         }
     }
 }

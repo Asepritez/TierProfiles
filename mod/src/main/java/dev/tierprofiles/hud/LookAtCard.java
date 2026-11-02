@@ -1,6 +1,7 @@
 package dev.tierprofiles.hud;
 
 import dev.tierprofiles.TierProfiles;
+import dev.tierprofiles.core.anim.Easing;
 import dev.tierprofiles.core.anim.Reveal;
 import dev.tierprofiles.core.logic.Tag;
 import dev.tierprofiles.core.logic.TagFormatter;
@@ -52,11 +53,11 @@ public final class LookAtCard {
         if (wanted != reveal.isOpen()) {
             boolean animate = settings.card.effectiveStyle(TierProfiles.config().global.reduceMotion)
                     != CardSettings.AnimationStyle.OFF;
-            reveal.set(wanted, now, animate ? settings.card.scaled(FADE_MILLIS) : 0);
+            reveal.set(wanted, now, animate ? settings.card.scaled(FADE_MILLIS) : 0, Easing.OUT_CUBIC);
         }
 
         if (shownTags != null && reveal.isVisible(now)) {
-            drawPanel(graphics, minecraft.font, shownName, shownTags, settings.card, reveal.eased(now));
+            drawPanel(graphics, minecraft.font, shownName, shownTags, settings.card, reveal.position(now));
         }
     }
 

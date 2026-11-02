@@ -1,13 +1,15 @@
 package dev.tierprofiles.ui;
 
+import com.mojang.blaze3d.Blaze3D;
 import dev.tierprofiles.TierProfiles;
 import dev.tierprofiles.core.config.ConfigStore;
 import dev.tierprofiles.core.settings.ConfigFile;
+import java.net.URI;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
-import net.minecraft.util.Util;
+
 
 /** The privacy notice. No lookups happen until this has been seen. */
 public final class FirstRunScreen extends Screen {
@@ -55,7 +57,7 @@ public final class FirstRunScreen extends Screen {
 
         int buttonY = y + HEIGHT - 22;
         if (ui.button(x + WIDTH - 158, buttonY, 72, 16, "Read more", false)) {
-            Util.getPlatform().openUri(java.net.URI.create(README));
+            Blaze3D.openUri(URI.create(README));
         }
         if (ui.button(x + WIDTH - 80, buttonY, 72, 16, "Sounds good", true)) {
             accept();

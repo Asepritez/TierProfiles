@@ -6,6 +6,7 @@ public final class CardSettings {
     public static final float MAX_SCALE = 2.0f;
     public static final int MAX_CLOSE_SECONDS = 120;
     public static final int MAX_DELAY_MS = 2000;
+    public static final int MAX_OFFSET = 2000;
     public static final float MIN_SPEED = 0.25f;
     public static final float MAX_SPEED = 3.0f;
 
@@ -18,14 +19,15 @@ public final class CardSettings {
     public float overlayOpacity = 0.92f;
     /** Zero keeps the card open until it's closed by hand. */
     public int overlayCloseSeconds = 15;
-    public OverlayAnchor overlayAnchor = OverlayAnchor.RIGHT;
+    public Anchor anchor = Anchor.TOP_RIGHT;
+    public int offsetX = 0;
+    public int offsetY = 0;
 
     public boolean showModel = true;
     public boolean spinModel = true;
     public boolean showPeak = true;
     public boolean showAttained = true;
     public boolean showRetired = true;
-    public boolean showUnavailableLists = true;
     public boolean showPoints = true;
     public boolean showCountry = true;
 
@@ -62,8 +64,27 @@ public final class CardSettings {
         BELOW_CROSSHAIR, TOP, BOTTOM_LEFT, BOTTOM_RIGHT
     }
 
-    public enum OverlayAnchor {
-        LEFT, CENTER, RIGHT
+    /** Where the card is pinned. Offsets then nudge it from there. */
+    public enum Anchor {
+        TOP_LEFT(0, 0), TOP_CENTER(1, 0), TOP_RIGHT(2, 0),
+        MIDDLE_LEFT(0, 1), CENTER(1, 1), MIDDLE_RIGHT(2, 1),
+        BOTTOM_LEFT(0, 2), BOTTOM_CENTER(1, 2), BOTTOM_RIGHT(2, 2);
+
+        private final int column;
+        private final int row;
+
+        Anchor(int column, int row) {
+            this.column = column;
+            this.row = row;
+        }
+
+        public int column() {
+            return column;
+        }
+
+        public int row() {
+            return row;
+        }
     }
 
     void sanitize() {
@@ -74,7 +95,9 @@ public final class CardSettings {
         lookAtDelayMs = Math.clamp(lookAtDelayMs, 0, MAX_DELAY_MS);
         overlayCloseSeconds = Math.clamp(overlayCloseSeconds, 0, MAX_CLOSE_SECONDS);
         lookAtAnchor = lookAtAnchor == null ? LookAtAnchor.BELOW_CROSSHAIR : lookAtAnchor;
-        overlayAnchor = overlayAnchor == null ? OverlayAnchor.RIGHT : overlayAnchor;
+        anchor = anchor == null ? Anchor.TOP_RIGHT : anchor;
+        offsetX = Math.clamp(offsetX, -MAX_OFFSET, MAX_OFFSET);
+        offsetY = Math.clamp(offsetY, -MAX_OFFSET, MAX_OFFSET);
         detail = detail == null ? Detail.STANDARD : detail;
         animationStyle = animationStyle == null ? AnimationStyle.GLIDE : animationStyle;
         animationSpeed = Float.isFinite(animationSpeed) ? Math.clamp(animationSpeed, MIN_SPEED, MAX_SPEED) : 1.0f;

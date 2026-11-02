@@ -1,6 +1,7 @@
 package dev.tierprofiles;
 
 import dev.tierprofiles.hud.HudLayer;
+import dev.tierprofiles.hud.LogoStore;
 import dev.tierprofiles.input.Keys;
 import dev.tierprofiles.ui.FirstRunScreen;
 import dev.tierprofiles.ui.SettingsScreen;
@@ -20,6 +21,7 @@ public final class TierProfilesClient implements ClientModInitializer {
 
         LookupDriver lookups = new LookupDriver();
         ClientTickEvents.END_CLIENT_TICK.register(lookups::tick);
+        ClientTickEvents.END_CLIENT_TICK.register(client -> LogoStore.downloadIfNeeded());
         ClientTickEvents.END_CLIENT_TICK.register(TierProfilesClient::openSettingsOnKey);
         ScreenEvents.AFTER_INIT.register((client, screen, width, height) -> {
             if (screen instanceof TitleScreen && !TierProfiles.config().global.noticeSeen) {

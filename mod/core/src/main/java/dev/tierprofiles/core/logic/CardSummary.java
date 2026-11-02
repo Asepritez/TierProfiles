@@ -2,7 +2,6 @@ package dev.tierprofiles.core.logic;
 
 import dev.tierprofiles.core.model.ListProfile;
 import dev.tierprofiles.core.model.PlayerProfile;
-import dev.tierprofiles.core.model.TierEntry;
 import dev.tierprofiles.core.model.TierList;
 import dev.tierprofiles.core.settings.Filters;
 
@@ -39,16 +38,5 @@ public record CardSummary(Integer bestPosition, TierList bestList, long totalPoi
             }
         }
         return new CardSummary(best, bestList, Math.round(points));
-    }
-
-    /** The date a row shows: when the list's newest tier was achieved. Null if unknown. */
-    public static Long latestDate(ListProfile result) {
-        Long latest = null;
-        for (TierEntry entry : result.tiers()) {
-            if (!entry.retired() && entry.attained() != null && (latest == null || entry.attained() > latest)) {
-                latest = entry.attained();
-            }
-        }
-        return latest;
     }
 }

@@ -7,6 +7,7 @@ import java.util.Locale;
 
 public final class TimeAgo {
     private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("d MMM yyyy", Locale.ENGLISH);
+    private static final DateTimeFormatter MONTH_YEAR = DateTimeFormatter.ofPattern("MMM yyyy", Locale.ENGLISH);
 
     private static final long MINUTE = 60;
     private static final long HOUR = 60 * MINUTE;
@@ -44,6 +45,11 @@ public final class TimeAgo {
 
     static String date(long seconds, ZoneId zone) {
         return DATE.format(Instant.ofEpochSecond(seconds).atZone(zone));
+    }
+
+    /** Month and year, such as "Aug 2026", for the tight columns in Full detail. */
+    public static String monthYear(long seconds) {
+        return MONTH_YEAR.format(Instant.ofEpochSecond(seconds).atZone(ZoneId.systemDefault()));
     }
 
     /** A short form for tight spaces, such as "2mo". */
