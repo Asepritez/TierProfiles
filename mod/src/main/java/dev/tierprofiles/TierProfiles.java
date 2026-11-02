@@ -41,7 +41,8 @@ public final class TierProfiles {
         store = new ConfigStore(FabricLoader.getInstance().getConfigDir().resolve("tierprofiles.json"));
         config = store.load();
         HttpTransport transport = new HttpTransport(USER_AGENT);
-        profiles = new ProfileService(transport, () -> config.global, System::currentTimeMillis);
+        profiles = new ProfileService(transport, () -> config.global, System::currentTimeMillis,
+                FabricLoader.getInstance().getConfigDir().resolve("tierprofiles-cache.json"));
         profiles.start();
 
         ExecutorService background = Executors.newSingleThreadExecutor(runnable -> {

@@ -11,13 +11,15 @@ import dev.tierprofiles.core.settings.Settings;
 import dev.tierprofiles.core.settings.Surface;
 import dev.tierprofiles.core.settings.SurfaceSettings;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 /**
  * The filter engine: given a player and your settings, which tags should appear?
  *
- * Lists are visited in priority order and each offers at most one tag, its best
- * tier that survives every filter. The first `maxTags` offers win, which is what
+ * Each list offers at most one tag, its best tier that survives every filter. With
+ * `bestFirst` the strongest offers win whichever list they're from, and list priority
+ * only breaks ties. Without it the first `maxTags` lists in priority order win, which
  * makes list priority mean "who gets the only slot".
  */
 public final class TagSelector {
@@ -45,7 +47,7 @@ public final class TagSelector {
 
         List<Tag> tags = new ArrayList<>();
         for (TierList list : filters.listPriority) {
-            if (tags.size() >= rules.maxTags) {
+            if (!rules.bestFirst && tags.size() >= rules.maxTags) {
                 break;
             }
             if (!filters.isEnabled(list)) {
@@ -54,6 +56,13 @@ public final class TagSelector {
             Tag tag = bestOn(list, profile.list(list), rules, filters, context);
             if (tag != null) {
                 tags.add(tag);
+            }
+        }
+        if (rules.bestFirst) {
+            // A stable sort, so equal tiers stay in list priority order.
+            tags.sort(Comparator.comparingInt((Tag tag) -> tag.tier().score()).thenComparing(Tag::retired));
+            if (tags.size() > rules.maxTags) {
+                tags = new ArrayList<>(tags.subList(0, rules.maxTags));
             }
         }
 

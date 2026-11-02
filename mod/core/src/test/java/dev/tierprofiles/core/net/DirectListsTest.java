@@ -41,12 +41,18 @@ class DirectListsTest {
         final Map<String, String> pages = new LinkedHashMap<>();
         final List<String> asked = new ArrayList<>();
         String downHost;
+        /** Answers this host's next call with a 503, as PVPHQ does now and then. */
+        String hiccupHost;
 
         @Override
         public synchronized String send(String method, String url, String body, String bearer) throws IOException {
             asked.add(url);
             if (downHost != null && url.contains(downHost)) {
                 throw new IOException("connection refused");
+            }
+            if (hiccupHost != null && url.contains(hiccupHost)) {
+                hiccupHost = null;
+                throw new StatusException(503);
             }
             String page = pages.get(url);
             if (page == null) {
@@ -117,9 +123,11 @@ class DirectListsTest {
     }
 
     @Test
-    void aListThatFailsIsLeftAloneForAMinute() {
+    void aListThatKeepsFailingIsLeftAloneForAMinute() {
         sites.downHost = "mctiers.gg";
-        lookUp(JOKING, "JokingDK");
+        for (int i = 0; i < DirectLists.STRIKES_TO_REST; i++) {
+            assertEquals("network", lookUp(JOKING, "JokingDK").list(TierList.MCTIERS).reason());
+        }
         int before = sites.asked.size();
 
         assertEquals("circuit_open", lookUp(JOKING, "JokingDK").list(TierList.MCTIERS).reason());
@@ -129,6 +137,14 @@ class DirectListsTest {
         sites.downHost = null;
         lookUp(JOKING, "JokingDK");
         assertTrue(sites.asked.stream().filter(url -> url.contains("mctiers.gg")).count() >= 2);
+    }
+
+    @Test
+    void aOneOffHiccupIsTriedAgainRatherThanCountedAsDown() {
+        sites.pages.put(DirectLists.url(TierList.MCTIERS, JOKING, "JokingDK"), fixture("mctiers-ranked.json"));
+        sites.hiccupHost = "mctiers.gg";
+        assertEquals(ListStatus.OK, lookUp(JOKING, "JokingDK").list(TierList.MCTIERS).status());
+        assertEquals(2, sites.asked.stream().filter(url -> url.contains("mctiers.gg")).count());
     }
 
     @Test

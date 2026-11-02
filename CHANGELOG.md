@@ -3,6 +3,16 @@
 Each version's jar is named `tierprofiles-<version>+mc<minecraft>.jar`, for example
 `tierprofiles-0.3.0+mc1.21.11.jar`.
 
+## 0.6.0 (2 Nov 2026)
+
+- Much faster lookups. Each list now has its own queue and works on several players at once, and each list's tiers show the moment they arrive. A 40-player lobby went from 20 to 40 seconds to about 2 seconds for MCTiers and 5 seconds for every list.
+- Tiers are saved between sessions, for up to 7 days. After a server switch or a restart, players you've seen before show their tiers straight away while they're checked again.
+- A list that hiccups is tried again after a moment, and only rested after failing three times running. PVPHQ, which often refuses busy moments, is asked again on its own a minute later.
+- New "Best from any list", on by default: a tag shows the player's highest tier whichever list it's on. Turn it off in Tags to go back to your List order.
+- Servers that fill the tab list with real players' names under made-up IDs, such as a top players board, now get tiers on those rows too.
+- On the card, tier chips use a faint tint instead of a solid box, so they match the card's background and opacity.
+- A list that hasn't answered says "Looking up...", and one that couldn't says "No answer", instead of "Unranked".
+
 ## 0.5.0 (2 Nov 2026)
 
 - The TierProfiles server is online, at `https://tierprofiles.asepritez.workers.dev`.

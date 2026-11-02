@@ -40,7 +40,11 @@ public final class ProfileCard {
     private static final int STRIP_BACKGROUND = 0x30000000;
     private static final int STRIP_LINE = 0xFF2E3338;
     private static final int CARD_COLOR = 0x0C0E10;
-    private static final int SLOT_FILL = 0xFF151B21;
+    /**
+     * A faint light tint rather than a solid colour, so the card's own background and
+     * opacity show through each chip instead of a dark box sitting on top.
+     */
+    private static final int SLOT_FILL = 0x10FFFFFF;
     private static final int RETIRED_OUTLINE = 0xFF39424B;
     private static final int PEAK_GOLD = 0xFFFFCF4A;
     private static final int UNRANKED = 0xFF8E98A2;
@@ -580,9 +584,18 @@ public final class ProfileCard {
         }
     }
 
-    /** "Unranked" never claims more than we know: a row of hidden kits says so. */
+    /**
+     * "Unranked" never claims more than we know: a row of hidden kits says so, and a
+     * list that hasn't answered yet, or couldn't, says that instead.
+     */
     private static String emptyRowText(Row row) {
-        return row.allHidden() ? "Kits hidden" : "Unranked";
+        if (row.allHidden()) {
+            return "Kits hidden";
+        }
+        if (row.result().status() == dev.tierprofiles.core.model.ListStatus.UNAVAILABLE) {
+            return "missing".equals(row.result().reason()) ? "Looking up..." : "No answer";
+        }
+        return "Unranked";
     }
 
     /**

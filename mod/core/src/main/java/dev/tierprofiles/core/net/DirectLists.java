@@ -17,9 +17,14 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.PriorityBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 import java.util.function.LongSupplier;
 import java.util.regex.Pattern;
 
@@ -33,6 +38,9 @@ import java.util.regex.Pattern;
 public final class DirectLists {
     /** A list that fails is left alone this long, so a site that's down isn't hammered. */
     static final long COOLDOWN_MILLIS = 60 * 1000;
+    static final int STRIKES_TO_REST = 3;
+    private static final int ATTEMPTS = 2;
+    private static final long RETRY_PAUSE_MILLIS = 400;
     private static final int MCPVP_MIN_QUERY = 3;
     private static final int MCPVP_RESULT_CAP = 50;
     private static final int PVPHQ_NO_POSITION = 99999;
@@ -56,8 +64,61 @@ public final class DirectLists {
 
     private final Transport transport;
     private final LongSupplier clock;
-    private final ExecutorService pool;
+    private final Map<TierList, ThreadPoolExecutor> pools = new EnumMap<>(TierList.class);
+    private final AtomicLong order = new AtomicLong();
     private final Map<TierList, Long> resting = new EnumMap<>(TierList.class);
+    // Guarded by `resting`. Failures in a row for each list.
+    private final Map<TierList, Integer> strikes = new EnumMap<>(TierList.class);
+
+    /**
+     * Hears each list's answer the moment it arrives, so a fast list never waits for a
+     * slow one. Called from lookup threads.
+     */
+    public interface Listener {
+        void answered(UUID uuid, TierList list, JsonObject result);
+
+        /** Every list has now answered for this player, one way or another. */
+        void finished(UUID uuid);
+    }
+
+    /**
+     * How many calls each list may have going at once. Enough to clear a full lobby in
+     * a few seconds, few enough to stay polite. McPvP's search and PVPHQ are heavier.
+     */
+    static int concurrency(TierList list) {
+        return switch (list) {
+            case MCTIERS -> 6;
+            case PVPTIERS, SUBTIERS -> 4;
+            case MCPVP -> 3;
+            case PVPHQ -> 2;
+        };
+    }
+
+    /** One call waiting for its list. Urgent ones, like a card just opened, go first. */
+    private static final class Job implements Runnable, Comparable<Job> {
+        private final boolean urgent;
+        private final long order;
+        private final Runnable work;
+
+        Job(boolean urgent, long order, Runnable work) {
+            this.urgent = urgent;
+            this.order = order;
+            this.work = work;
+        }
+
+        @Override
+        public void run() {
+            work.run();
+        }
+
+        @Override
+        public int compareTo(Job other) {
+            if (urgent != other.urgent) {
+                return urgent ? -1 : 1;
+            }
+            return Long.compare(order, other.order);
+        }
+    }
 
     /** A list's own complaint, which counts against it like the server's circuit breaker. */
     private static final class ListFailure extends Exception {
@@ -69,15 +130,25 @@ public final class DirectLists {
     public DirectLists(Transport transport, LongSupplier clock) {
         this.transport = transport;
         this.clock = clock;
-        this.pool = Executors.newFixedThreadPool(TierList.values().length, runnable -> {
-            Thread thread = new Thread(runnable, "TierProfiles list lookups");
-            thread.setDaemon(true);
-            return thread;
-        });
+        for (TierList list : TierList.values()) {
+            int threads = concurrency(list);
+            // Each list has its own queue and threads, which end when there's nothing to do.
+            ThreadPoolExecutor pool = new ThreadPoolExecutor(threads, threads, 30, TimeUnit.SECONDS, new PriorityBlockingQueue<>(), runnable -> {
+                Thread thread = new Thread(runnable, "TierProfiles " + list.displayName() + " lookups");
+                thread.setDaemon(true);
+                return thread;
+            });
+            pool.allowCoreThreadTimeOut(true);
+            pools.put(list, pool);
+        }
     }
 
     public void stop() {
-        pool.shutdownNow();
+        pools.values().forEach(ThreadPoolExecutor::shutdownNow);
+    }
+
+    private void run(TierList list, boolean urgent, Runnable work) {
+        pools.get(list).execute(new Job(urgent, order.incrementAndGet(), work));
     }
 
     public static String canonicalKit(String raw) {
@@ -85,17 +156,76 @@ public final class DirectLists {
         return ALIASES.getOrDefault(key, key);
     }
 
-    /** Looks every player up on every list, all lists at once, and returns the server's reply shape. */
+    /**
+     * Starts looking one player up on every list and returns at once. Each list works
+     * through its own queue, so the listener hears from fast lists straight away.
+     */
+    public void lookupEach(UUID uuid, String name, boolean urgent, Listener listener) {
+        AtomicInteger left = new AtomicInteger(TierList.values().length);
+        for (TierList list : TierList.values()) {
+            run(list, urgent, () -> {
+                JsonObject result;
+                try {
+                    result = call(list, uuid, name);
+                } catch (RuntimeException e) {
+                    result = unavailable("error");
+                }
+                try {
+                    listener.answered(uuid, list, result);
+                } finally {
+                    if (left.decrementAndGet() == 0) {
+                        listener.finished(uuid);
+                    }
+                }
+            });
+        }
+    }
+
+    /** Asks one list again, for a list that couldn't answer the first time. */
+    public void lookupOne(UUID uuid, String name, TierList list, Listener listener) {
+        run(list, false, () -> {
+            JsonObject result;
+            try {
+                result = call(list, uuid, name);
+            } catch (RuntimeException e) {
+                result = unavailable("error");
+            }
+            try {
+                listener.answered(uuid, list, result);
+            } finally {
+                listener.finished(uuid);
+            }
+        });
+    }
+
+    /** Looks every player up on every list and waits, returning the server's reply shape. */
     public String lookup(Map<UUID, String> players) {
+        Map<UUID, Map<TierList, JsonObject>> answers = new ConcurrentHashMap<>();
+        CountDownLatch done = new CountDownLatch(players.size());
+        Listener collect = new Listener() {
+            @Override
+            public void answered(UUID uuid, TierList list, JsonObject result) {
+                answers.computeIfAbsent(uuid, key -> new ConcurrentHashMap<>()).put(list, result);
+            }
+
+            @Override
+            public void finished(UUID uuid) {
+                done.countDown();
+            }
+        };
+        players.forEach((uuid, name) -> lookupEach(uuid, name, false, collect));
+        try {
+            done.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
         JsonArray profiles = new JsonArray();
         for (Map.Entry<UUID, String> player : players.entrySet()) {
-            Map<TierList, Future<JsonObject>> calls = new EnumMap<>(TierList.class);
-            for (TierList list : TierList.values()) {
-                calls.put(list, pool.submit(() -> call(list, player.getKey(), player.getValue())));
-            }
+            Map<TierList, JsonObject> found = answers.getOrDefault(player.getKey(), Map.of());
             JsonObject lists = new JsonObject();
-            for (Map.Entry<TierList, Future<JsonObject>> call : calls.entrySet()) {
-                lists.add(call.getKey().id(), await(call.getValue()));
+            for (TierList list : TierList.values()) {
+                lists.add(list.id(), found.getOrDefault(list, unavailable("interrupted")));
             }
             JsonObject profile = new JsonObject();
             profile.addProperty("uuid", player.getKey().toString());
@@ -108,14 +238,52 @@ public final class DirectLists {
         return reply.toString();
     }
 
-    private static JsonObject await(Future<JsonObject> call) {
+    /**
+     * Finds the real player behind a name, using McPvP's search, which already gets
+     * names. For tab rows a server fills with real players' names under made-up IDs,
+     * such as a leaderboard. Hands back null when McPvP doesn't know that exact name.
+     */
+    public void resolveName(String name, Consumer<UUID> found) {
+        run(TierList.MCPVP, false, () -> {
+            UUID uuid = null;
+            try {
+                uuid = findOnMcPvp(name);
+            } catch (IOException | RuntimeException e) {
+                // Not knowing is fine: the row just stays untagged.
+            }
+            found.accept(uuid);
+        });
+    }
+
+    private UUID findOnMcPvp(String name) throws IOException {
+        if (name == null || name.length() < MCPVP_MIN_QUERY) {
+            return null;
+        }
+        String body = transport.send("GET", "https://www.mcpvp.com/tiers/search?q=" + URLEncoder.encode(name, StandardCharsets.UTF_8), null, null);
+        JsonElement root = JsonParser.parseString(body);
+        if (!(root instanceof JsonObject data) || !(data.get("players") instanceof JsonArray players)) {
+            return null;
+        }
+        for (JsonElement player : players) {
+            if (player instanceof JsonObject candidate && name.equalsIgnoreCase(string(candidate.get("name")))) {
+                return uuidOf(string(candidate.get("uuid")));
+            }
+        }
+        return null;
+    }
+
+    private static UUID uuidOf(String text) {
+        if (text == null) {
+            return null;
+        }
+        String plain = text.replace("-", "");
+        if (plain.length() != 32) {
+            return null;
+        }
         try {
-            return call.get();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            return unavailable("interrupted");
-        } catch (Exception e) {
-            return unavailable("network");
+            return new UUID(Long.parseUnsignedLong(plain.substring(0, 16), 16), Long.parseUnsignedLong(plain.substring(16), 16));
+        } catch (NumberFormatException e) {
+            return null;
         }
     }
 
@@ -131,28 +299,67 @@ public final class DirectLists {
             return unavailable(name == null ? "name_required" : "name_too_short");
         }
         try {
-            String body;
-            try {
-                body = transport.send("GET", url, null, null);
-            } catch (Transport.StatusException e) {
-                if (e.status() == 404) {
-                    return unranked();
-                }
-                throw new ListFailure(e.status() == 429 ? "rate_limited" : "http_" + e.status());
+            JsonObject result = parse(list, fetch(url), uuid);
+            synchronized (resting) {
+                strikes.remove(list);
             }
-            return parse(list, body, uuid);
+            return result;
+        } catch (Unranked e) {
+            return unranked();
         } catch (ListFailure e) {
-            rest(list);
+            strike(list);
             return unavailable(e.getMessage());
         } catch (IOException e) {
-            rest(list);
+            strike(list);
             return unavailable("network");
         }
     }
 
-    private void rest(TierList list) {
+    /** A 404 from a list means it doesn't know the player. */
+    private static final class Unranked extends Exception {
+        Unranked() {
+            super(null, null, false, false);
+        }
+    }
+
+    /**
+     * One call, tried a second time after a short pause if the list hiccups. Some lists
+     * answer a burst with the odd 503 that works a moment later.
+     */
+    private String fetch(String url) throws IOException, ListFailure, Unranked {
+        for (int attempt = 1; ; attempt++) {
+            try {
+                return transport.send("GET", url, null, null);
+            } catch (Transport.StatusException e) {
+                if (e.status() == 404) {
+                    throw new Unranked();
+                }
+                boolean passing = e.status() >= 500 || e.status() == 429;
+                if (!passing || attempt >= ATTEMPTS) {
+                    throw new ListFailure(e.status() == 429 ? "rate_limited" : "http_" + e.status());
+                }
+            } catch (IOException e) {
+                if (attempt >= ATTEMPTS) {
+                    throw e;
+                }
+            }
+            try {
+                Thread.sleep(RETRY_PAUSE_MILLIS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new IOException("interrupted", e);
+            }
+        }
+    }
+
+    /** A list is only rested after failing several times running, not for one bad moment. */
+    private void strike(TierList list) {
         synchronized (resting) {
-            resting.put(list, clock.getAsLong() + COOLDOWN_MILLIS);
+            int count = strikes.merge(list, 1, Integer::sum);
+            if (count >= STRIKES_TO_REST) {
+                resting.put(list, clock.getAsLong() + COOLDOWN_MILLIS);
+                strikes.remove(list);
+            }
         }
     }
 

@@ -21,6 +21,9 @@ Here is exactly what leaves your game:
   list websites (MCTiers, McPvP, PvPTiers, SubTiers and PVPHQ), the same way their own pages ask.
   If you switch Settings, More, Advanced, Look up from to Server, they go to the TierProfiles
   server instead, which asks the lists for you.
+- **Rows with made-up IDs.** Some servers fill the tab list with real players' names under made-up
+  IDs, such as a board of top players. For those rows, the name shown goes to McPvP's search to find
+  the real player, and their tiers are looked up as above.
 - **Card styles.** The same UUIDs go to the TierProfiles server, so you see the backgrounds and armor
   other players picked for their cards. Your own style, a small set of preset choices, is sent only
   when you change it in Settings. Turn this off on the welcome page or in Settings, More, Advanced,
@@ -32,6 +35,9 @@ Here is exactly what leaves your game:
 - **List logos.** Each list's own logo, and MCTiers' title badges, are downloaded once from that
   list's website and kept in your config folder. You can turn this off in Settings, More, Advanced,
   and the mod uses its own letter marks instead.
+
+Answers are kept on your PC in `config/tierprofiles-cache.json` for up to 7 days, so players you've
+seen before show their tiers at once. Turning lookups off deletes them.
 
 We send nothing else: no chat, no server address, no position. As with any website, the list
 websites and the TierProfiles server host (Cloudflare) see your IP address when the mod

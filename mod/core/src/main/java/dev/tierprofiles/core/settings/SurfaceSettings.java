@@ -11,6 +11,8 @@ public final class SurfaceSettings {
     public String minimumTier = null;
     /** How many lists may show a tag at once. */
     public int maxTags = 1;
+    /** Show the strongest tiers whichever list they're from, rather than the first lists in order. */
+    public boolean bestFirst = true;
     public boolean kitIcon = true;
     public boolean listLogo = false;
     public boolean region = false;

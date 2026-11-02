@@ -162,11 +162,28 @@ class TagSelectorTest {
     }
 
     @Test
-    void mctiersBeatsMcpvpByDefault() {
+    void theBestTierWinsWhicheverListItsOnByDefault() {
         PlayerProfile profile = player(
                 TierList.MCTIERS, ok(entry("sword", "HT4")),
                 TierList.MCPVP, ok(entry("sword", "HT1")));
-        assertEquals(List.of("mctiers:sword:HT4"), labels(select(profile, settings())));
+        assertEquals(List.of("mcpvp:sword:HT1"), labels(select(profile, settings())));
+    }
+
+    @Test
+    void listOrderBreaksTiesBetweenEqualTiers() {
+        PlayerProfile profile = player(
+                TierList.MCTIERS, ok(entry("sword", "HT2")),
+                TierList.MCPVP, ok(entry("axe", "HT2")));
+        assertEquals(List.of("mctiers:sword:HT2"), labels(select(profile, settings())));
+    }
+
+    @Test
+    void withBestFromAnyListOffMctiersBeatsMcpvp() {
+        Settings settings = inOrder(settings());
+        PlayerProfile profile = player(
+                TierList.MCTIERS, ok(entry("sword", "HT4")),
+                TierList.MCPVP, ok(entry("sword", "HT1")));
+        assertEquals(List.of("mctiers:sword:HT4"), labels(select(profile, settings)));
     }
 
     @Test
@@ -177,7 +194,7 @@ class TagSelectorTest {
 
     @Test
     void listPriorityCanBeChanged() {
-        Settings settings = settings();
+        Settings settings = inOrder(settings());
         settings.filters.listPriority = new ArrayList<>(List.of(TierList.MCPVP, TierList.MCTIERS));
         PlayerProfile profile = player(
                 TierList.MCTIERS, ok(entry("sword", "HT1")),
@@ -196,13 +213,30 @@ class TagSelectorTest {
 
     @Test
     void moreRoomMeansMoreLists() {
-        Settings settings = settings();
+        Settings settings = inOrder(settings());
         settings.surface(Surface.NAMETAG).maxTags = 2;
         PlayerProfile profile = player(
                 TierList.MCTIERS, ok(entry("sword", "HT4")),
                 TierList.MCPVP, ok(entry("axe", "LT3")),
                 TierList.SUBTIERS, ok(entry("bed", "HT1")));
         assertEquals(List.of("mctiers:sword:HT4", "mcpvp:axe:LT3"), labels(select(profile, settings)));
+    }
+
+    @Test
+    void moreRoomShowsTheStrongestListsFirst() {
+        Settings settings = settings();
+        settings.surface(Surface.NAMETAG).maxTags = 2;
+        PlayerProfile profile = player(
+                TierList.MCTIERS, ok(entry("sword", "HT4")),
+                TierList.MCPVP, ok(entry("axe", "LT3")),
+                TierList.SUBTIERS, ok(entry("bed", "HT1")));
+        assertEquals(List.of("subtiers:bed:HT1", "mcpvp:axe:LT3"), labels(select(profile, settings)));
+    }
+
+    /** The older behaviour: lists take the slots in your List order. */
+    private static Settings inOrder(Settings settings) {
+        settings.surface(Surface.NAMETAG).bestFirst = false;
+        return settings;
     }
 
     @Test

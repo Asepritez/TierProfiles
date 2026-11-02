@@ -35,7 +35,8 @@ public final class ProfileParser {
         return new PlayerProfile(uuid, string(json, "name"), lists);
     }
 
-    private static ListProfile parseList(JsonObject json) {
+    /** One list's answer, in the shape the server sends inside `lists`. */
+    public static ListProfile parseList(JsonObject json) {
         String status = string(json, "status");
         if (status == null) {
             return ListProfile.unavailable("bad_response");

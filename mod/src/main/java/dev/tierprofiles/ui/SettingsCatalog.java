@@ -157,6 +157,8 @@ final class SettingsCatalog {
                 List.of(Filters.KitMode.values()), SettingsCatalog::words, rules, s -> s.kitMode, (s, v) -> s.kitMode = v);
         choice(tab, path, "Tier", "Their rank today, their best ever, or both.", false,
                 List.of(SurfaceSettings.TierMode.values()), SettingsCatalog::words, rules, s -> s.tierMode, (s, v) -> s.tierMode = v);
+        toggle(tab, path, "Best from any list", "Shows their highest tier whichever list it's on. Off shows the first list in your List order that has one.", false,
+                rules, s -> s.bestFirst, (s, v) -> s.bestFirst = v);
 
         String advanced = path + ", Advanced";
         toggle(tab, advanced, "Hide retired", "Ignore tiers the player has retired from.", true, rules, s -> s.hideRetired, (s, v) -> s.hideRetired = v);
