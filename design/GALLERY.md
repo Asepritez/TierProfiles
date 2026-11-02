@@ -1,5 +1,25 @@
 # TierProfiles GUI drafts
 
+## In the real game
+
+Screenshots from the actual mod running in Minecraft 26.3 with an offline test account. Every image
+is in `ingame/`.
+
+### Profile card
+![Card in game](ingame/0021_tp-size-1920x1080-gui3.png)
+
+### Settings: Tags
+![Tags tab in game](ingame/0035_tp-config-tags.png)
+
+### Settings: Profile, styled card
+![Profile tab in game](ingame/0044_tp-config-profile-styled.png)
+
+### Tab navigation
+![Tab navigation in game](ingame/0004_tp-04-card-with-tab.png)
+
+### Nametags
+![Nametags in game](ingame/0001_tp-01-nametags.png)
+
 ## Revision 3
 
 ### Default card
