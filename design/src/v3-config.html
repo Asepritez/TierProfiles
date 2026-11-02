@@ -124,7 +124,7 @@ P.more = () => { const st = (id, ok, s) => `<div class="row" style="height:${R(S
   st('mctiers',1,'Online, 180 ms') + st('mcpvp',1,'Online, 220 ms') + st('pvptiers',1,'Online, 160 ms') + st('subtiers',1,'Online, 190 ms') + st('pvphq',0,'Down, server replied 502'),
   {})]; };
 
-P.search = () => { const res = (ic2, t, path, ctl, sel) => `<div class="row" style="height:${R(S.rowH)}px;margin-bottom:${R(S.rowGap)}px;${sel ? 'background:#3E4A50;box-shadow:inset 4px 0 0 #68B5D5;' : ''}"><span style="width:${R(20)}px;padding-left:6px">${I(ic2)}</span><span class="nw" style="width:${R(140)}px">${t}</span><span class="muted nw" style="width:${R(190)}px">${path}</span>${ctl}</div>`;
+P.search = () => { const res = (ic2, t, path, ctl, sel) => `<div class="row" style="height:${R(S.rowH)}px;margin-bottom:${R(S.rowGap)}px;${sel ? 'background:#3E4A50;box-shadow:inset 4px 0 0 #68B5D5;' : ''}"><span style="width:${R(24)}px;padding-left:10px">${I(ic2)}</span><span class="nw" style="width:${R(106)}px">${t}</span><span class="muted nw" style="width:${R(220)}px">${path}</span>${ctl}</div>`;
   return [screen('Tags',
   heading('5 results') +
   res('name_tag','Hide retired','Tags, Nametag, Advanced',lever(1),1) +

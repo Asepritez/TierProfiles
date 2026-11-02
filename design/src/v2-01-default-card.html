@@ -1,9 +1,0 @@
-<!doctype html><meta charset="utf8"><title>Default card</title>
-<link rel="stylesheet" href="base.css"><script src="lib.js"></script><script src="card.js"></script>
-<body><div class="scene" style="background-image:url(../_tmp/bg/fight.png)"></div>
-<script>
-const q = new URLSearchParams(location.search), who = q.get('p') === 'm' ? MARLOWWW : JOKING;
-mount(hud(0));
-mount(`<div class="abs" id="c" style="right:20px;top:20px;overflow:visible">${defaultCard(who)}</div>`);
-if (q.has('t')) animate(document.body, +q.get('t'));
-</script></body>

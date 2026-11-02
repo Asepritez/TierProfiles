@@ -1,44 +1,114 @@
 # TierProfiles GUI drafts
 
-Revision 3 in progress: one alignment grid, the real game font, a signature config, placement controls.
-
 ## Revision 3
 
-### New default card
+### Default card
 
-Rebuilt on one fixed grid, in the game's real font. Dates and points share one right edge. A hollow chip means retired, and a gold corner means their peak was higher.
+Rebuilt on one fixed grid, in the game font. Dates and points share one right edge. A hollow chip means retired, and a gold corner means their peak was higher.
 
-![New default card](shots/v3-01-default-card.png)
+![Default card](shots/v3-01-default-card.png)
 
 ### Grid proof
 
-The same card with debug guides on, proving every column lines up. Guides are only in this image. The numbers are in docs/LAYOUT.md.
+The same card with debug guides on, proving every column lines up. The guides are only in this image. The numbers are in docs/LAYOUT.md.
 
 ![Grid proof](shots/v3-02-grid-proof.png)
 
 ### Sparse profile
 
-Marlowww. Every list keeps its row, and PVPHQ reads Unranked like any other list with no result.
+Marlowww. Every list keeps its row, and a list with no result reads Unranked.
 
 ![Sparse profile](shots/v3-03-sparse-profile.png)
 
 ### Card detail
 
-Minimal, Standard and Full on the same columns. Full spells out a date for every tier. Peak and retired are chip states, so nothing sits beside a chip.
+Minimal, Standard and Full on the same columns, and how to read a chip.
 
 ![Card detail](shots/v3-04-card-detail.png)
 
+### Icons and logos
+
+Real game items and official logos, used on every screen. The comparison shows default textures match McPvP exactly.
+
+![Icons and logos](shots/v3-05-icons-logos.png)
+
+### Card entrance, animated
+
+The card glides in from its nearest edge, rows stagger in, then it glides out.
+
+![Card entrance, animated](shots/v3-15-card-entrance.png)
+
+### Position: top left
+
+Glides in from the left. Beside the tab list it drops its date column, so nothing touches.
+
+![Position: top left](shots/v3-14-position-tl.png)
+
+### Position: top right
+
+The default spot. Glides in from the right.
+
+![Position: top right](shots/v3-14-position-tr.png)
+
+### Position: bottom left
+
+Clear of the hotbar and crosshair.
+
+![Position: bottom left](shots/v3-14-position-bl.png)
+
+### Position: bottom right
+
+Clear of the hotbar and crosshair.
+
+![Position: bottom right](shots/v3-14-position-br.png)
+
+### Tab navigation
+
+Hold Tab and use the arrow keys. Your movement keys keep working.
+
+![Tab navigation](shots/v3-06-tab-navigation.png)
+
+### Tab pinned card
+
+Press Enter. The card sits beside the list without touching it.
+
+![Tab pinned card](shots/v3-07-tab-pinned-card.png)
+
+### Filter: before
+
+Everyone showing HT4 tells you nothing. Lobby names and tiers are invented samples.
+
+![Filter: before](shots/v3-08-filter-before.png)
+
+### Filter: after
+
+Only LT3 and above, so the players worth noticing stand out.
+
+![Filter: after](shots/v3-09-filter-after.png)
+
+### Name highlight rules
+
+HT1 is purple and bold with a star, and above HT3 is red, in nametag, tab and chat.
+
+![Name highlight rules](shots/v3-13-highlight-rules.png)
+
 ### Card styles: backgrounds
 
-Moon, starfield, nebula, embers, snow and plain, on the new card with official logos. The moon is the game's own texture, drawn as a small disc with its glow.
+Moon, starfield, nebula, embers, snow and plain, with the new logos and card. The moon is the game's own texture.
 
 ![Card styles: backgrounds](shots/v3-10-styles-backgrounds.png)
 
 ### Card styles: borders and effects
 
-Thin, double, glowing, shimmer and corner ornaments, then sparkles and motes. Effects stay in the model column, away from your tiers.
+Thin, double, glowing, shimmer and corner ornaments, then sparkles and motes, which stay in the model column.
 
 ![Card styles: borders and effects](shots/v3-11-styles-borders-effects.png)
+
+### Moon card, animated
+
+An 8 second loop: twinkling stars, a breathing moon glow, sparkles and shimmer.
+
+![Moon card, animated](shots/v3-16-moon-card-animated.png)
 
 ### Moon card in the game
 
@@ -48,29 +118,75 @@ The styled card on the HUD, with vanilla armor and a trim on the model.
 
 ### The Inventory: Tags
 
-The signature config. It works like a Minecraft inventory: category tabs with real items, options as slots with the hotbar selection frame, and help as a real tooltip. The Live Stage on the right always shows the nametag, tab row, chat and card.
+The signature config. It works like a Minecraft inventory: category tabs with real items, options as slots with the hotbar selection frame, help as a real tooltip, and your setups in a hotbar you swap with 1 to 9. The Live Stage always shows nametag, tab row, chat and card.
 
 ![The Inventory: Tags](shots/v3-20-config-tags.png)
 
+### The Inventory: Colours
+
+Presets, tier, RGB and hex, with every surface updating on the Stage.
+
+![The Inventory: Colours](shots/v3-21-config-colours.png)
+
+### The Inventory: Rules
+
+Ordered rules with the editor below them. First match wins.
+
+![The Inventory: Rules](shots/v3-22-config-rules.png)
+
 ### The Inventory: Profile
 
-Six essentials, with animation style and speed, and your card updating on the Stage. The world view shows your real armor, because cosmetics only appear on the card.
+Six essentials, including card detail, animation style and speed. Armor stays on the card, never on the world model.
 
 ![The Inventory: Profile](shots/v3-23-config-profile.png)
 
 ### The Inventory: Profile, Advanced
 
-Everything else in one place, with real armor, trims and materials as slots.
+Everything else, with real armor, trims and materials as slots.
 
 ![The Inventory: Profile, Advanced](shots/v3-24-config-advanced.png)
 
 ### The Inventory: Position
 
-Nine-anchor picker, X and Y offsets, and drag on a live screen. Red zones are the hotbar and crosshair. Yellow is the tab list.
+Nine-anchor picker, X and Y offsets, and drag on a live screen. Red zones are the hotbar and crosshair, and yellow is the tab list.
 
 ![The Inventory: Position](shots/v3-25-config-position.png)
 
-<!-- v3-end -->
+### The Inventory: Sharing
+
+Name a setup, pick its hotbar icon, and share or import a code.
+
+![The Inventory: Sharing](shots/v3-26-config-sharing.png)
+
+### The Inventory: Keys
+
+Every key, rebindable.
+
+![The Inventory: Keys](shots/v3-27-config-keys.png)
+
+### The Inventory: More
+
+Lookups, reduce motion and icon style. Advanced holds Diagnostics, the only place a list can read as down.
+
+![The Inventory: More](shots/v3-28-config-more.png)
+
+### The Inventory: search
+
+Search finds every setting, including those inside Advanced, with a live control on each result.
+
+![The Inventory: search](shots/v3-29-config-search.png)
+
+### First-run notice
+
+Exactly what leaves your game, with the off switch.
+
+![First-run notice](shots/v3-30-first-run.png)
+
+### Draft against the real game
+
+The current build beside the draft, one to one, with what matches and what still differs.
+
+![Draft against the real game](shots/v3-31-game-compare.png)
 
 ## Older drafts
 
