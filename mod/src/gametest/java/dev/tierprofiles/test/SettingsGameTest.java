@@ -134,7 +134,27 @@ final class SettingsGameTest {
         context.getInput().setCursorPos(300, 186);
         context.waitTicks(15);
         shot(context, "tooltip-setting");
+        onScreen(context, current -> current.searchFor("tab"));
+        context.waitTicks(5);
+        shot(context, "search-tab");
+        onScreen(context, current -> current.searchFor(""));
+
+        // Hovering a Tab choice previews it with your own card.
+        onScreen(context, current -> current.openTab(SettingsTab.CARDS));
+        context.getInput().setCursorPos(520, 312);
+        context.waitTicks(15);
+        shot(context, "preview-tags-only");
+        context.getInput().setCursorPos(670, 312);
+        context.waitTicks(15);
+        shot(context, "preview-full-profile");
         context.getInput().setCursorPos(5, 1075);
+
+        onScreen(context, current -> {
+            current.resetAllForTest();
+            SurfaceGameTest.check(current.changeCount() > 0, "Reset should stage changes");
+            SurfaceGameTest.check(current.stagedConfig().global.noticeSeen, "Reset must keep the privacy answer");
+            current.discardForTest();
+        });
 
         onScreen(context, current -> current.openTab(SettingsTab.MORE));
         onScreen(context, current -> current.openDiagnostics());

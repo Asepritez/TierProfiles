@@ -14,6 +14,8 @@ final class TitleBadge {
     private static final int SIZE = 11;
     private static final int DIAMOND = 9;
     private static final int GAP = 3;
+    /** The most room a badge takes, logo or diamond, including its gap. */
+    static final int WIDTH = SIZE + GAP;
 
     private TitleBadge() {
     }

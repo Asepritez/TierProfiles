@@ -36,14 +36,20 @@ public final class FirstRunScreen extends Screen {
 
     @Override
     public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
-        graphics.fill(0, 0, width, height, 0xC0000000);
+        // The game's own menu background, so the title screen's world shows around the notice.
+        super.extractBackground(graphics, mouseX, mouseY, partialTick);
     }
 
-    /** The largest whole number of screen pixels per panel pixel that still fits. */
+    /**
+     * A whole number of screen pixels per panel pixel, sized so the notice takes about
+     * half the screen's height and the game stays visible around it.
+     */
     private void measure() {
         int physicalWidth = minecraft.getWindow().getWidth();
         int physicalHeight = minecraft.getWindow().getHeight();
-        int pixels = Math.max(1, Math.min((physicalWidth - 40) / WIDTH, (physicalHeight - 40) / HEIGHT));
+        int fits = Math.min((physicalWidth - 40) / WIDTH, (physicalHeight - 40) / HEIGHT);
+        int comfortable = Math.round(physicalHeight / (HEIGHT * 2.2f));
+        int pixels = Math.max(1, Math.min(fits, comfortable));
         scale = (float) pixels / minecraft.getWindow().getGuiScale();
     }
 
@@ -132,9 +138,17 @@ public final class FirstRunScreen extends Screen {
         return true;
     }
 
-    /** It has to be answered, so Escape does nothing. */
+    /**
+     * Escape counts as an answer too, with the switch as it stands, so the notice is
+     * never shown again after this.
+     */
     @Override
     public boolean shouldCloseOnEsc() {
-        return false;
+        return true;
+    }
+
+    @Override
+    public void onClose() {
+        accept();
     }
 }

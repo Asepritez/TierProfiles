@@ -72,26 +72,24 @@ final class LiveStage {
                 inner + (innerWidth - Math.round(cardWidth * cardScale)) / 2, cardY, cardScale, scale);
     }
 
-    private record Subject(UUID uuid, String name, PlayerProfile profile) {
+    record Subject(UUID uuid, String name, PlayerProfile profile) {
     }
 
-    /** The player on show: whoever was last pinned, then you, then a sample. */
-    private static Subject subject() {
+    /**
+     * Always you, because this is where you style your own card. Your tiers are asked
+     * for when settings open; until they arrive the card says it's looking. Only an
+     * offline account, which no list can know, gets a sample player instead.
+     */
+    static Subject subject() {
         Minecraft minecraft = Minecraft.getInstance();
-        UUID pinned = CardState.uuid();
-        if (pinned != null) {
-            PlayerProfile profile = TierProfiles.profiles().profile(pinned);
-            if (profile != null) {
-                return new Subject(pinned, CardState.name(), profile);
-            }
-        }
         UUID own = minecraft.getUser().getProfileId();
-        PlayerProfile profile = own == null ? null : TierProfiles.profiles().profile(own);
-        if (profile != null) {
-            return new Subject(own, minecraft.getUser().getName(), profile);
+        String name = minecraft.getUser().getName();
+        if (own == null || !dev.tierprofiles.core.net.ProfileService.isLookupEligible(own)) {
+            PlayerProfile sample = SamplePlayers.showcasePlayer();
+            return new Subject(sample.uuid(), sample.name(), sample);
         }
-        PlayerProfile sample = SamplePlayers.showcasePlayer();
-        return new Subject(sample.uuid(), sample.name(), sample);
+        TierProfiles.profiles().requestUrgent(own, name);
+        return new Subject(own, name, TierProfiles.profiles().profile(own));
     }
 
     /** A little scene built from the game's own block textures, with the model standing in it. */

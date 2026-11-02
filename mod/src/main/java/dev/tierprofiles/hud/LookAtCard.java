@@ -150,10 +150,43 @@ public final class LookAtCard {
         graphics.pose().pushMatrix();
         graphics.pose().translate(x, y);
         graphics.pose().scale(scale, scale);
-        graphics.fill(0, 0, width, HEIGHT, Theme.fade(Theme.withAlpha(0x191919, card.lookAtOpacity), alpha));
+        drawBody(graphics, font, name, tags, card.lookAtOpacity, alpha);
+        graphics.pose().popMatrix();
+    }
+
+    private static void drawBody(GuiGraphicsExtractor graphics, Font font, Component name, Component tags, float opacity, float alpha) {
+        int width = PADDING * 2 + font.width(name) + PADDING + font.width(tags);
+        graphics.fill(0, 0, width, HEIGHT, Theme.fade(Theme.withAlpha(0x191919, opacity), alpha));
         graphics.outline(0, 0, width, HEIGHT, Theme.fade(Theme.BORDER, alpha));
         graphics.text(font, name, PADDING, 4, Theme.fade(Theme.TEXT, alpha));
         graphics.text(font, tags, PADDING * 2 + font.width(name), 4, Theme.fade(0xFFFFFFFF, alpha));
+    }
+
+    /** What the small card would say for a player, for the settings previews. */
+    public static Component previewTags(PlayerProfile profile, Settings settings) {
+        if (profile == null) {
+            return Component.literal("Looking up...").withColor(Theme.MUTED & 0xFFFFFF);
+        }
+        List<Tag> tags = TagSelector.select(profile, Surface.LOOK_AT, settings, TagSelector.Context.NONE);
+        if (tags.isEmpty()) {
+            return Component.literal("Unranked").withColor(Theme.MUTED & 0xFFFFFF);
+        }
+        return TagText.build(TagFormatter.format(tags, settings.surface(Surface.LOOK_AT), settings.style), settings.style);
+    }
+
+    public static int previewWidth(Font font, String name, Component tags) {
+        return PADDING * 3 + font.width(name) + font.width(tags);
+    }
+
+    public static int previewHeight() {
+        return HEIGHT;
+    }
+
+    /** The small card at a given spot, at full size and fully visible. */
+    public static void drawPreview(GuiGraphicsExtractor graphics, Font font, String name, Component tags, int x, int y, CardSettings card) {
+        graphics.pose().pushMatrix();
+        graphics.pose().translate(x, y);
+        drawBody(graphics, font, Component.literal(name), tags, card.lookAtOpacity, 1);
         graphics.pose().popMatrix();
     }
 }

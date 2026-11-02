@@ -31,6 +31,8 @@ public final class Ui {
 
     public GuiGraphicsExtractor graphics;
     public final Font font = Minecraft.getInstance().font;
+    private Preview hoverPreview;
+    private Object hoveredSegment;
     public int mouseX;
     public int mouseY;
 
@@ -52,6 +54,8 @@ public final class Ui {
         this.mouseY = mouseY;
         hoverHint = null;
         hoverTitle = null;
+        hoverPreview = null;
+        hoveredSegment = null;
     }
 
     /** Clicks only count for one frame. */
@@ -132,6 +136,31 @@ public final class Ui {
     public void hint(String title, String text) {
         hoverTitle = title;
         hoverHint = text;
+        hoverPreview = null;
+    }
+
+    /** A picture a tooltip shows under its text, such as how a choice will look. */
+    public interface Preview {
+        int width();
+
+        int height();
+
+        void draw(Ui ui, int x, int y);
+    }
+
+    public void hint(String title, String text, Preview preview) {
+        hoverTitle = title;
+        hoverHint = text;
+        hoverPreview = preview;
+    }
+
+    public Preview hoverPreview() {
+        return hoverPreview;
+    }
+
+    /** The choice under the mouse in the last segments drawn this frame, or null. */
+    public Object hoveredSegment() {
+        return hoveredSegment;
     }
 
     public String hoverHint() {
@@ -229,11 +258,15 @@ public final class Ui {
     public <T> T segments(int x, int centerY, List<T> values, T value, Function<T, String> name) {
         int y = centerY - SLOT / 2;
         T result = value;
+        hoveredSegment = null;
         for (T candidate : values) {
             String label = name.apply(candidate);
             int width = width(label) + 2 * SEGMENT_PADDING;
             boolean selected = candidate.equals(value) || (candidate == value);
             boolean hover = hovered(x, y, width, SLOT);
+            if (hover) {
+                hoveredSegment = candidate;
+            }
             graphics.fill(x, y, x + width, y + SLOT, hover ? Theme.SELECTED : Theme.SLOT);
             if (selected) {
                 frame(x, y, width, SLOT);

@@ -151,6 +151,26 @@ public final class SettingsScreen extends Screen {
         return editor.staged();
     }
 
+    /** Stages a full reset. Apply makes it real, and Discard takes it back. */
+    void resetAll() {
+        editor.replaceStaged(ConfigFile.defaultsKeepingConsent(editor.staged()));
+        serverBox.value = editor.staged().global.serverUrl;
+        sharingMessage = "";
+    }
+
+    public void resetAllForTest() {
+        resetAll();
+    }
+
+    public void discardForTest() {
+        editor.discard();
+    }
+
+    /** Screen pixels per virtual pixel, for drawing models inside previews. */
+    float uiScale() {
+        return scale;
+    }
+
     public int changeCount() {
         return editor.changeCount();
     }
@@ -389,7 +409,8 @@ public final class SettingsScreen extends Screen {
             case COLOURS -> "retired chips, colours per list";
             case RULES -> "gradient, gamemode, retired, peak";
             case SHARING -> "your setups";
-            case PROFILE -> "armor and trims per piece, kits on my card, size";
+            case PROFILE -> "trims per piece, kits on my card, accent, effects";
+            case CARDS -> "peak marks, retired tiers, points, size, opacity";
             case POSITION -> "look-at card";
             case MORE -> "logos, server, diagnostics";
             default -> "";
@@ -574,8 +595,13 @@ public final class SettingsScreen extends Screen {
         List<String> lines = new ArrayList<>();
         ui.font.getSplitter().splitLines(hint, TOOLTIP_WIDTH - 12, net.minecraft.network.chat.Style.EMPTY)
                 .forEach(line -> lines.add(line.getString()));
+        Ui.Preview preview = ui.hoverPreview();
         int width = Math.max(ui.width(title), lines.stream().mapToInt(ui::width).max().orElse(0)) + 12;
         int height = 18 + lines.size() * 10;
+        if (preview != null) {
+            width = Math.max(width, preview.width() + 12);
+            height += preview.height() + 6;
+        }
 
         // Below and right of the pointer, flipped to stay on screen.
         int x = ui.mouseX + 12;
@@ -598,29 +624,34 @@ public final class SettingsScreen extends Screen {
             ui.text(line, x + 6, lineY, Theme.fade(0xFFCFCFCF, alpha));
             lineY += 10;
         }
+        if (preview != null && alpha >= 1) {
+            preview.draw(ui, x + 6, lineY + 2);
+        }
     }
 
     private long resultCount() {
         return catalog.all().stream().filter(setting -> setting.matches(search.value.trim())).count();
     }
 
+    /**
+     * Results use the same columns as a tab, so every control has its usual room. Where
+     * a setting lives is written small under its name.
+     */
     private int drawSearchResults(int left, int right, int y) {
         String query = search.value.trim();
-        int labelWidth = LABEL_W;
-        int pathWidth = 170;
         for (Setting setting : catalog.all()) {
             if (!setting.matches(query)) {
                 continue;
             }
+            int height = ROW + (setting.rows() - 1) * ROW_STEP;
             int center = y + ROW / 2;
-            if (ui.hovered(left, y, right - left, ROW)) {
-                ui.graphics.fill(left, y, right, y + ROW, Theme.SELECTED);
+            if (ui.hovered(left, y, right - left, height)) {
                 ui.hint(setting.label(), setting.hint());
             }
-            ui.text(setting.label(), left + 3, center - 4, Theme.TEXT);
-            ui.text(ui.font.plainSubstrByWidth(setting.path(), pathWidth - 6), left + labelWidth, center - 4, Theme.MUTED);
-            setting.control().draw(ui, left + labelWidth + pathWidth, center, right - left - labelWidth - pathWidth);
-            y += ROW_STEP;
+            ui.text(setting.label(), left, center - 8, Theme.TEXT);
+            ui.text(ui.font.plainSubstrByWidth(setting.path(), LABEL_W - 8), left, center + 3, Theme.MUTED);
+            setting.control().draw(ui, left + LABEL_W, center, right - left - LABEL_W);
+            y += setting.rows() * ROW_STEP;
         }
         return y;
     }

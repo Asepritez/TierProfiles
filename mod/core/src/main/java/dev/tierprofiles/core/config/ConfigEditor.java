@@ -65,6 +65,11 @@ public final class ConfigEditor {
         return live;
     }
 
+    /** Swaps in a whole new staged config, as Reset does. Still needs Apply. */
+    public void replaceStaged(ConfigFile replacement) {
+        staged = ConfigStore.copy(replacement);
+    }
+
     public void discard() {
         staged = ConfigStore.copy(live);
     }

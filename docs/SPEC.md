@@ -178,9 +178,13 @@ This is the headline feature. All of it is staged until Apply, as in Tallium.
   Minecraft draws the tab list with no menu open, so read keys without opening a `Screen`.
 - The profile is a **HUD overlay, not a Screen**: opening a Screen releases movement keys and would
   stop you mid-fight. Tallium's `PlayerPopup` proves this pattern.
-- **While in Tab** (Profile tab): what shows as you move through players before pinning anyone.
-  Small card (default) is the look-at card for the selected player. Big card shows their full card,
-  swapping as you move; letting go of Tab puts it away, and Enter keeps it. Nothing waits for Enter.
+- **Browsing Tab shows** (Cards tab): what shows as you move through players before pinning anyone.
+  Tags only (default) is the small aim card for the selected player. Full profile shows their whole
+  card, swapping as you move; letting go of Tab puts it away, and Enter keeps it. Nothing waits for
+  Enter. Hovering each choice previews it with your own name and tiers.
+- **Tags when aiming** (Cards tab) turns the small aim card on or off. It shows no list letter
+  badges: configs saved before version 2 have them turned off on load.
+- The key hints under the tab list sit below any header or footer text the server adds.
 - Enter or Escape closes it. It also closes after a configurable time ("Stays open", 0 to 120
   seconds, or until closed), on the Profile tab's essentials.
 - **All ranks** (Right Shift by default): on an open card it switches to every kit on every list,
@@ -270,6 +274,21 @@ edit your own profile:
 
 The player's access token goes **only to Mojang**, never to our server. Say this plainly in the
 README and the first-run notice. Offline or cracked accounts can't save a profile, but can view.
+
+### Settings layout
+
+Tabs: Tags, Lists, Colours, Rules, Cards (how cards behave), Profile (your own card's look: background,
+border, effects, one armor row per piece, lists on my card), Position, Sharing, Keys, More. The Live
+Stage always shows you, never the last player you pinned. More has **Reset all settings**, which
+stages a fresh install's settings while keeping the privacy answer; Apply makes it real and Discard
+undoes it. Search results use the same columns as a tab, with where each setting lives written
+under its name.
+
+The welcome page takes about half the screen's height over the game's own menu background, and
+Escape answers it like the button does, so it shows only once.
+
+On the card, name and title sit as one block centred in the strip; with no title the name alone is
+centred. The title is cut short before the moon rather than running under it.
 
 ### Help on hover
 

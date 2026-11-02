@@ -33,7 +33,6 @@ public final class SurfaceSettings {
         settings.enabled = surface.enabledByDefault();
         if (surface == Surface.LOOK_AT) {
             settings.maxTags = 3;
-            settings.listLogo = true;
         }
         return settings;
     }

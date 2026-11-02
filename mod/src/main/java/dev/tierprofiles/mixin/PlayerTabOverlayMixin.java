@@ -24,6 +24,28 @@ abstract class PlayerTabOverlayMixin {
         TabSelection.remember(info, decorated);
     }
 
+    /**
+     * The header and footer lines a server sets. We only note how far down they reach,
+     * so our key hints go below the footer instead of over it.
+     */
+    @WrapOperation(
+            //? if >=26.1 {
+            method = "extractRenderState",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/client/gui/GuiGraphicsExtractor;text(Lnet/minecraft/client/gui/Font;Lnet/minecraft/util/FormattedCharSequence;III)V"))
+            //?} else {
+            /*method = "render",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/client/gui/GuiGraphics;drawString(Lnet/minecraft/client/gui/Font;Lnet/minecraft/util/FormattedCharSequence;III)V"))
+            *///?}
+    private void tierprofiles$noteFooter(
+            GuiGraphicsExtractor graphics, Font font, net.minecraft.util.FormattedCharSequence text, int x, int y, int color, Operation<Void> original) {
+        TabSelection.noteServerLine(y + font.lineHeight);
+        original.call(graphics, font, text, x, y, color);
+    }
+
     /** Runs as each name is drawn, so the highlight sits behind the selected row. */
     @WrapOperation(
             //? if >=26.1 {

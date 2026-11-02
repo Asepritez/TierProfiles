@@ -14,7 +14,8 @@ import net.minecraft.resources.Identifier;
 
 /** Everything of ours on the HUD. Drawn last, so it sits above the tab list. */
 public final class HudLayer {
-    private static final int HINT_GAP = 3;
+    /** Clear of the tab list's own background, which reaches a little below its last line. */
+    private static final int HINT_GAP = 5;
 
     private HudLayer() {
     }

@@ -48,6 +48,7 @@ final class SettingsCatalog {
         addTagStyle();
         addColours();
         addRules();
+        addCards();
         addProfile();
         addPosition();
         addKeys();
@@ -423,26 +424,9 @@ final class SettingsCatalog {
         });
         choice(tab, path, "Border", "The frame around your card.", false, Cosmetics.BORDERS, SettingsCatalog::words, style, c -> c.border, (c, v) -> c.border = v);
         choice(tab, path, "Effects", "Sparkles and motes drift inside your card.", false, Cosmetics.EFFECTS, SettingsCatalog::words, style, c -> c.effect, (c, v) -> c.effect = v);
-        choice(tab, path, "Card detail", "How much each row says. Press the All ranks key on any card to see every kit.", false, List.of(CardSettings.Detail.values()), SettingsCatalog::words, card, c -> c.detail, (c, v) -> c.detail = v);
-        choice(tab, path, "Last column", "After the third kit: the date it was achieved, a fourth kit, or nothing.", false,
-                List.of(CardSettings.LastColumn.values()), value -> switch (value) {
-                    case DATE -> "Date";
-                    case FOURTH_TIER -> "4th tier";
-                    case NONE -> "Nothing";
-                }, card, c -> c.lastColumn, (c, v) -> c.lastColumn = v);
-        choice(tab, path, "While in Tab", "What shows as you move through players with Tab held. Enter keeps the big card, and the All ranks key shows everything.", false,
-                List.of(CardSettings.TabPreview.values()), value -> switch (value) {
-                    case SMALL -> "Small card";
-                    case BIG -> "Big card";
-                    case OFF -> "Nothing";
-                }, card, c -> c.tabPreview, (c, v) -> c.tabPreview = v);
-        choice(tab, path, "Animation", "How cards arrive.", false, List.of(CardSettings.AnimationStyle.values()), SettingsCatalog::words, card, c -> c.animationStyle, (c, v) -> c.animationStyle = v);
-        percent(tab, path, "Speed", "100% is normal. Reduce motion turns all of this off.", false, CardSettings.MIN_SPEED, CardSettings.MAX_SPEED, card, c -> c.animationSpeed, (c, v) -> c.animationSpeed = v);
-        add(tab, path, "Stays open", "How long a pinned card stays before it glides away. Zero keeps it until you close it.", false, (ui, x, y, width) -> {
-            CardSettings target = card.get();
-            String label = target.overlayCloseSeconds == 0 ? "Until closed" : target.overlayCloseSeconds + "s";
-            target.overlayCloseSeconds = Math.round(ui.slider(stayOpen, x, y, SLIDER_WIDTH, target.overlayCloseSeconds, 0, CardSettings.MAX_CLOSE_SECONDS, label));
-        });
+        for (int slot = 0; slot < 4; slot++) {
+            armorRow(slot);
+        }
         listSwitches(tab, path, "Lists on my card", "Leave a list off your own card, for you and everyone else. Handy if you're unranked there.", false,
                 list -> style.get().hiddenLists.contains(list.id()),
                 (list, hide) -> {
@@ -455,24 +439,9 @@ final class SettingsCatalog {
 
         String advanced = "Profile, Advanced";
         kitSwitches(tab, advanced, "Kits on my card", "Leave kits off your own card, for you and everyone else.", true, () -> style.get().hiddenKits);
-        add(tab, advanced, "Piece", "Pick a piece to give it its own armor and trim, or All to change every piece together.", true, (ui, x, y, width) -> {
+        add(tab, advanced, "Trims for", "Which piece the trim rows below change. All changes every piece together.", true, (ui, x, y, width) -> {
             List<Integer> choices = List.of(-1, 0, 1, 2, 3);
             piece = ui.segments(x, y, choices, piece, slot -> slot < 0 ? "All" : PIECES[slot]);
-        });
-        add(tab, advanced, "Armor", "Only shows on your TierProfiles card. Never changes your real armor.", true, (ui, x, y, width) -> {
-            Cosmetics target = style.get();
-            for (String id : Cosmetics.ARMOR) {
-                if (ui.slot(x, y, pieceIs(target::armor, id))) {
-                    setPiece(target::setArmor, id);
-                }
-                if (Ui.itemsReady()) {
-                    ItemStack item = new ItemStack(Armor.piece(id, shownSlot()));
-                    if (!item.isEmpty()) {
-                        ui.graphics.item(item, x + 2, y - 8);
-                    }
-                }
-                x += Ui.SLOT + 1;
-            }
         });
         addTall(tab, advanced, "Trim", "A trim pattern, from the real smithing templates.", true, 2, (ui, x, y, width) -> {
             Cosmetics target = style.get();
@@ -525,6 +494,118 @@ final class SettingsCatalog {
             }
         });
         toggle(tab, advanced, "Model sways", "Let the model turn slowly.", true, card, c -> c.spinModel, (c, v) -> c.spinModel = v);
+    }
+
+    /** One row per armor piece, so a diamond helmet can sit over a netherite chestplate. */
+    private void armorRow(int slot) {
+        add(SettingsTab.PROFILE, "Profile", PIECES[slot], "Only shows on your TierProfiles card. Never changes your real armor.", false, (ui, x, y, width) -> {
+            Cosmetics target = cosmetics();
+            for (String id : Cosmetics.ARMOR) {
+                if (ui.slot(x, y, id.equals(target.armor(slot)))) {
+                    target.setArmor(slot, id);
+                }
+                if (Ui.itemsReady()) {
+                    ItemStack item = new ItemStack(Armor.piece(id, slot));
+                    if (!item.isEmpty()) {
+                        ui.graphics.item(item, x + 2, y - 8);
+                    }
+                }
+                if (ui.hovered(x, y - Ui.SLOT / 2, Ui.SLOT, Ui.SLOT)) {
+                    ui.hint(words(id) + " " + PIECES[slot].toLowerCase(Locale.ROOT), "Only shows on your TierProfiles card. Never changes your real armor.");
+                }
+                x += Ui.SLOT + 1;
+            }
+        });
+    }
+
+    private static String tabPreviewName(CardSettings.TabPreview value) {
+        return switch (value) {
+            case SMALL -> "Tags only";
+            case BIG -> "Full profile";
+            case OFF -> "Nothing";
+        };
+    }
+
+    /** How a Tab choice looks, drawn with your own name and tiers. */
+    private Ui.Preview tabPreview(Ui ui, CardSettings.TabPreview value) {
+        LiveStage.Subject self = LiveStage.subject();
+        Settings settings = active();
+        if (value == CardSettings.TabPreview.SMALL) {
+            net.minecraft.network.chat.Component tags = dev.tierprofiles.hud.LookAtCard.previewTags(self.profile(), settings);
+            int width = dev.tierprofiles.hud.LookAtCard.previewWidth(ui.font, self.name(), tags);
+            return new Ui.Preview() {
+                public int width() {
+                    return width;
+                }
+
+                public int height() {
+                    return dev.tierprofiles.hud.LookAtCard.previewHeight();
+                }
+
+                public void draw(Ui target, int x, int y) {
+                    dev.tierprofiles.hud.LookAtCard.drawPreview(target.graphics, target.font, self.name(), tags, x, y, settings.card);
+                }
+            };
+        }
+        if (value == CardSettings.TabPreview.BIG) {
+            float size = 0.5f;
+            int width = Math.round(dev.tierprofiles.hud.ProfileCard.previewWidth(settings) * size);
+            int height = Math.round(dev.tierprofiles.hud.ProfileCard.previewHeight(settings, cosmetics(), self.profile()) * size);
+            return new Ui.Preview() {
+                public int width() {
+                    return width;
+                }
+
+                public int height() {
+                    return height;
+                }
+
+                public void draw(Ui target, int x, int y) {
+                    dev.tierprofiles.hud.ProfileCard.drawPreview(target.graphics, settings, cosmetics(), self.profile(), self.uuid(), self.name(),
+                            x, y, size, screen.uiScale());
+                }
+            };
+        }
+        return null;
+    }
+
+    private void addCards() {
+        SettingsTab tab = SettingsTab.CARDS;
+        Supplier<CardSettings> card = () -> active().card;
+        String path = "Cards";
+
+        choice(tab, path, "Card detail", "How much each row says. Press the All ranks key on any card to see every kit.", false, List.of(CardSettings.Detail.values()), SettingsCatalog::words, card, c -> c.detail, (c, v) -> c.detail = v);
+        choice(tab, path, "Last column", "After the third kit: the date it was achieved, a fourth kit, or nothing.", false,
+                List.of(CardSettings.LastColumn.values()), value -> switch (value) {
+                    case DATE -> "Date";
+                    case FOURTH_TIER -> "4th tier";
+                    case NONE -> "Nothing";
+                }, card, c -> c.lastColumn, (c, v) -> c.lastColumn = v);
+        String tabHint = "What shows as you move through players with Tab held. Hover a choice to see it. Enter keeps the full profile.";
+        add(tab, path, "Browsing Tab shows", tabHint, false, (ui, x, y, width) -> {
+            CardSettings target = card.get();
+            target.tabPreview = ui.segments(x, y, List.of(CardSettings.TabPreview.values()), target.tabPreview, SettingsCatalog::tabPreviewName);
+            if (ui.hoveredSegment() instanceof CardSettings.TabPreview hovered) {
+                ui.hint(tabPreviewName(hovered), tabHint, tabPreview(ui, hovered));
+            }
+        });
+        add(tab, path, "Tags when aiming", "A small card with a player's tiers when your crosshair is on them. Off hides it.", false, (ui, x, y, width) -> {
+            dev.tierprofiles.core.settings.SurfaceSettings aim = active().surface(Surface.LOOK_AT);
+            aim.enabled = ui.toggle(x, y, aim.enabled);
+            if (ui.hovered(x, y - 9, 60, 18)) {
+                ui.hint("Tags when aiming", "A small card with a player's tiers when your crosshair is on them. Off hides it.",
+                        tabPreview(ui, CardSettings.TabPreview.SMALL));
+            }
+        });
+        choice(tab, path, "Animation", "How cards arrive.", false, List.of(CardSettings.AnimationStyle.values()), SettingsCatalog::words, card, c -> c.animationStyle, (c, v) -> c.animationStyle = v);
+        percent(tab, path, "Speed", "100% is normal. Reduce motion turns all of this off.", false, CardSettings.MIN_SPEED, CardSettings.MAX_SPEED, card, c -> c.animationSpeed, (c, v) -> c.animationSpeed = v);
+        add(tab, path, "Stays open", "How long a pinned card stays before it glides away. Zero keeps it until you close it.", false, (ui, x, y, width) -> {
+            CardSettings target = card.get();
+            String label = target.overlayCloseSeconds == 0 ? "Until closed" : target.overlayCloseSeconds + "s";
+            target.overlayCloseSeconds = Math.round(ui.slider(stayOpen, x, y, SLIDER_WIDTH, target.overlayCloseSeconds, 0, CardSettings.MAX_CLOSE_SECONDS, label));
+        });
+
+        String advanced = "Cards, Advanced";
         toggle(tab, advanced, "Peak marks", "Show a gold corner when their peak was higher.", true, card, c -> c.showPeak, (c, v) -> c.showPeak = v);
         toggle(tab, advanced, "Retired tiers", "Include retired tiers on the card.", true, card, c -> c.showRetired, (c, v) -> c.showRetired = v);
         toggle(tab, advanced, "Total points", "Show points at the top of the card.", true, card, c -> c.showPoints, (c, v) -> c.showPoints = v);
@@ -601,6 +682,12 @@ final class SettingsCatalog {
 
         toggle(tab, path, "Look up tiers online", "Sends players' names and UUIDs to the tier list sites. Off means nothing is sent and no tiers show.", false, this::global, g -> g.lookupsEnabled, (g, v) -> g.lookupsEnabled = v);
         toggle(tab, path, "Reduce motion", "Turns off every animation in TierProfiles.", false, this::global, g -> g.reduceMotion, (g, v) -> g.reduceMotion = v);
+        add(tab, path, "Reset all settings", "Puts every setting and your card style back to how a fresh install starts. Nothing changes until you press Apply, so Discard still undoes it.", false,
+                (ui, x, y, width) -> {
+                    if (ui.button(x, y - 10, 150, Ui.SLOT, "Reset all settings", false)) {
+                        screen.resetAll();
+                    }
+                });
         Supplier<Style> style = () -> active().style;
         choice(tab, path, "Icon style", "Default is real game items. Classic is the older Programmer Art look, for the items that pack has.", false, List.of(Style.IconSet.values()), SettingsCatalog::words, style, s -> s.iconSet, (s, v) -> s.iconSet = v);
 

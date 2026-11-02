@@ -27,6 +27,7 @@ public final class TabSelection {
     private static Component selectedText;
     private static int bottomOfRows;
     private static int rightOfRows;
+    private static int bottomOfServerText;
 
     private static final Smoothed slideX = new Smoothed(SLIDE_HALF_LIFE_MILLIS);
     private static final Smoothed slideY = new Smoothed(SLIDE_HALF_LIFE_MILLIS);
@@ -129,14 +130,21 @@ public final class TabSelection {
         graphics.outline(x, y, width, 9, Theme.ACCENT);
     }
 
+    /** A header or footer line the server drew, which our hints must not cover. */
+    public static void noteServerLine(int bottom) {
+        bottomOfServerText = Math.max(bottomOfServerText, bottom);
+    }
+
+    /** @param bottom the lowest point of the names and the server's footer together */
     public record Extent(int right, int bottom) {
     }
 
     /** How far the tab list reached this frame, and resets for the next one. */
     public static Extent takeExtent() {
-        Extent extent = new Extent(rightOfRows, bottomOfRows);
+        Extent extent = new Extent(rightOfRows, bottomOfRows == 0 ? 0 : Math.max(bottomOfRows, bottomOfServerText));
         rightOfRows = 0;
         bottomOfRows = 0;
+        bottomOfServerText = 0;
         highlightDrawn = false;
         return extent;
     }

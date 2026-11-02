@@ -20,6 +20,7 @@ stonecutter parameters {
             // Screens drew through render() before 26.1 split drawing into "extract" steps.
             replace("void extractRenderState(", "void render(")
             replace("void extractBackground(", "void renderBackground(")
+            replace("super.extractBackground(", "super.renderBackground(")
             // The screen and the HUD moved under Gui in 26.1.
             replace("gui.setScreen(", "setScreen(")
             replace("gui.screen()", "screen")

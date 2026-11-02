@@ -149,6 +149,36 @@ class CardOptionsTest {
     }
 
     @Test
+    void olderConfigsLoseTheLetterBadgesOnTheAimCard() {
+        String old = "{\"version\":1,\"profiles\":{\"Default\":{\"surfaces\":{\"LOOK_AT\":{\"listLogo\":true,\"enabled\":true}}}}}";
+        dev.tierprofiles.core.settings.ConfigFile config = new Gson().fromJson(old, dev.tierprofiles.core.settings.ConfigFile.class).sanitize();
+        assertFalse(config.active().surface(dev.tierprofiles.core.settings.Surface.LOOK_AT).listLogo);
+        assertEquals(dev.tierprofiles.core.settings.ConfigFile.CURRENT_VERSION, config.version);
+
+        // Someone who turns them back on afterwards keeps them.
+        config.active().surface(dev.tierprofiles.core.settings.Surface.LOOK_AT).listLogo = true;
+        assertTrue(new Gson().fromJson(new Gson().toJson(config), dev.tierprofiles.core.settings.ConfigFile.class).sanitize()
+                .active().surface(dev.tierprofiles.core.settings.Surface.LOOK_AT).listLogo);
+    }
+
+    @Test
+    void resettingKeepsOnlyThePrivacyAnswer() {
+        dev.tierprofiles.core.settings.ConfigFile config = new dev.tierprofiles.core.settings.ConfigFile();
+        config.global.noticeSeen = true;
+        config.global.lookupsEnabled = false;
+        config.global.cosmetics.background = "moon";
+        config.active().filters.hiddenKits.add("smp");
+        config.active().card.lastColumn = LastColumn.FOURTH_TIER;
+
+        dev.tierprofiles.core.settings.ConfigFile fresh = dev.tierprofiles.core.settings.ConfigFile.defaultsKeepingConsent(config);
+        assertTrue(fresh.global.noticeSeen, "the welcome page must not come back");
+        assertFalse(fresh.global.lookupsEnabled, "a player who said no to lookups still has them off");
+        assertEquals("plain", fresh.global.cosmetics.background);
+        assertTrue(fresh.active().filters.hiddenKits.isEmpty());
+        assertEquals(LastColumn.DATE, fresh.active().card.lastColumn);
+    }
+
+    @Test
     void hiddenOwnListsAreCheckedAgainstRealLists() {
         Cosmetics look = new Cosmetics();
         look.hiddenLists.addAll(List.of("pvptiers", "myserver", "pvptiers"));

@@ -45,6 +45,11 @@ public final class ProfileCard {
     private static final int PEAK_GOLD = 0xFFFFCF4A;
     private static final int UNRANKED = 0xFF8E98A2;
     private static final float BIG_TEXT = 1.5f;
+    /** Big text is 8 pixels of font at 1.5 times. */
+    private static final int BIG_LINE = 12;
+    /** Name over title, as one block centred in the 32 pixel strip. */
+    private static final int NAME_Y = 4;
+    private static final int TITLE_Y = 20;
     private static final float RETIRED_TEXT = 0.72f;
     private static final int MODEL_SIZE = 58;
 
@@ -347,27 +352,41 @@ public final class ProfileCard {
 
         String shownName = fitBig(font, name, room);
         int nameEnd = x + bigWidth(font, shownName);
-        if (pass.look().background.equals("moon") && nameEnd < grid.moonX(shape) - CardStyle.MOON_REACH) {
+        Title.Earned title = profile == null || !grid.showsTitle(shape) ? null : bestTitle(settings, profile);
+
+        // The name and title sit as one block, centred in the strip. With no title the
+        // name alone is centred, rather than floating at the top.
+        int nameY = title == null ? (CardGrid.STRIP - BIG_LINE) / 2 : NAME_Y;
+        boolean moon = pass.look().background.equals("moon");
+        int moonStart = grid.moonX(shape) - CardStyle.MOON_REACH;
+        int textRoom = moon ? Math.min(room, moonStart - x) : room;
+
+        int titleWidth = 0;
+        String titleText = null;
+        if (title != null) {
+            int badgeRoom = textRoom - TitleBadge.WIDTH;
+            titleText = font.width(title.label()) <= badgeRoom ? title.label() : fit(font, title.title().displayName(), badgeRoom);
+            titleWidth = TitleBadge.WIDTH + font.width(titleText);
+        }
+        if (moon && Math.max(nameEnd, x + titleWidth) < moonStart) {
             CardStyle.drawMoon(graphics, grid.moonX(shape), CardGrid.STRIP / 2, CardGrid.STRIP, grid.width(shape), pass.alpha());
         }
 
-        bigText(pass, shownName, x, 3, pass.color(0xFFFFFFFF));
+        bigText(pass, shownName, x, nameY, pass.color(0xFFFFFFFF));
         if (profile == null) {
             return;
         }
 
         String region = profile.region(settings.filters.listPriority.stream().filter(settings.filters::isEnabled).toList());
         int regionX = nameEnd + 3;
-        if (region != null && regionX + font.width(region) + 2 < x + room) {
-            graphics.fill(regionX, 6, regionX + font.width(region) + 3, 16, pass.color(0x402A6A3A));
-            graphics.text(font, region, regionX + 2, 7, pass.color(Theme.GOOD));
+        if (region != null && regionX + font.width(region) + 2 < x + textRoom) {
+            graphics.fill(regionX, nameY + 3, regionX + font.width(region) + 3, nameY + 13, pass.color(0x402A6A3A));
+            graphics.text(font, region, regionX + 2, nameY + 4, pass.color(Theme.GOOD));
         }
 
-        Title.Earned title = bestTitle(settings, profile);
-        if (title != null && grid.showsTitle(shape)) {
-            int badge = TitleBadge.draw(graphics, title.title(), x, 18, pass.alpha());
-            String label = font.width(title.label()) <= room - badge ? title.label() : title.title().displayName();
-            graphics.text(font, fit(font, label, room - badge), x + badge, 19, pass.color(Theme.BETA));
+        if (title != null) {
+            int badge = TitleBadge.draw(graphics, title.title(), x, TITLE_Y - 1, pass.alpha());
+            graphics.text(font, titleText, x + badge, TITLE_Y, pass.color(Theme.BETA));
         }
 
         drawStats(pass, CardSummary.of(profile, settings.filters));
@@ -387,9 +406,10 @@ public final class ProfileCard {
 
         if (pass.card().showPoints) {
             String points = Long.toString(summary.totalPoints());
-            bigText(pass, points, right - bigWidth(font, points), 3, pass.color(0xFFFFFFFF));
-            if (grid.showsPointsLabel(shape)) {
-                graphics.text(font, "points", right - font.width("points"), 19, pass.color(Theme.MUTED));
+            boolean label = grid.showsPointsLabel(shape);
+            bigText(pass, points, right - bigWidth(font, points), label ? NAME_Y : (CardGrid.STRIP - BIG_LINE) / 2, pass.color(0xFFFFFFFF));
+            if (label) {
+                graphics.text(font, "points", right - font.width("points"), TITLE_Y, pass.color(Theme.MUTED));
             }
         }
 
@@ -399,11 +419,12 @@ public final class ProfileCard {
             if (!grid.showsRankList(shape)) {
                 rankX -= bigWidth(font, rank);
             }
-            bigText(pass, rank, rankX, 3, pass.color(Theme.BETA));
-            if (grid.showsRankList(shape)) {
-                graphics.text(font, summary.bestList().displayName(), rankX, 19, pass.color(Theme.MUTED));
+            boolean listShown = grid.showsRankList(shape);
+            bigText(pass, rank, rankX, listShown ? NAME_Y : (CardGrid.STRIP - BIG_LINE) / 2, pass.color(Theme.BETA));
+            if (listShown) {
+                graphics.text(font, summary.bestList().displayName(), rankX, TITLE_Y, pass.color(Theme.MUTED));
                 if (summary.bestList().isBeta()) {
-                    graphics.text(font, "beta", rankX + font.width(summary.bestList().displayName() + " "), 19, pass.color(Theme.BETA));
+                    graphics.text(font, "beta", rankX + font.width(summary.bestList().displayName() + " "), TITLE_Y, pass.color(Theme.BETA));
                 }
             }
         }

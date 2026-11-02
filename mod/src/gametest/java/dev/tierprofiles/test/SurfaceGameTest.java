@@ -268,6 +268,9 @@ public final class SurfaceGameTest implements FabricClientGameTest {
     private static void testTabControls(ClientGameTestContext context) {
         TestInput input = context.getInput();
 
+        // Servers put text under the list, like a Discord link. Our hints must sit below it.
+        context.runOnClient(client -> client.gui.hud.getTabList().setFooter(
+                net.minecraft.network.chat.Component.literal("play.example.net\nJOIN OUR DISCORD /discord")));
         input.holdKey(options -> options.keyPlayerList);
         context.waitTicks(5);
         check(context.computeOnClient(client -> TabSelection.isListVisible()), "the tab list should be showing");
