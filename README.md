@@ -8,6 +8,9 @@ Early development. See [docs/SPEC.md](docs/SPEC.md) for the design.
 Builds for Minecraft 1.21.11 and 26.3, with more versions on the way. See
 [docs/PORTING.md](docs/PORTING.md).
 
+Each jar is named `tierprofiles-<version>+mc<minecraft>.jar`. What changed in each version is in
+[CHANGELOG.md](CHANGELOG.md).
+
 ## Privacy
 
 Your login stays with Minecraft. We never see your account token.
