@@ -216,6 +216,14 @@ class TagSelectorTest {
     }
 
     @Test
+    void hiddenKitsNeverMakeATag() {
+        Settings settings = settings();
+        settings.filters.hiddenKits.add("smp");
+        PlayerProfile profile = player(TierList.MCTIERS, ok(entry("smp", "HT1"), entry("sword", "LT3")));
+        assertEquals(List.of("mctiers:sword:LT3"), labels(select(profile, settings)));
+    }
+
+    @Test
     void selectedKitsOnlyCountThoseKits() {
         Settings settings = settings();
         settings.surface(Surface.NAMETAG).kitMode = KitMode.SELECTED;

@@ -1,5 +1,6 @@
 package dev.tierprofiles.core.settings;
 
+import dev.tierprofiles.core.Maths;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
@@ -32,6 +33,18 @@ public final class Settings {
 
     public SurfaceSettings surface(Surface surface) {
         return surfaces.get(surface);
+    }
+
+    /** The same settings seen through other filters. Shares everything else, so don't save it. */
+    public Settings withFilters(Filters view) {
+        Settings copy = new Settings();
+        copy.filters = view;
+        copy.surfaces = surfaces;
+        copy.style = style;
+        copy.rules = rules;
+        copy.card = card;
+        copy.icon = icon;
+        return copy;
     }
 
     /**
@@ -70,7 +83,7 @@ public final class Settings {
             }
         }
         rules = cleanRules;
-        icon = Math.clamp(icon, 0, MAX_ICON);
+        icon = Maths.clamp(icon, 0, MAX_ICON);
         return this;
     }
 }

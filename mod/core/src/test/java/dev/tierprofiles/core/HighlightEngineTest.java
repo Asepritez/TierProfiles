@@ -136,6 +136,13 @@ class HighlightEngineTest {
     }
 
     @Test
+    void hiddenKitsDontTriggerRules() {
+        Settings settings = settings();
+        settings.filters.hiddenKits.add("sword");
+        assertTrue(run(mctiers("HT1"), settings, redHt3()).isPlain());
+    }
+
+    @Test
     void everyEffectCarriesThrough() {
         HighlightRule rule = redHt3();
         rule.gradientEnd = PURPLE;

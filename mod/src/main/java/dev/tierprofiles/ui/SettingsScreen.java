@@ -197,6 +197,9 @@ public final class SettingsScreen extends Screen {
         drawRail();
         drawBody();
         drawHotbar();
+        if (colorPicker == null && !confirmingClose) {
+            drawTooltip();
+        }
 
         if (colorPicker != null && colorPicker.draw(ui, virtualWidth, virtualHeight)) {
             colorPicker = null;
@@ -248,6 +251,9 @@ public final class SettingsScreen extends Screen {
             ui.graphics.outline(MARGIN, y, RAIL_W - 1, height, on ? 0x00000000 : 0xFF1E2329);
             ui.item(candidate.icon(), MARGIN + 6, y + (height - 16) / 2);
             ui.text(candidate.title(), MARGIN + 27, y + (height - 8) / 2, on ? 0xFFFFFFFF : Theme.MUTED);
+            if (ui.hovered(MARGIN, y, RAIL_W, height)) {
+                ui.hint(candidate.title(), candidate.description());
+            }
             if (ui.clicked(MARGIN, y, RAIL_W, height)) {
                 openTab(candidate);
             }
@@ -316,6 +322,7 @@ public final class SettingsScreen extends Screen {
 
         String note = switch (tab) {
             case TAGS -> surface.displayName();
+            case LISTS -> listsNote();
             case RULES -> "First match wins";
             case POSITION -> words(staged().card.anchor.name());
             case PROFILE -> TierProfiles.cosmetics().state().message();
@@ -329,6 +336,12 @@ public final class SettingsScreen extends Screen {
         }
     }
 
+    private String listsNote() {
+        long shown = java.util.Arrays.stream(TierList.values()).filter(staged().filters::isEnabled).count();
+        int hiddenKits = staged().filters.hiddenKits.size();
+        return shown + " of " + TierList.values().length + " lists" + (hiddenKits > 0 ? ", " + hiddenKits + " kits hidden" : "");
+    }
+
     private static String words(String id) {
         String lower = id.toLowerCase(Locale.ROOT).replace('_', ' ');
         return Character.toUpperCase(lower.charAt(0)) + lower.substring(1);
@@ -337,7 +350,7 @@ public final class SettingsScreen extends Screen {
     private int drawTab(int left, int right, int y) {
         boolean advanced = Boolean.TRUE.equals(advancedOpen.get(tab));
         if (tab == SettingsTab.RULES) {
-            return drawHintBox(left, right, drawRules(left, right, y, advanced) + 6);
+            return drawRules(left, right, y, advanced) + 6;
         }
         if (advanced) {
             y = drawRows(catalog.forTab(tab, surface, true), left, right, y);
@@ -366,16 +379,17 @@ public final class SettingsScreen extends Screen {
         if (more > 0) {
             y = drawAdvancedRow(left, right, y, more + " more: " + advancedSummary(), false);
         }
-        return drawHintBox(left, right, y + 6);
+        return y + 6;
     }
 
     private String advancedSummary() {
         return switch (tab) {
-            case TAGS -> "per-list minimums, list order, format";
+            case TAGS -> "retired, unranked, icons, format";
+            case LISTS -> "list order, per-list minimums, selected kits";
             case COLOURS -> "retired chips, colours per list";
             case RULES -> "gradient, gamemode, retired, peak";
             case SHARING -> "your setups";
-            case PROFILE -> "per-slot armor, trims, effects, accent, size";
+            case PROFILE -> "armor and trims per piece, kits on my card, size";
             case POSITION -> "look-at card";
             case MORE -> "logos, server, diagnostics";
             default -> "";
@@ -526,29 +540,64 @@ public final class SettingsScreen extends Screen {
         return y + ROW_STEP;
     }
 
-    /** A vanilla-style tooltip that explains whatever you're hovering. */
-    private int drawHintBox(int left, int right, int y) {
+    private static final long TOOLTIP_DELAY_MILLIS = 250;
+    private static final long TOOLTIP_FADE_MILLIS = 120;
+    private static final int TOOLTIP_WIDTH = 220;
+    private String tooltipFor;
+    private long tooltipSince;
+
+    /**
+     * A vanilla-style tooltip beside the mouse that says what the hovered setting does.
+     * It waits a moment so it doesn't flicker past as the mouse crosses the screen, and
+     * it's drawn last, so nothing covers it.
+     */
+    private void drawTooltip() {
         String title = ui.hoverTitle();
         String hint = ui.hoverHint();
+        long now = System.currentTimeMillis();
+        String key = title + "|" + hint;
         if (hint == null) {
-            return y;
+            tooltipFor = null;
+            return;
         }
-        int x = left + LABEL_W;
-        int width = right - x;
-        List<String> lines = new ArrayList<>();
-        ui.font.getSplitter().splitLines(hint, width - 12, net.minecraft.network.chat.Style.EMPTY)
-                .forEach(line -> lines.add(line.getString()));
-        int height = 18 + lines.size() * 11;
+        if (!key.equals(tooltipFor)) {
+            tooltipFor = key;
+            tooltipSince = now;
+        }
+        boolean reduceMotion = editor.staged().global.reduceMotion;
+        long shown = now - tooltipSince - TOOLTIP_DELAY_MILLIS;
+        if (shown < 0) {
+            return;
+        }
+        float alpha = reduceMotion ? 1 : Math.min(1, shown / (float) TOOLTIP_FADE_MILLIS);
 
-        ui.graphics.fill(x, y, x + width, y + height, 0xF0100010);
-        ui.graphics.outline(x, y, width, height, 0xFF3A0F75);
-        ui.text(title, x + 6, y + 5, 0xFFFFFFFF);
-        int lineY = y + 16;
-        for (String line : lines) {
-            ui.text(line, x + 6, lineY, 0xFFCFCFCF);
-            lineY += 11;
+        List<String> lines = new ArrayList<>();
+        ui.font.getSplitter().splitLines(hint, TOOLTIP_WIDTH - 12, net.minecraft.network.chat.Style.EMPTY)
+                .forEach(line -> lines.add(line.getString()));
+        int width = Math.max(ui.width(title), lines.stream().mapToInt(ui::width).max().orElse(0)) + 12;
+        int height = 18 + lines.size() * 10;
+
+        // Below and right of the pointer, flipped to stay on screen.
+        int x = ui.mouseX + 12;
+        int y = ui.mouseY + 12;
+        if (x + width > virtualWidth - 4) {
+            x = ui.mouseX - 12 - width;
         }
-        return y + height;
+        if (y + height > virtualHeight - 4) {
+            y = ui.mouseY - 12 - height;
+        }
+        x = Math.max(4, x);
+        y = Math.max(4, y);
+
+        ui.graphics.nextStratum();
+        ui.graphics.fill(x, y, x + width, y + height, Theme.fade(0xF0100010, alpha));
+        ui.graphics.outline(x, y, width, height, Theme.fade(0xFF3A0F75, alpha));
+        ui.text(title, x + 6, y + 5, Theme.fade(0xFFFFFFFF, alpha));
+        int lineY = y + 17;
+        for (String line : lines) {
+            ui.text(line, x + 6, lineY, Theme.fade(0xFFCFCFCF, alpha));
+            lineY += 10;
+        }
     }
 
     private long resultCount() {

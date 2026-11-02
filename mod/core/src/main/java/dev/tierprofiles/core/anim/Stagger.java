@@ -1,5 +1,6 @@
 package dev.tierprofiles.core.anim;
 
+import dev.tierprofiles.core.Maths;
 /** Items that animate in one after another, each starting a little later. */
 public final class Stagger {
     private Stagger() {
@@ -14,6 +15,6 @@ public final class Stagger {
         if (duration <= 0) {
             return elapsed >= delay ? 1 : 0;
         }
-        return Easing.OUT_CUBIC.apply(Math.clamp((float) (elapsed - delay) / duration, 0, 1));
+        return Easing.OUT_CUBIC.apply(Maths.clamp((float) (elapsed - delay) / duration, 0, 1));
     }
 }

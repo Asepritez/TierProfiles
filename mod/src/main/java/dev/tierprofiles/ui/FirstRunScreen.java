@@ -68,7 +68,7 @@ public final class FirstRunScreen extends Screen {
 
         int factY = y + 58;
         factY = fact(left, factY, inner, Items.COMPASS, "We send: names and UUIDs of players in your tab list",
-                "They go to the TierProfiles server, which asks the tier lists.", null);
+                "They go straight to the five tier list websites, the same way their own pages ask.", null);
         factY = fact(left, factY, inner, Items.SHIELD, "Your login stays with Minecraft",
                 "We never see your account token.", null);
         factY = fact(left, factY, inner, Items.ENDER_PEARL, "We send nothing else",

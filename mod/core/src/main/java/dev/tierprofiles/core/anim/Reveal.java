@@ -1,5 +1,6 @@
 package dev.tierprofiles.core.anim;
 
+import dev.tierprofiles.core.Maths;
 /**
  * Something that opens and closes over time, such as a card. Its position comes from
  * timestamps and never from counting frames, so the speed doesn't depend on frame
@@ -31,7 +32,7 @@ public final class Reveal {
         if (duration <= 0) {
             return target;
         }
-        float t = Math.clamp((float) (now - startedAt) / duration, 0, 1);
+        float t = Maths.clamp((float) (now - startedAt) / duration, 0, 1);
         return from + (target - from) * easing.apply(t);
     }
 

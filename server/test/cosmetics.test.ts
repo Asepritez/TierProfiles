@@ -21,13 +21,38 @@ const look = {
   featuredList: "mctiers",
 };
 
+/** What an older client's card becomes: every piece takes the shared trim, and nothing is hidden. */
+const clean = {
+  ...look,
+  helmetTrim: "rib",
+  chestplateTrim: "rib",
+  leggingsTrim: "rib",
+  bootsTrim: "rib",
+  helmetTrimMaterial: "amethyst",
+  chestplateTrimMaterial: "amethyst",
+  leggingsTrimMaterial: "amethyst",
+  bootsTrimMaterial: "amethyst",
+  hiddenLists: [],
+  hiddenKits: [],
+};
+
 describe("validation", () => {
   it("accepts every preset", () => {
-    expect(validateCosmetics(look)).toEqual(look);
+    expect(validateCosmetics(look)).toEqual(clean);
   });
 
   it("drops unknown keys, so nothing unexpected is stored", () => {
-    expect(validateCosmetics({ ...look, nickname: "free text!" })).toEqual(look);
+    expect(validateCosmetics({ ...look, nickname: "free text!" })).toEqual(clean);
+  });
+
+  it("keeps a different trim on each piece", () => {
+    const mixed = { ...clean, helmetTrim: "silence", helmetTrimMaterial: "gold", bootsTrim: "none" };
+    expect(validateCosmetics(mixed)).toEqual(mixed);
+  });
+
+  it("keeps the lists and kits the owner hid, without repeats", () => {
+    const hidden = { ...look, hiddenLists: ["pvptiers", "pvptiers"], hiddenKits: ["smp", "uhc"] };
+    expect(validateCosmetics(hidden)).toMatchObject({ hiddenLists: ["pvptiers"], hiddenKits: ["smp", "uhc"] });
   });
 
   it.each([
@@ -43,6 +68,12 @@ describe("validation", () => {
     ["a bad kit", { featuredKit: "<b>x</b>" }],
     ["a bad list", { featuredList: "myserver" }],
     ["a missing field", { border: undefined }],
+    ["an unknown piece trim", { helmetTrim: "custom" }],
+    ["an unknown piece material", { bootsTrimMaterial: "dirt" }],
+    ["an unknown hidden list", { hiddenLists: ["myserver"] }],
+    ["a bad hidden kit", { hiddenKits: ["<b>"] }],
+    ["hidden kits that aren't a list", { hiddenKits: "smp" }],
+    ["too many hidden kits", { hiddenKits: Array.from({ length: 33 }, (_, i) => `kit${i}`) }],
   ])("refuses %s", (_label, change) => {
     expect(validateCosmetics({ ...look, ...change })).toBeNull();
   });
@@ -100,7 +131,7 @@ describe("the cosmetics API", () => {
   it("saves and shows a card style", async () => {
     expect((await put(look, await tokenFor(ITZ.uuid))).status).toBe(200);
     const response = await get(ITZ.uuid);
-    expect(await response.json()).toEqual({ uuid: ITZ.uuid, cosmetics: look });
+    expect(await response.json()).toEqual({ uuid: ITZ.uuid, cosmetics: clean });
   });
 
   it("gives null for a player with no style", async () => {

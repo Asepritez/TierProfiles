@@ -74,7 +74,7 @@ public final class TagSelector {
         TierEntry best = null;
 
         for (TierEntry entry : listProfile.tiers()) {
-            if (rules.hideRetired && entry.retired()) {
+            if (rules.hideRetired && entry.retired() || !filters.isKitShown(entry.kit())) {
                 continue;
             }
             if (!kitCounts(entry.kit(), rules, filters, context)) {

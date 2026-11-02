@@ -17,6 +17,7 @@ import dev.tierprofiles.ui.Theme;
 import java.util.List;
 import java.util.UUID;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
@@ -40,12 +41,31 @@ public final class LookAtCard {
     private LookAtCard() {
     }
 
-    public static void draw(GuiGraphicsExtractor graphics) {
+    /** The player whose small card is showing, or null. */
+    public static UUID showing() {
+        return reveal.isOpen() && shownName != null ? target : null;
+    }
+
+    public static String showingName() {
+        return shownName == null ? null : shownName.getString();
+    }
+
+    /**
+     * @param tabSelected the player picked in Tab, or null. With the small Tab preview on,
+     *                    they get this card straight away, ahead of whoever you aim at.
+     */
+    public static void draw(GuiGraphicsExtractor graphics, PlayerInfo tabSelected) {
         Minecraft minecraft = Minecraft.getInstance();
         Settings settings = TierProfiles.settings();
         long now = CardState.now();
 
-        Component tags = settings.surface(Surface.LOOK_AT).enabled ? tagsForAimedPlayer(minecraft, settings, now) : null;
+        Component tags;
+        if (tabSelected != null && settings.card.tabPreview == CardSettings.TabPreview.SMALL
+                && !CardState.isShowing(tabSelected.getProfile().id())) {
+            tags = tagsForTabSelection(tabSelected, settings);
+        } else {
+            tags = settings.surface(Surface.LOOK_AT).enabled ? tagsForAimedPlayer(minecraft, settings, now) : null;
+        }
         boolean wanted = tags != null;
         if (wanted) {
             shownTags = tags;
@@ -59,6 +79,22 @@ public final class LookAtCard {
         if (shownTags != null && reveal.isVisible(now)) {
             drawPanel(graphics, minecraft.font, shownName, shownTags, settings.card, reveal.position(now));
         }
+    }
+
+    /** The Tab pick has no delay and always shows something, even "Unranked" or "Looking up". */
+    private static Component tagsForTabSelection(PlayerInfo info, Settings settings) {
+        UUID uuid = info.getProfile().id();
+        target = uuid;
+        shownName = Component.literal(info.getProfile().name());
+        PlayerProfile profile = TierProfiles.profiles().profile(uuid);
+        if (profile == null) {
+            return Component.literal("Looking up...").withColor(Theme.MUTED & 0xFFFFFF);
+        }
+        List<Tag> tags = TagSelector.select(profile, Surface.LOOK_AT, settings, Decorator.context(uuid));
+        if (tags.isEmpty()) {
+            return Component.literal("Unranked").withColor(Theme.MUTED & 0xFFFFFF);
+        }
+        return TagText.build(TagFormatter.format(tags, settings.surface(Surface.LOOK_AT), settings.style), settings.style);
     }
 
     private static Component tagsForAimedPlayer(Minecraft minecraft, Settings settings, long now) {

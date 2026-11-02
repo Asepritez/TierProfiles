@@ -59,6 +59,7 @@ public final class SurfaceGameTest implements FabricClientGameTest {
 
             testIconsAreRealGameArt(context);
             testTabControls(context);
+            testBigTabPreview(context);
             testAnimationFrames(context);
             testEveryScreenSize(context);
             testAnchors(context);
@@ -139,6 +140,46 @@ public final class SurfaceGameTest implements FabricClientGameTest {
             context.takeScreenshot("tp-detail-" + detail.name().toLowerCase(java.util.Locale.ROOT));
         }
         context.runOnClient(client -> change(config -> config.active().card.detail = CardSettings.Detail.STANDARD));
+
+        for (CardSettings.LastColumn last : CardSettings.LastColumn.values()) {
+            context.runOnClient(client -> {
+                change(config -> config.active().card.lastColumn = last);
+                CardState.open(TestWorld.JOKING, "JokingDK");
+            });
+            context.waitTicks(30);
+            context.takeScreenshot("tp-last-" + last.name().toLowerCase(java.util.Locale.ROOT));
+        }
+
+        // Hiding a list and a kit everywhere, then the All ranks view of what's left.
+        context.runOnClient(client -> {
+            change(config -> {
+                config.active().card.lastColumn = CardSettings.LastColumn.DATE;
+                config.active().filters.disabledLists.add(dev.tierprofiles.core.model.TierList.PVPHQ);
+                config.active().filters.hiddenKits.add("smp");
+            });
+            CardState.open(TestWorld.JOKING, "JokingDK");
+        });
+        context.waitTicks(30);
+        context.takeScreenshot("tp-hidden-pvphq-smp");
+        context.runOnClient(client -> CardState.open(TestWorld.JOKING, "JokingDK", true));
+        context.waitTicks(40);
+        context.takeScreenshot("tp-all-ranks");
+        context.runOnClient(client -> {
+            client.options.guiScale().set(4);
+            client.resizeGui();
+            CardState.open(TestWorld.JOKING, "JokingDK", true);
+        });
+        context.waitTicks(40);
+        context.takeScreenshot("tp-all-ranks-gui4");
+        context.runOnClient(client -> {
+            client.options.guiScale().set(2);
+            client.resizeGui();
+            change(config -> {
+                config.active().filters.disabledLists.clear();
+                config.active().filters.hiddenKits.clear();
+            });
+            CardState.close();
+        });
     }
 
     private static void testAnchors(ClientGameTestContext context) {
@@ -190,6 +231,40 @@ public final class SurfaceGameTest implements FabricClientGameTest {
         context.runOnClient(client -> CardState.useRealClock());
     }
 
+    /** With the big card chosen, browsing Tab shows each player's full card, and Enter keeps it. */
+    private static void testBigTabPreview(ClientGameTestContext context) {
+        TestInput input = context.getInput();
+        context.runOnClient(client -> change(config -> config.active().card.tabPreview = CardSettings.TabPreview.BIG));
+        input.holdKey(options -> options.keyPlayerList);
+        context.waitTicks(5);
+        input.pressKey(Keys.DOWN);
+        context.waitTicks(30);
+        check(context.computeOnClient(client -> CardState.isPreview()), "moving through Tab should show the big card");
+        context.takeScreenshot("tp-02c-tab-big-card");
+
+        input.releaseKey(options -> options.keyPlayerList);
+        context.waitTicks(5);
+        check(context.computeOnClient(client -> !CardState.isOpen()), "letting go of Tab puts a browsed card away");
+
+        input.holdKey(options -> options.keyPlayerList);
+        context.waitTicks(5);
+        input.pressKey(Keys.DOWN);
+        context.waitTicks(5);
+        input.pressKey(Keys.PIN);
+        context.waitTicks(3);
+        check(context.computeOnClient(client -> CardState.isOpen() && !CardState.isPreview()), "Enter should keep the browsed card");
+        input.releaseKey(options -> options.keyPlayerList);
+        context.waitTicks(5);
+        check(context.computeOnClient(client -> CardState.isOpen()), "a kept card stays after Tab is let go");
+
+        context.runOnClient(client -> {
+            CardState.close();
+            change(config -> config.active().card.tabPreview = CardSettings.TabPreview.SMALL);
+            TabSelection.clear();
+        });
+        context.waitTicks(10);
+    }
+
     private static void testTabControls(ClientGameTestContext context) {
         TestInput input = context.getInput();
 
@@ -200,7 +275,8 @@ public final class SurfaceGameTest implements FabricClientGameTest {
 
         input.pressKey(Keys.DOWN);
         input.pressKey(Keys.DOWN);
-        context.waitTicks(3);
+        context.waitTicks(10);
+        context.takeScreenshot("tp-02b-tab-small-card");
         check(context.computeOnClient(client -> TabSelection.selected() != null), "arrows should select a row");
         check(context.computeOnClient(client -> client.gui.screen() == null), "selecting must not open a Screen");
         context.takeScreenshot("tp-03-tab-selected");
@@ -220,6 +296,13 @@ public final class SurfaceGameTest implements FabricClientGameTest {
         Vec3 after = context.computeOnClient(client -> client.player.position());
         check(before.distanceTo(after) > 1, "walking must keep working with the card open");
         check(context.computeOnClient(client -> CardState.isOpen()), "walking must not close the card");
+
+        input.pressKey(Keys.ALL_RANKS);
+        context.waitTicks(3);
+        check(context.computeOnClient(client -> CardState.allRanks()), "the All ranks key should expand the open card");
+        input.pressKey(Keys.ALL_RANKS);
+        context.waitTicks(3);
+        check(context.computeOnClient(client -> !CardState.allRanks()), "pressing it again should go back");
 
         input.pressKey(Keys.PIN);
         context.waitTicks(3);

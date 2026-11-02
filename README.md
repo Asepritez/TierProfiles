@@ -11,10 +11,13 @@ Your login stays with Minecraft. We never see your account token.
 
 Here is exactly what leaves your game:
 
-- **Tier lookups.** The names and UUIDs of players in your tab list go to the TierProfiles server,
-  which asks the tier lists (MCTiers, McPvP, PvPTiers, SubTiers and PVPHQ) about them.
-- **Your card style.** Your card style is sent only when you save it. It is a small set of preset
-  choices, stored on the TierProfiles server so that other players see it on your card.
+- **Tier lookups.** The names and UUIDs of players in your tab list go straight to the five tier
+  list websites (MCTiers, McPvP, PvPTiers, SubTiers and PVPHQ), the same way their own pages ask.
+  If you switch Settings, More, Advanced, Look up from to Server, they go to the TierProfiles
+  server instead, which asks the lists for you.
+- **Your card style.** Only with Look up from set to Server, and only when you save it. It is a
+  small set of preset choices, stored on the TierProfiles server so that other players see it on
+  your card. In the default mode your card style never leaves your game.
 - **Proving it's you.** To save a card style, the game makes the same silent `joinServer` call to
   Mojang that it makes when you join an online server, and our server asks Mojang to confirm it. Your
   access token goes only to Mojang.
@@ -23,8 +26,9 @@ Here is exactly what leaves your game:
   list's website and kept in your config folder. You can turn this off in Settings, More, Advanced,
   and the mod uses its own letter marks instead.
 
-We send nothing else: no chat, no server address, no position. As with any website, the server host
-(Cloudflare) and the list websites see your IP address when the mod connects to them.
+We send nothing else: no chat, no server address, no position. As with any website, the list
+websites, and with Server mode the server host (Cloudflare), see your IP address when the mod
+connects to them.
 
 Nothing is sent until you have seen the first-run notice, and you can turn lookups off at any time in
 Settings, More. With lookups off, no data is sent and no tiers show.

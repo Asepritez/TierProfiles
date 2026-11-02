@@ -1,9 +1,11 @@
 package dev.tierprofiles.core.layout;
 
+import dev.tierprofiles.core.Maths;
 import dev.tierprofiles.core.model.Band;
 import dev.tierprofiles.core.model.Tier;
 import dev.tierprofiles.core.model.TierList;
 import dev.tierprofiles.core.settings.CardSettings.Detail;
+import dev.tierprofiles.core.settings.CardSettings.LastColumn;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
@@ -29,7 +31,14 @@ public final class CardGrid {
     public static final int SLOT_HEIGHT = 18;
 
     public static final int STANDARD_KITS = 3;
+    /** With the date column given over to one more kit. */
+    public static final int WIDE_KITS = 4;
     public static final int FULL_KITS = 5;
+    /** All ranks puts at most this many kits on a line before wrapping. */
+    public static final int MAX_PER_LINE = 8;
+    private static final int MIN_PER_LINE = 3;
+    /** The moon's reach plus a gap, so it always stops short of the rank. */
+    private static final int MOON_CLEARANCE = 24;
 
     /** Space kept around the card, which docs/LAYOUT.md takes from the screen width. */
     public static final int SCREEN_ROOM = 8;
@@ -69,8 +78,44 @@ public final class CardGrid {
      * @param lists  in Minimal, how many lists fit
      * @param model  whether the model column shows
      * @param scale  1 unless even the smallest layout was too big
+     * @param perLine in Full, how many kits go on a line before the row wraps
+     * @param wraps  whether rows wrap to show every kit, rather than the best five
      */
-    public record Shape(Detail detail, int kits, boolean date, int lists, boolean model, float scale) {
+    public record Shape(Detail detail, int kits, boolean date, int lists, boolean model, float scale, int perLine, boolean wraps) {
+        public Shape(Detail detail, int kits, boolean date, int lists, boolean model, float scale) {
+            this(detail, kits, date, lists, model, scale, FULL_KITS, false);
+        }
+
+        public Shape withScale(float newScale) {
+            return new Shape(detail, kits, date, lists, model, newScale, perLine, wraps);
+        }
+
+        public Shape withoutDate() {
+            return new Shape(detail, kits, false, lists, model, scale, perLine, wraps);
+        }
+    }
+
+    /**
+     * How many lines a Full row needs. Without wrapping it's always one. With it, a
+     * player with eleven kits on a list gets two lines, of eight and three.
+     */
+    public static int linesFor(Shape shape, int kits) {
+        if (shape.detail() != Detail.FULL || !shape.wraps() || kits <= shape.perLine()) {
+            return 1;
+        }
+        return (kits + shape.perLine() - 1) / shape.perLine();
+    }
+
+    /** Lines for a whole card, given each row's kit count. */
+    public static int linesFor(Shape shape, int[] kitsPerRow) {
+        if (shape.detail() != Detail.FULL) {
+            return kitsPerRow.length;
+        }
+        int lines = 0;
+        for (int kits : kitsPerRow) {
+            lines += linesFor(shape, kits);
+        }
+        return lines;
     }
 
     public CardGrid(ToIntFunction<String> textWidth) {
@@ -143,10 +188,11 @@ public final class CardGrid {
                     ? firstKitX + STANDARD_KITS * slotStep + dateWidth + PADDING
                     : PADDING + Math.max(1, shape.lists()) * minimalStep;
             case STANDARD -> firstKitX + shape.kits() * slotStep + (shape.date() ? dateWidth : -GAP) + PADDING;
-            case FULL -> firstKitX + FULL_KITS * fullSlotStep - GAP + PADDING;
+            case FULL -> firstKitX + shape.perLine() * fullSlotStep - GAP + PADDING;
         };
     }
 
+    /** @param rows list rows, or in Full the number of lines, which wrapping can make more */
     public int height(Shape shape, int rows) {
         return switch (shape.detail()) {
             case MINIMAL -> MINIMAL_HEIGHT;
@@ -164,7 +210,7 @@ public final class CardGrid {
                 if (shape.date()) {
                     yield kitX(2);
                 }
-                yield shape.kits() == STANDARD_KITS ? rightEdge(shape) - 100 : rightEdge(shape) - 36;
+                yield shape.kits() >= STANDARD_KITS ? rightEdge(shape) - 100 : rightEdge(shape) - 36;
             }
         };
     }
@@ -183,9 +229,9 @@ public final class CardGrid {
         return shape.model();
     }
 
-    /** The moon sits in the strip between the name and the rank. */
+    /** The moon sits in the strip between the name and the rank, always clear of the rank. */
     public int moonX(Shape shape) {
-        return shape.detail() == Detail.FULL ? 268 : 226;
+        return rankX(shape) - MOON_CLEARANCE;
     }
 
     public int fullRow() {
@@ -202,7 +248,7 @@ public final class CardGrid {
     }
 
     private Shape minimal(int availableWidth, int rankedLists, float scale) {
-        int wanted = Math.clamp(rankedLists, 1, MINIMAL_MAX_LISTS);
+        int wanted = Maths.clamp(rankedLists, 1, MINIMAL_MAX_LISTS);
         Shape withModel = new Shape(Detail.MINIMAL, 0, false, wanted, true, scale);
         if (width(withModel) * scale <= availableWidth) {
             return withModel;
@@ -216,14 +262,35 @@ public final class CardGrid {
         return new Shape(Detail.MINIMAL, 0, false, 1, false, scale);
     }
 
+    /** The Standard shape you asked for, before anything is dropped to fit. */
+    public static Shape standard(LastColumn last) {
+        return switch (last) {
+            case DATE -> standard();
+            case FOURTH_TIER -> new Shape(Detail.STANDARD, WIDE_KITS, false, 0, true, 1);
+            case NONE -> new Shape(Detail.STANDARD, STANDARD_KITS, false, 0, true, 1);
+        };
+    }
+
     /** The shapes to try, richest first, starting from what you asked for. */
-    private List<Shape> shapesFrom(Detail wanted, float scale) {
+    private List<Shape> shapesFrom(Detail wanted, LastColumn last, boolean allRanks, float scale) {
         List<Shape> shapes = new ArrayList<>();
+        if (allRanks) {
+            // Wider lines first, so a card wraps onto as few lines as it can.
+            for (int perLine = MAX_PER_LINE; perLine >= MIN_PER_LINE; perLine--) {
+                shapes.add(new Shape(Detail.FULL, FULL_KITS, true, 0, true, scale, perLine, true));
+            }
+            return shapes;
+        }
         if (wanted == Detail.FULL) {
             shapes.add(new Shape(Detail.FULL, FULL_KITS, true, 0, true, scale));
         }
         if (wanted != Detail.MINIMAL) {
-            shapes.add(new Shape(Detail.STANDARD, STANDARD_KITS, true, 0, true, scale));
+            switch (last) {
+                case DATE -> shapes.add(new Shape(Detail.STANDARD, STANDARD_KITS, true, 0, true, scale));
+                case FOURTH_TIER -> shapes.add(new Shape(Detail.STANDARD, WIDE_KITS, false, 0, true, scale));
+                case NONE -> {
+                }
+            }
             shapes.add(new Shape(Detail.STANDARD, STANDARD_KITS, false, 0, true, scale));
             shapes.add(new Shape(Detail.STANDARD, STANDARD_KITS - 1, false, 0, true, scale));
         }
@@ -252,33 +319,52 @@ public final class CardGrid {
      * tries a smaller crisp size before dropping detail, so a small window loses
      * information before anything can overlap. Text only goes soft as a last resort.
      *
-     * @param rows        list rows on the card
+     * @param lines       how tall a shape is: rows, or lines once Full wraps
      * @param rankedLists lists with something to show
      * @param scale       your card scale setting
      * @param guiScale    the game's GUI scale
+     * @param allRanks    wrap Full rows so every kit shows
      * @param isClear     whether a shape, once placed, avoids the crosshair and hotbar
      */
-    public Shape fit(Detail wanted, int rows, int rankedLists, float scale, int guiScale,
-            int availableWidth, int availableHeight, Predicate<Shape> isClear) {
+    public Shape fit(Detail wanted, LastColumn last, boolean allRanks, ToIntFunction<Shape> lines, int rankedLists,
+            float scale, int guiScale, int availableWidth, int availableHeight, Predicate<Shape> isClear) {
         for (Float candidate : crispScales(scale, guiScale)) {
-            for (Shape shape : shapesFrom(wanted, candidate)) {
-                if (fits(shape, rows, availableWidth, availableHeight) && isClear.test(shape)) {
+            for (Shape shape : shapesFrom(wanted, last, allRanks, candidate)) {
+                if (fits(shape, lines.applyAsInt(shape), availableWidth, availableHeight) && isClear.test(shape)) {
                     return shape;
                 }
             }
         }
+        if (allRanks) {
+            // Every kit was asked for, so shrink the text rather than leave kits out.
+            Shape chosen = null;
+            for (Shape shape : shapesFrom(wanted, last, true, scale)) {
+                chosen = shape;
+                if (width(shape) * scale <= availableWidth) {
+                    break;
+                }
+            }
+            float widest = (float) availableWidth / width(chosen);
+            float tallest = (float) availableHeight / height(chosen, lines.applyAsInt(chosen));
+            return chosen.withScale(Math.min(scale, Math.min(widest, tallest)));
+        }
         for (Float candidate : crispScales(scale, guiScale)) {
             Shape shape = minimal(availableWidth, rankedLists, candidate);
-            if (fits(shape, rows, availableWidth, availableHeight) && isClear.test(shape)) {
+            if (fits(shape, lines.applyAsInt(shape), availableWidth, availableHeight) && isClear.test(shape)) {
                 return shape;
             }
         }
 
         Shape smallest = minimal(availableWidth, rankedLists, scale);
         float widest = (float) availableWidth / width(smallest);
-        float tallest = (float) availableHeight / height(smallest, rows);
+        float tallest = (float) availableHeight / height(smallest, lines.applyAsInt(smallest));
         float shrunk = Math.min(scale, Math.min(widest, tallest));
         return new Shape(Detail.MINIMAL, 0, false, smallest.lists(), smallest.model(), shrunk);
+    }
+
+    public Shape fit(Detail wanted, int rows, int rankedLists, float scale, int guiScale,
+            int availableWidth, int availableHeight, Predicate<Shape> isClear) {
+        return fit(wanted, LastColumn.DATE, false, shape -> rows, rankedLists, scale, guiScale, availableWidth, availableHeight, isClear);
     }
 
     /** Fitting with nothing else to avoid, as when working out what a size allows. */

@@ -38,14 +38,15 @@ final class Wardrobe {
         for (int slot = 0; slot < SLOTS.length; slot++) {
             ItemStack stack = new ItemStack(Armor.piece(pieces[slot], slot));
             if (look != null && !stack.isEmpty()) {
-                addTrim(stack, look);
+                addTrim(stack, look.trim(slot), look.trimMaterial(slot));
             }
             model.setItemSlot(SLOTS[slot], stack);
         }
     }
 
-    private static void addTrim(ItemStack stack, Cosmetics look) {
-        if (look.trimPattern.equals("none")) {
+    /** Each piece carries its own trim, so a helmet and chestplate can differ. */
+    private static void addTrim(ItemStack stack, String trimPattern, String trimMaterial) {
+        if (trimPattern == null || trimPattern.equals("none") || trimMaterial == null) {
             return;
         }
         Minecraft minecraft = Minecraft.getInstance();
@@ -54,11 +55,11 @@ final class Wardrobe {
         }
         HolderLookup.Provider registries = minecraft.level.registryAccess();
         Holder<TrimPattern> pattern = registries.lookupOrThrow(Registries.TRIM_PATTERN)
-                .get(ResourceKey.create(Registries.TRIM_PATTERN, Identifier.withDefaultNamespace(look.trimPattern.toLowerCase(Locale.ROOT))))
+                .get(ResourceKey.create(Registries.TRIM_PATTERN, Identifier.withDefaultNamespace(trimPattern.toLowerCase(Locale.ROOT))))
                 .map(holder -> (Holder<TrimPattern>) holder)
                 .orElse(null);
         Holder<TrimMaterial> material = registries.lookupOrThrow(Registries.TRIM_MATERIAL)
-                .get(ResourceKey.create(Registries.TRIM_MATERIAL, Identifier.withDefaultNamespace(look.trimMaterial.toLowerCase(Locale.ROOT))))
+                .get(ResourceKey.create(Registries.TRIM_MATERIAL, Identifier.withDefaultNamespace(trimMaterial.toLowerCase(Locale.ROOT))))
                 .map(holder -> (Holder<TrimMaterial>) holder)
                 .orElse(null);
         if (Objects.nonNull(pattern) && Objects.nonNull(material)) {

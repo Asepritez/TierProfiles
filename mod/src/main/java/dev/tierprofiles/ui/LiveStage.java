@@ -51,7 +51,7 @@ final class LiveStage {
         Settings settings = config.active();
         Subject subject = subject();
 
-        int cardHeight = ProfileCard.previewHeight(settings);
+        int cardHeight = ProfileCard.previewHeight(settings, config.global.cosmetics, subject.profile());
         int cardWidth = ProfileCard.previewWidth(settings);
         float cardScale = Math.min(1, (float) innerWidth / cardWidth);
         int scaledCardHeight = Math.round(cardHeight * cardScale);

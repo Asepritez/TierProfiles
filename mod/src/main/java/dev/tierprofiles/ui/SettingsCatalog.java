@@ -168,12 +168,89 @@ final class SettingsCatalog {
         number(tab, advanced, "Tags at once", "How many lists may show a tag together.", true, 1, SurfaceSettings.MAX_TAGS, "", rules, s -> s.maxTags, (s, v) -> s.maxTags = v);
     }
 
-    private void addLists() {
-        SettingsTab tab = SettingsTab.TAGS;
-        Supplier<Filters> filters = () -> active().filters;
-        String path = "Tags, Advanced";
+    /** How many slots fit across a control, for rows that wrap onto a second line. */
+    private static int perRow(int width) {
+        return Math.max(1, width / (Ui.SLOT + 1));
+    }
 
-        add(tab, path, "List order", "Click a list to move it up. First wins when a tag only has room for one.", true, (ui, x, y, width) -> {
+    private static int slotX(int x, int index, int perRow) {
+        return x + index % perRow * (Ui.SLOT + 1);
+    }
+
+    private static int slotY(int y, int index, int perRow) {
+        return y + index / perRow * (Ui.SLOT + 1);
+    }
+
+    /** A row of list logos you click to switch off. A list that's off is faded and framed red. */
+    private void listSwitches(SettingsTab tab, String path, String label, String hint, boolean advanced,
+            Function<TierList, Boolean> isHidden, BiConsumer<TierList, Boolean> setHidden) {
+        add(tab, path, label, hint, advanced, (ui, x, y, width) -> {
+            for (TierList list : TierList.values()) {
+                boolean hidden = isHidden.apply(list);
+                if (ui.slot(x, y, false)) {
+                    setHidden.accept(list, !hidden);
+                }
+                dev.tierprofiles.hud.Logos.draw(ui.graphics, list, x + 2, y - 8, 16, hidden ? 0.25f : 1);
+                if (hidden) {
+                    ui.graphics.outline(x, y - Ui.SLOT / 2, Ui.SLOT, Ui.SLOT, Theme.BAD);
+                }
+                if (ui.hovered(x, y - Ui.SLOT / 2, Ui.SLOT, Ui.SLOT)) {
+                    ui.hint(list.displayName() + (hidden ? ": hidden" : ": shown"), hint);
+                }
+                x += Ui.SLOT + 1;
+            }
+        });
+    }
+
+    /** Every known kit on two lines. A hidden kit is faded and framed red. */
+    private void kitSwitches(SettingsTab tab, String path, String label, String hint, boolean advanced,
+            Supplier<java.util.Collection<String>> hidden) {
+        addTall(tab, path, label, hint, advanced, 2, (ui, x, y, width) -> {
+            java.util.Collection<String> off = hidden.get();
+            List<String> kits = Kits.known();
+            int across = perRow(width);
+            for (int i = 0; i < kits.size(); i++) {
+                String kit = kits.get(i);
+                int cellX = slotX(x, i, across);
+                int cellY = slotY(y, i, across);
+                boolean isOff = off.contains(kit);
+                if (ui.slot(cellX, cellY, false)) {
+                    if (isOff) {
+                        off.remove(kit);
+                    } else {
+                        off.add(kit);
+                    }
+                }
+                dev.tierprofiles.surface.KitIcon.draw(ui.graphics, kit, cellX + 2, cellY - 8, active().style.iconSet, isOff ? 0.25f : 1);
+                if (isOff) {
+                    ui.graphics.outline(cellX, cellY - Ui.SLOT / 2, Ui.SLOT, Ui.SLOT, Theme.BAD);
+                }
+                if (ui.hovered(cellX, cellY - Ui.SLOT / 2, Ui.SLOT, Ui.SLOT)) {
+                    ui.hint(Kits.displayName(kit) + (isOff ? ": hidden" : ": shown"), hint);
+                }
+            }
+        });
+    }
+
+    private void addLists() {
+        SettingsTab tab = SettingsTab.LISTS;
+        Supplier<Filters> filters = () -> active().filters;
+        String path = "Lists";
+
+        listSwitches(tab, path, "Lists", "Click a list to remove it from tags, names and cards. Click again to bring it back.", false,
+                list -> !filters.get().isEnabled(list),
+                (list, hide) -> {
+                    if (hide) {
+                        filters.get().disabledLists.add(list);
+                    } else {
+                        filters.get().disabledLists.remove(list);
+                    }
+                });
+        kitSwitches(tab, path, "Kits", "Click a kit to remove it everywhere. Not into SMP? Hide it and it never shows.", false,
+                () -> filters.get().hiddenKits);
+
+        String advanced = "Lists, Advanced";
+        add(tab, advanced, "List order", "Click a list to move it up. First wins when a tag only has room for one.", true, (ui, x, y, width) -> {
             List<TierList> order = filters.get().listPriority;
             for (int i = 0; i < order.size(); i++) {
                 TierList list = order.get(i);
@@ -189,16 +266,7 @@ final class SettingsCatalog {
 
         for (TierList list : TierList.values()) {
             String name = dev.tierprofiles.core.layout.CardGrid.rowName(list);
-            add(tab, path, name, "Use this list at all, and the lowest tier it may show. HT4 means different things on different lists.", true, (ui, x, y, width) -> {
-                Filters target = filters.get();
-                boolean on = ui.toggle(x, y, target.isEnabled(list));
-                if (on) {
-                    target.disabledLists.remove(list);
-                } else {
-                    target.disabledLists.add(list);
-                }
-            });
-            add(tab, path, name + " minimum", "Only tiers this good show from this list.", true, (ui, x, y, width) -> {
+            add(tab, advanced, name + " minimum", "Only tiers this good show from this list. HT4 means different things on different lists.", true, (ui, x, y, width) -> {
                 Filters target = filters.get();
                 Tier picked = ui.tierPicker(x, y, target.listMinimum(list), this::colorOf);
                 if (picked == null) {
@@ -209,25 +277,23 @@ final class SettingsCatalog {
             });
         }
 
-        add(tab, path, "Selected kits", "The kits Selected mode counts. Click to add or remove.", true, (ui, x, y, width) -> {
+        addTall(tab, advanced, "Selected kits", "The kits the Selected gamemode counts. Click to add or remove.", true, 2, (ui, x, y, width) -> {
             List<String> chosen = filters.get().selectedKits;
-            int perRow = width / (Ui.SLOT + 1);
-            int shown = 0;
-            for (String kit : Kits.known()) {
-                if (shown >= perRow) {
-                    break;
-                }
+            List<String> kits = Kits.known();
+            int across = perRow(width);
+            for (int i = 0; i < kits.size(); i++) {
+                String kit = kits.get(i);
+                int cellX = slotX(x, i, across);
+                int cellY = slotY(y, i, across);
                 boolean on = chosen.contains(kit);
-                if (ui.slot(x, y, on)) {
+                if (ui.slot(cellX, cellY, on)) {
                     if (on) {
                         chosen.remove(kit);
                     } else {
                         chosen.add(kit);
                     }
                 }
-                screen.drawKit(ui, kit, x + 2, y - 8);
-                x += Ui.SLOT + 1;
-                shown += 1;
+                screen.drawKit(ui, kit, cellX + 2, cellY - 8);
             }
         });
     }
@@ -300,23 +366,37 @@ final class SettingsCatalog {
         }
     }
 
-    private void armor(String label, Function<Cosmetics, String> get, BiConsumer<Cosmetics, String> set, Function<String, ItemStack> stack) {
-        add(SettingsTab.PROFILE, "Profile, Advanced", label, "Only shows on your TierProfiles card. Never changes your real armor.", true, (ui, x, y, width) -> {
-            Cosmetics target = cosmetics();
-            for (String id : Cosmetics.ARMOR) {
-                boolean on = id.equals(get.apply(target));
-                if (ui.slot(x, y, on)) {
-                    set.accept(target, id);
-                }
-                if (Ui.itemsReady()) {
-                    ItemStack item = stack.apply(id);
-                    if (!item.isEmpty()) {
-                        ui.graphics.item(item, x + 2, y - 8);
-                    }
-                }
-                x += Ui.SLOT + 1;
+    private static final String[] PIECES = {"Helmet", "Chestplate", "Leggings", "Boots"};
+
+    /** Which armor piece the trim rows edit. -1 edits all four at once. UI state only. */
+    private int piece = -1;
+
+    /** True when the piece being edited has this value, or with All, when every piece does. */
+    private boolean pieceIs(Function<Integer, String> get, String id) {
+        if (piece >= 0) {
+            return id.equals(get.apply(piece));
+        }
+        for (int slot = 0; slot < 4; slot++) {
+            if (!id.equals(get.apply(slot))) {
+                return false;
             }
-        });
+        }
+        return true;
+    }
+
+    private void setPiece(BiConsumer<Integer, String> set, String id) {
+        if (piece >= 0) {
+            set.accept(piece, id);
+        } else {
+            for (int slot = 0; slot < 4; slot++) {
+                set.accept(slot, id);
+            }
+        }
+    }
+
+    /** The armor slot the rows below show, which for All is the chestplate. */
+    private int shownSlot() {
+        return piece < 0 ? 1 : piece;
     }
 
     private void addProfile() {
@@ -343,24 +423,78 @@ final class SettingsCatalog {
         });
         choice(tab, path, "Border", "The frame around your card.", false, Cosmetics.BORDERS, SettingsCatalog::words, style, c -> c.border, (c, v) -> c.border = v);
         choice(tab, path, "Effects", "Sparkles and motes drift inside your card.", false, Cosmetics.EFFECTS, SettingsCatalog::words, style, c -> c.effect, (c, v) -> c.effect = v);
-        choice(tab, path, "Card detail", "How much each row says. Standard adds dates.", false, List.of(CardSettings.Detail.values()), SettingsCatalog::words, card, c -> c.detail, (c, v) -> c.detail = v);
+        choice(tab, path, "Card detail", "How much each row says. Press the All ranks key on any card to see every kit.", false, List.of(CardSettings.Detail.values()), SettingsCatalog::words, card, c -> c.detail, (c, v) -> c.detail = v);
+        choice(tab, path, "Last column", "After the third kit: the date it was achieved, a fourth kit, or nothing.", false,
+                List.of(CardSettings.LastColumn.values()), value -> switch (value) {
+                    case DATE -> "Date";
+                    case FOURTH_TIER -> "4th tier";
+                    case NONE -> "Nothing";
+                }, card, c -> c.lastColumn, (c, v) -> c.lastColumn = v);
+        choice(tab, path, "While in Tab", "What shows as you move through players with Tab held. Enter keeps the big card, and the All ranks key shows everything.", false,
+                List.of(CardSettings.TabPreview.values()), value -> switch (value) {
+                    case SMALL -> "Small card";
+                    case BIG -> "Big card";
+                    case OFF -> "Nothing";
+                }, card, c -> c.tabPreview, (c, v) -> c.tabPreview = v);
         choice(tab, path, "Animation", "How cards arrive.", false, List.of(CardSettings.AnimationStyle.values()), SettingsCatalog::words, card, c -> c.animationStyle, (c, v) -> c.animationStyle = v);
         percent(tab, path, "Speed", "100% is normal. Reduce motion turns all of this off.", false, CardSettings.MIN_SPEED, CardSettings.MAX_SPEED, card, c -> c.animationSpeed, (c, v) -> c.animationSpeed = v);
-
-        armor("Helmet", c -> c.helmet, (c, v) -> c.helmet = v, id -> new ItemStack(Armor.piece(id, 0)));
-        armor("Chestplate", c -> c.chestplate, (c, v) -> c.chestplate = v, id -> new ItemStack(Armor.piece(id, 1)));
-        armor("Leggings", c -> c.leggings, (c, v) -> c.leggings = v, id -> new ItemStack(Armor.piece(id, 2)));
-        armor("Boots", c -> c.boots, (c, v) -> c.boots = v, id -> new ItemStack(Armor.piece(id, 3)));
+        add(tab, path, "Stays open", "How long a pinned card stays before it glides away. Zero keeps it until you close it.", false, (ui, x, y, width) -> {
+            CardSettings target = card.get();
+            String label = target.overlayCloseSeconds == 0 ? "Until closed" : target.overlayCloseSeconds + "s";
+            target.overlayCloseSeconds = Math.round(ui.slider(stayOpen, x, y, SLIDER_WIDTH, target.overlayCloseSeconds, 0, CardSettings.MAX_CLOSE_SECONDS, label));
+        });
+        listSwitches(tab, path, "Lists on my card", "Leave a list off your own card, for you and everyone else. Handy if you're unranked there.", false,
+                list -> style.get().hiddenLists.contains(list.id()),
+                (list, hide) -> {
+                    List<String> hidden = style.get().hiddenLists;
+                    hidden.remove(list.id());
+                    if (hide) {
+                        hidden.add(list.id());
+                    }
+                });
 
         String advanced = "Profile, Advanced";
-        choice(tab, advanced, "Trim", "A trim pattern for your card's armor.", true, Cosmetics.TRIM_PATTERNS.subList(0, 8), SettingsCatalog::words, style, c -> c.trimPattern, (c, v) -> c.trimPattern = v);
-        choice(tab, advanced, "More trims", "More trim patterns.", true, Cosmetics.TRIM_PATTERNS.subList(8, 15), SettingsCatalog::words, style, c -> c.trimPattern, (c, v) -> c.trimPattern = v);
-        choice(tab, advanced, "Even more trims", "The rest of the trim patterns.", true, Cosmetics.TRIM_PATTERNS.subList(15, Cosmetics.TRIM_PATTERNS.size()), SettingsCatalog::words, style, c -> c.trimPattern, (c, v) -> c.trimPattern = v);
+        kitSwitches(tab, advanced, "Kits on my card", "Leave kits off your own card, for you and everyone else.", true, () -> style.get().hiddenKits);
+        add(tab, advanced, "Piece", "Pick a piece to give it its own armor and trim, or All to change every piece together.", true, (ui, x, y, width) -> {
+            List<Integer> choices = List.of(-1, 0, 1, 2, 3);
+            piece = ui.segments(x, y, choices, piece, slot -> slot < 0 ? "All" : PIECES[slot]);
+        });
+        add(tab, advanced, "Armor", "Only shows on your TierProfiles card. Never changes your real armor.", true, (ui, x, y, width) -> {
+            Cosmetics target = style.get();
+            for (String id : Cosmetics.ARMOR) {
+                if (ui.slot(x, y, pieceIs(target::armor, id))) {
+                    setPiece(target::setArmor, id);
+                }
+                if (Ui.itemsReady()) {
+                    ItemStack item = new ItemStack(Armor.piece(id, shownSlot()));
+                    if (!item.isEmpty()) {
+                        ui.graphics.item(item, x + 2, y - 8);
+                    }
+                }
+                x += Ui.SLOT + 1;
+            }
+        });
+        addTall(tab, advanced, "Trim", "A trim pattern, from the real smithing templates.", true, 2, (ui, x, y, width) -> {
+            Cosmetics target = style.get();
+            int across = perRow(width);
+            for (int i = 0; i < Cosmetics.TRIM_PATTERNS.size(); i++) {
+                String id = Cosmetics.TRIM_PATTERNS.get(i);
+                int cellX = slotX(x, i, across);
+                int cellY = slotY(y, i, across);
+                if (ui.slot(cellX, cellY, pieceIs(target::trim, id))) {
+                    setPiece(target::setTrim, id);
+                }
+                ui.item(Armor.trimTemplate(id), cellX + 2, cellY - 8);
+                if (ui.hovered(cellX, cellY - Ui.SLOT / 2, Ui.SLOT, Ui.SLOT)) {
+                    ui.hint(words(id), "A trim pattern, from the real smithing templates.");
+                }
+            }
+        });
         add(tab, advanced, "Trim material", "The colour of the trim.", true, (ui, x, y, width) -> {
             Cosmetics target = style.get();
             for (String id : Cosmetics.TRIM_MATERIALS) {
-                if (ui.slot(x, y, id.equals(target.trimMaterial))) {
-                    target.trimMaterial = id;
+                if (ui.slot(x, y, pieceIs(target::trimMaterial, id))) {
+                    setPiece(target::setTrimMaterial, id);
                 }
                 ui.item(Armor.trimItem(id), x + 2, y - 8);
                 x += Ui.SLOT + 1;
@@ -382,25 +516,23 @@ final class SettingsCatalog {
         });
         add(tab, advanced, "Featured kit", "A kit to show off on your card.", true, (ui, x, y, width) -> {
             Cosmetics target = style.get();
-            int shown = 0;
-            for (String kit : Kits.known().subList(0, 12)) {
+            for (String kit : Kits.known().subList(0, Math.min(perRow(width), Kits.known().size()))) {
                 if (ui.slot(x, y, kit.equals(target.featuredKit))) {
                     target.featuredKit = kit.equals(target.featuredKit) ? null : kit;
                 }
                 screen.drawKit(ui, kit, x + 2, y - 8);
                 x += Ui.SLOT + 1;
-                shown += 1;
             }
         });
         toggle(tab, advanced, "Model sways", "Let the model turn slowly.", true, card, c -> c.spinModel, (c, v) -> c.spinModel = v);
         toggle(tab, advanced, "Peak marks", "Show a gold corner when their peak was higher.", true, card, c -> c.showPeak, (c, v) -> c.showPeak = v);
-        toggle(tab, advanced, "Dates", "Show when tiers were achieved.", true, card, c -> c.showAttained, (c, v) -> c.showAttained = v);
         toggle(tab, advanced, "Retired tiers", "Include retired tiers on the card.", true, card, c -> c.showRetired, (c, v) -> c.showRetired = v);
         toggle(tab, advanced, "Total points", "Show points at the top of the card.", true, card, c -> c.showPoints, (c, v) -> c.showPoints = v);
         percent(tab, advanced, "Size", "Shrinks by itself if it would reach the crosshair.", true, CardSettings.MIN_SCALE, CardSettings.MAX_SCALE, card, c -> c.overlayScale, (c, v) -> c.overlayScale = v);
         percent(tab, advanced, "Opacity", "How solid the background is.", true, 0, 1, card, c -> c.overlayOpacity, (c, v) -> c.overlayOpacity = v);
-        number(tab, advanced, "Close after", "Zero keeps it open until you close it.", true, 0, CardSettings.MAX_CLOSE_SECONDS, "s", card, c -> c.overlayCloseSeconds, (c, v) -> c.overlayCloseSeconds = v);
     }
+
+    private final Object stayOpen = new Object();
 
     private void addPosition() {
         SettingsTab tab = SettingsTab.POSITION;
@@ -447,6 +579,7 @@ final class SettingsCatalog {
     private void addKeys() {
         addKey("Open settings", Keys.SETTINGS);
         addKey("Pin selected card", Keys.PIN);
+        addKey("Show all ranks", Keys.ALL_RANKS);
         addKey("Select player above", Keys.UP);
         addKey("Select player below", Keys.DOWN);
         addKey("Previous column", Keys.LEFT);
@@ -466,13 +599,15 @@ final class SettingsCatalog {
         SettingsTab tab = SettingsTab.MORE;
         String path = "More";
 
-        toggle(tab, path, "Look up tiers online", "Off means no data is sent and no tiers show.", false, this::global, g -> g.lookupsEnabled, (g, v) -> g.lookupsEnabled = v);
+        toggle(tab, path, "Look up tiers online", "Sends players' names and UUIDs to the tier list sites. Off means nothing is sent and no tiers show.", false, this::global, g -> g.lookupsEnabled, (g, v) -> g.lookupsEnabled = v);
         toggle(tab, path, "Reduce motion", "Turns off every animation in TierProfiles.", false, this::global, g -> g.reduceMotion, (g, v) -> g.reduceMotion = v);
         Supplier<Style> style = () -> active().style;
         choice(tab, path, "Icon style", "Default is real game items. Classic is the older Programmer Art look, for the items that pack has.", false, List.of(Style.IconSet.values()), SettingsCatalog::words, style, s -> s.iconSet, (s, v) -> s.iconSet = v);
 
         String advanced = "More, Advanced";
         toggle(tab, advanced, "Official list logos", "Downloads each list's logo from its own website. Off uses our letter marks.", true, this::global, g -> g.officialLogos, (g, v) -> g.officialLogos = v);
-        add(tab, advanced, "Server address", "Where lookups go.", true, (ui, x, y, width) -> screen.drawServerBox(ui, x, y, width));
+        choice(tab, advanced, "Look up from", "Lists asks each list's website yourself. Server goes through TierProfiles, which also shares card styles.", true,
+                List.of(Global.Source.values()), source -> source == Global.Source.DIRECT ? "Lists" : "Server", this::global, g -> g.source, (g, v) -> g.source = v);
+        add(tab, advanced, "Server address", "Where lookups go when Look up from is Server.", true, (ui, x, y, width) -> screen.drawServerBox(ui, x, y, width));
     }
 }

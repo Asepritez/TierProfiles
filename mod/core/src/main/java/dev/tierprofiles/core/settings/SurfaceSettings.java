@@ -1,5 +1,6 @@
 package dev.tierprofiles.core.settings;
 
+import dev.tierprofiles.core.Maths;
 import dev.tierprofiles.core.model.Tier;
 
 public final class SurfaceSettings {
@@ -45,7 +46,7 @@ public final class SurfaceSettings {
         if (Tier.parse(minimumTier) == null) {
             minimumTier = null;
         }
-        maxTags = Math.clamp(maxTags, 1, MAX_TAGS);
+        maxTags = Maths.clamp(maxTags, 1, MAX_TAGS);
         tierMode = tierMode == null ? TierMode.CURRENT : tierMode;
         kitMode = kitMode == null ? Filters.KitMode.HIGHEST : kitMode;
     }

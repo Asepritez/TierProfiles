@@ -3,7 +3,10 @@ package dev.tierprofiles.input;
 import com.mojang.blaze3d.platform.InputConstants;
 import dev.tierprofiles.TierProfiles;
 import dev.tierprofiles.core.net.ProfileService;
+import dev.tierprofiles.core.settings.CardSettings;
 import dev.tierprofiles.hud.CardState;
+import dev.tierprofiles.hud.LookAtCard;
+import java.util.UUID;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.multiplayer.PlayerInfo;
@@ -29,25 +32,25 @@ public final class Controls {
             return true;
         }
 
+        if (Keys.ALL_RANKS.matches(event) && firstPress) {
+            return showAllRanks();
+        }
+
         if (!TabSelection.isListVisible()) {
             return false;
         }
 
         if (Keys.UP.matches(event)) {
-            TabSelection.move(-1, 0);
-            return true;
+            return moved(-1, 0);
         }
         if (Keys.DOWN.matches(event)) {
-            TabSelection.move(1, 0);
-            return true;
+            return moved(1, 0);
         }
         if (Keys.LEFT.matches(event)) {
-            TabSelection.move(0, -1);
-            return true;
+            return moved(0, -1);
         }
         if (Keys.RIGHT.matches(event)) {
-            TabSelection.move(0, 1);
-            return true;
+            return moved(0, 1);
         }
         if (Keys.PIN.matches(event) && firstPress) {
             return togglePin();
@@ -59,20 +62,65 @@ public final class Controls {
         return Keys.PIN.matches(event) && !TabSelection.isListVisible();
     }
 
+    /** Moves the selection, and with the big card chosen, shows the newly selected player's. */
+    private static boolean moved(int rowsDown, int columnsAcross) {
+        TabSelection.move(rowsDown, columnsAcross);
+        PlayerInfo info = TabSelection.selected();
+        boolean pinnedElsewhere = CardState.isOpen() && !CardState.isPreview();
+        if (info != null && !pinnedElsewhere && TierProfiles.settings().card.tabPreview == CardSettings.TabPreview.BIG) {
+            CardState.preview(info.getProfile().id(), info.getProfile().name());
+            TierProfiles.profiles().requestUrgent(info.getProfile().id(), info.getProfile().name());
+            if (ProfileService.isAllowed(TierProfiles.config().global)) {
+                TierProfiles.cosmetics().request(info.getProfile().id());
+            }
+        } else if (info != null) {
+            TierProfiles.profiles().requestUrgent(info.getProfile().id(), info.getProfile().name());
+        }
+        return true;
+    }
+
     private static boolean togglePin() {
         PlayerInfo info = TabSelection.selected();
         if (info == null) {
             return false;
         }
-        if (CardState.isShowing(info.getProfile().id())) {
+        if (CardState.isShowing(info.getProfile().id()) && CardState.isPreview()) {
+            CardState.pin();
+        } else if (CardState.isShowing(info.getProfile().id())) {
             CardState.close();
         } else {
-            CardState.open(info.getProfile().id(), info.getProfile().name());
-            TierProfiles.profiles().requestUrgent(info.getProfile().id(), info.getProfile().name());
-            if (ProfileService.isAllowed(TierProfiles.config().global)) {
-                TierProfiles.cosmetics().request(info.getProfile().id());
-            }
+            open(info.getProfile().id(), info.getProfile().name(), false);
         }
         return true;
+    }
+
+    /**
+     * One key for "show me everything": it flips an open card to All ranks and back,
+     * or opens one straight into it for the player picked in Tab or under the crosshair.
+     */
+    private static boolean showAllRanks() {
+        PlayerInfo info = TabSelection.isListVisible() ? TabSelection.selected() : null;
+        if (info != null && !CardState.isShowing(info.getProfile().id())) {
+            open(info.getProfile().id(), info.getProfile().name(), true);
+            return true;
+        }
+        if (CardState.isOpen()) {
+            CardState.toggleAllRanks();
+            return true;
+        }
+        UUID aimed = LookAtCard.showing();
+        if (aimed != null) {
+            open(aimed, LookAtCard.showingName(), true);
+            return true;
+        }
+        return false;
+    }
+
+    private static void open(UUID uuid, String name, boolean allRanks) {
+        CardState.open(uuid, name, allRanks);
+        TierProfiles.profiles().requestUrgent(uuid, name);
+        if (ProfileService.isAllowed(TierProfiles.config().global)) {
+            TierProfiles.cosmetics().request(uuid);
+        }
     }
 }

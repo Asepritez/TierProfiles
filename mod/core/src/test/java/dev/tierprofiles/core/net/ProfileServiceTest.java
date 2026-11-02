@@ -62,6 +62,7 @@ class ProfileServiceTest {
 
     ProfileServiceTest() {
         global.noticeSeen = true;
+        global.source = Global.Source.SERVER;
     }
 
     /** Version 4 UUIDs, as real accounts have. */

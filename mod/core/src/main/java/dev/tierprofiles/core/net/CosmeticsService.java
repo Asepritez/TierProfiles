@@ -42,7 +42,8 @@ public final class CosmeticsService {
         TOO_SOON("Saved a moment ago. Try again shortly"),
         REFUSED("The server refused this card"),
         OFFLINE("Can't reach the server right now"),
-        LOOKUPS_OFF("Turn on online lookups to save your card");
+        LOOKUPS_OFF("Turn on online lookups to save your card"),
+        NO_SERVER("Your card shows in your game. Sharing it needs the TierProfiles server");
 
         private final String message;
 
@@ -81,7 +82,7 @@ public final class CosmeticsService {
     }
 
     public SaveState state() {
-        return state;
+        return server.get() == null && state == SaveState.IDLE ? SaveState.NO_SERVER : state;
     }
 
     /** What's known about a player's card. Safe while drawing. */
@@ -98,7 +99,7 @@ public final class CosmeticsService {
     public void request(UUID uuid) {
         long now = clock.getAsLong();
         Long last = fetchedAt.get(uuid);
-        if (last != null && now - last < FRESH_MILLIS) {
+        if (last != null && now - last < FRESH_MILLIS || server.get() == null) {
             return;
         }
         fetchedAt.put(uuid, now);
@@ -119,6 +120,10 @@ public final class CosmeticsService {
 
     /** Saves in the background. Watch `state` for how it went. */
     public void save(Cosmetics cosmetics, String playerName) {
+        if (server.get() == null) {
+            state = SaveState.NO_SERVER;
+            return;
+        }
         state = SaveState.SAVING;
         String body = GSON.toJson(cosmetics);
         background.execute(() -> state = trySave(body, playerName));

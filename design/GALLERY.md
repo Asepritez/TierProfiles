@@ -1,5 +1,36 @@
 # TierProfiles GUI drafts
 
+## New in this update (in the real game)
+
+### While in Tab: small card
+Move through players with Tab held and the small card shows straight away.
+![Small card while in Tab](ingame/u2-tp-02b-tab-small-card.png)
+
+### While in Tab: big card
+Set "While in Tab" to Big card and the full card swaps as you move. Enter keeps it.
+![Big card while in Tab](ingame/u2-tp-02c-tab-big-card.png)
+
+### Last column: 4th tier
+![Four tiers instead of a date](ingame/u2-tp-last-fourth_tier.png)
+
+### All ranks (Right Shift)
+Every kit on every list, wrapping onto more lines. Here PVPHQ and SMP are hidden on the Lists tab.
+![All ranks](ingame/u2-tp-all-ranks.png)
+
+At GUI scale 4 it drops to a sharp smaller size instead of leaving kits out:
+![All ranks at GUI 4](ingame/u2-tp-all-ranks-gui4.png)
+
+### Lists tab
+Click a list or a kit to remove it everywhere.
+![Lists tab](ingame/u2-tp-config-lists.png)
+
+### Profile: trims per piece, kits on my card
+![Profile advanced](ingame/u2-tp-config-profile-advanced.png)
+
+### Hover help
+![Tooltip on a setting](ingame/u2-tp-config-tooltip-setting.png)
+![Tooltip on a tab](ingame/u2-tp-config-tooltip-rail.png)
+
 ## In the real game
 
 Screenshots from the actual mod running in Minecraft 26.3 with an offline test account. Every image

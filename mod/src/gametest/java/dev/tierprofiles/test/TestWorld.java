@@ -36,6 +36,8 @@ final class TestWorld {
     static void acceptNotice() {
         ConfigFile config = ConfigStore.copy(TierProfiles.config());
         config.global.noticeSeen = true;
+        // The tests save a card, which needs the local server and its stand-in Mojang.
+        config.global.source = dev.tierprofiles.core.settings.Global.Source.SERVER;
         TierProfiles.publish(config);
     }
 

@@ -31,9 +31,13 @@ public final class HudLayer {
         }
 
         graphics.nextStratum();
-        LookAtCard.draw(graphics);
-
         boolean tabShowing = TabSelection.isListVisible() && tab.bottom() > 0;
+        if (CardState.isPreview() && !TabSelection.isListVisible()) {
+            // Letting go of Tab puts a card you were only browsing away.
+            CardState.close();
+        }
+        LookAtCard.draw(graphics, tabShowing ? TabSelection.selected() : null);
+
         int belowHints = tabShowing ? drawKeyHints(graphics, minecraft.font, tab.bottom()) : 0;
         if (CardState.isVisible()) {
             ProfileCard.draw(graphics, CardState.uuid(), CardState.name(), tabShowing ? tab.right() : 0, belowHints);
@@ -48,8 +52,9 @@ public final class HudLayer {
     private static int drawKeyHints(GuiGraphicsExtractor graphics, Font font, int bottomOfTab) {
         String keys = keyLabel(Keys.UP, "\u2191") + keyLabel(Keys.DOWN, "\u2193")
                 + keyLabel(Keys.LEFT, "\u2190") + keyLabel(Keys.RIGHT, "\u2192");
-        String text = keys + " Move   " + Keys.PIN.getTranslatedKeyMessage().getString()
-                + (CardState.isOpen() ? " Close card" : " Open card");
+        String pin = Keys.PIN.getTranslatedKeyMessage().getString();
+        String action = CardState.isPreview() ? " Keep card" : CardState.isOpen() ? " Close card" : " Open card";
+        String text = keys + " Move   " + pin + action + "   " + Keys.ALL_RANKS.getTranslatedKeyMessage().getString() + " All ranks";
 
         int width = font.width(text) + 8;
         int x = (graphics.guiWidth() - width) / 2;

@@ -10,14 +10,30 @@ export interface Cosmetics {
   chestplate: string;
   leggings: string;
   boots: string;
+  /** The shared trim older clients use. Kept in step with the chestplate. */
   trimPattern: string;
   trimMaterial: string;
+  /** Each piece's own trim. Older clients don't send these, so they fall back to the shared one. */
+  helmetTrim: string;
+  chestplateTrim: string;
+  leggingsTrim: string;
+  bootsTrim: string;
+  helmetTrimMaterial: string;
+  chestplateTrimMaterial: string;
+  leggingsTrimMaterial: string;
+  bootsTrimMaterial: string;
   effect: string;
   intensity: number;
   accent: number;
   featuredKit: string | null;
   featuredList: string | null;
+  /** Lists and kits the owner left off their own card. */
+  hiddenLists: string[];
+  hiddenKits: string[];
 }
+
+const PIECES = ["helmet", "chestplate", "leggings", "boots"] as const;
+const MAX_HIDDEN_KITS = 32;
 
 const LIST_IDS = ["mctiers", "mcpvp", "pvptiers", "subtiers", "pvphq"];
 const KIT = /^[a-z0-9_]{1,24}$/;
@@ -25,6 +41,24 @@ export const SAVE_COOLDOWN_MS = 10_000;
 
 function oneOf(allowed: string[], value: unknown): value is string {
   return typeof value === "string" && allowed.includes(value);
+}
+
+/** A missing per-piece value means "same as the shared one". Anything else must be valid. */
+function pieceValue(allowed: string[], value: unknown, fallback: string): string | null {
+  if (value === undefined || value === null) return fallback;
+  return oneOf(allowed, value) ? value : null;
+}
+
+/** A list of allowed strings with no repeats, or null. Missing means empty. */
+function idList(value: unknown, isAllowed: (id: string) => boolean, max: number): string[] | null {
+  if (value === undefined || value === null) return [];
+  if (!Array.isArray(value) || value.length > max) return null;
+  const out: string[] = [];
+  for (const id of value) {
+    if (typeof id !== "string" || !isAllowed(id)) return null;
+    if (!out.includes(id)) out.push(id);
+  }
+  return out;
 }
 
 /** Returns a clean copy, or null if anything is off the list. Unknown keys are dropped. */
@@ -51,6 +85,18 @@ export function validateCosmetics(input: unknown): Cosmetics | null {
   if (featuredKit != null && (typeof featuredKit !== "string" || !KIT.test(featuredKit))) return null;
   if (featuredList != null && !oneOf(LIST_IDS, featuredList)) return null;
 
+  const trims: Record<string, string> = {};
+  for (const piece of PIECES) {
+    const pattern = pieceValue(catalog.trimPatterns, value[`${piece}Trim`], value.trimPattern);
+    const material = pieceValue(catalog.trimMaterials, value[`${piece}TrimMaterial`], value.trimMaterial);
+    if (pattern === null || material === null) return null;
+    trims[`${piece}Trim`] = pattern;
+    trims[`${piece}TrimMaterial`] = material;
+  }
+  const hiddenLists = idList(value.hiddenLists, (id) => LIST_IDS.includes(id), LIST_IDS.length);
+  const hiddenKits = idList(value.hiddenKits, (id) => KIT.test(id), MAX_HIDDEN_KITS);
+  if (hiddenLists === null || hiddenKits === null) return null;
+
   return {
     background: value.background,
     border: value.border,
@@ -60,11 +106,21 @@ export function validateCosmetics(input: unknown): Cosmetics | null {
     boots: value.boots,
     trimPattern: value.trimPattern,
     trimMaterial: value.trimMaterial,
+    helmetTrim: trims.helmetTrim!,
+    chestplateTrim: trims.chestplateTrim!,
+    leggingsTrim: trims.leggingsTrim!,
+    bootsTrim: trims.bootsTrim!,
+    helmetTrimMaterial: trims.helmetTrimMaterial!,
+    chestplateTrimMaterial: trims.chestplateTrimMaterial!,
+    leggingsTrimMaterial: trims.leggingsTrimMaterial!,
+    bootsTrimMaterial: trims.bootsTrimMaterial!,
     effect: value.effect,
     intensity,
     accent,
     featuredKit: (featuredKit as string | null | undefined) ?? null,
     featuredList: (featuredList as string | null | undefined) ?? null,
+    hiddenLists,
+    hiddenKits,
   };
 }
 

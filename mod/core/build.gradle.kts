@@ -4,6 +4,8 @@ plugins {
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(25)
 
+// Java 17 bytecode, so this same core can ship in builds for Minecraft 1.18 and up.
+
 repositories {
     mavenCentral()
 }
@@ -22,6 +24,11 @@ dependencies {
 tasks.withType<JavaCompile> {
     options.encoding = "UTF-8"
     options.release = 25
+}
+
+// Only what ships has to run on old Java. The tests stay on 25.
+tasks.compileJava {
+    options.release = 17
 }
 
 tasks.test {

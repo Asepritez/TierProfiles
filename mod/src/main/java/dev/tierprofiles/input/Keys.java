@@ -16,6 +16,8 @@ public final class Keys {
     public static final KeyMapping LEFT = key("left", InputConstants.KEY_LEFT);
     public static final KeyMapping RIGHT = key("right", InputConstants.KEY_RIGHT);
     public static final KeyMapping PIN = key("pin", InputConstants.KEY_RETURN);
+    /** Opens a card with every rank showing, or switches an open card to it and back. */
+    public static final KeyMapping ALL_RANKS = key("all_ranks", InputConstants.KEY_RSHIFT);
     public static final KeyMapping SETTINGS = key("settings", InputConstants.KEY_F12);
 
     private Keys() {

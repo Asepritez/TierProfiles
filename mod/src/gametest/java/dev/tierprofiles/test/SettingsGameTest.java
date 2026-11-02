@@ -111,13 +111,30 @@ final class SettingsGameTest {
             look.chestplate = "netherite";
             look.leggings = "netherite";
             look.boots = "netherite";
-            look.trimPattern = "rib";
-            look.trimMaterial = "amethyst";
+            for (int slot = 0; slot < 4; slot++) {
+                look.setTrim(slot, "rib");
+                look.setTrimMaterial(slot, "amethyst");
+            }
+            // A different trim on the helmet, which older versions couldn't do.
+            look.setTrim(0, "silence");
+            look.setTrimMaterial(0, "gold");
+            look.hiddenLists.add("pvptiers");
         });
         shot(context, "profile-styled");
         onScreen(context, current -> current.setAdvanced(true));
         shot(context, "profile-advanced");
         testSavingACard(context);
+
+        // Hovering shows what a setting does, beside the mouse. At 1080p one virtual pixel is two
+        // real ones, so these land on the Lists rail tab and on the first Profile setting.
+        onScreen(context, current -> current.setAdvanced(false));
+        context.getInput().setCursorPos(100, 180);
+        context.waitTicks(15);
+        shot(context, "tooltip-rail");
+        context.getInput().setCursorPos(300, 186);
+        context.waitTicks(15);
+        shot(context, "tooltip-setting");
+        context.getInput().setCursorPos(5, 1075);
 
         onScreen(context, current -> current.openTab(SettingsTab.MORE));
         onScreen(context, current -> current.openDiagnostics());

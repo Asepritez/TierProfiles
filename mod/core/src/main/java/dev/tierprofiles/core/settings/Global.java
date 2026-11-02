@@ -11,9 +11,22 @@ import java.util.Locale;
 public final class Global {
     public static final String DEFAULT_SERVER_URL = "http://127.0.0.1:8787";
 
-    /** Master switch for sending anything to the TierProfiles server. */
+    /** Master switch for looking anyone up at all. */
     public boolean lookupsEnabled = true;
+    /** Where lookups go. Direct needs no server of ours, so it's the default until one is hosted. */
+    public Source source = Source.DIRECT;
     public String serverUrl = DEFAULT_SERVER_URL;
+
+    public enum Source {
+        /** Ask each list's own website. Works with nothing else running. */
+        DIRECT,
+        /** Ask the TierProfiles server, which also shares card styles between players. */
+        SERVER
+    }
+
+    public boolean usesServer() {
+        return source == Source.SERVER;
+    }
     /** Whether the first-run privacy notice has been shown. */
     public boolean noticeSeen = false;
     /** Turns off every animation in our GUI. */
@@ -37,6 +50,7 @@ public final class Global {
     }
 
     void sanitize() {
+        source = source == null ? Source.DIRECT : source;
         if (!isValidServerUrl(serverUrl)) {
             serverUrl = DEFAULT_SERVER_URL;
         }

@@ -114,7 +114,14 @@ run against `wrangler dev`.
 ## Mod
 
 - Fabric, Minecraft 26.3, Java 25. Loader 0.20.1, Fabric API 0.165.0+26.3, Mod Menu 21.0.0
-  (optional). Later: port to 1.21.11.
+  (optional).
+- Versions: every version TierTagger supports, so players never have to choose. On 2 Nov 2026 that
+  was 1.18 to 26.3 on Fabric, Quilt and NeoForge. The core module is plain Java 17 so one core
+  serves them all; only the Minecraft-facing layer differs per version.
+- Lookups go straight to the five list sites by default ("Look up from: Lists"), so the mod works
+  with nothing else running. "Server" mode uses the TierProfiles server instead, which adds shared
+  card styles. `core/net/DirectLists` and `server/src/providers` do the same work and change
+  together.
 - Package `dev.tierprofiles`, mod id `tierprofiles`.
 - Client-side only. No config library: a custom flat UI in the style of Tallium (see Credits).
 - Only look up players the server has already put in the tab list, and skip UUIDs that are not
@@ -143,6 +150,9 @@ This is the headline feature. All of it is staged until Apply, as in Tallium.
 - Hide unranked, hide retired, show peak instead of current, hide your own tag.
 - Pick which gamemodes count, or use "highest overall" or auto-detect from your inventory.
 - List priority: which list wins when a tag only has room for one.
+- **Lists tab:** click a list's logo to remove that list everywhere (tags, names, cards, rank,
+  points, title), and click a kit to remove that kit everywhere. Someone who never plays SMP never
+  sees SMP. A list row whose only kits are hidden says "Kits hidden", never "Unranked".
 
 **Styling**
 - Colour for every tier, HT1 to LT5, per list or shared. Full RGB picker.
@@ -168,7 +178,15 @@ This is the headline feature. All of it is staged until Apply, as in Tallium.
   Minecraft draws the tab list with no menu open, so read keys without opening a `Screen`.
 - The profile is a **HUD overlay, not a Screen**: opening a Screen releases movement keys and would
   stop you mid-fight. Tallium's `PlayerPopup` proves this pattern.
-- Enter or Escape closes it. It also closes after a configurable time.
+- **While in Tab** (Profile tab): what shows as you move through players before pinning anyone.
+  Small card (default) is the look-at card for the selected player. Big card shows their full card,
+  swapping as you move; letting go of Tab puts it away, and Enter keeps it. Nothing waits for Enter.
+- Enter or Escape closes it. It also closes after a configurable time ("Stays open", 0 to 120
+  seconds, or until closed), on the Profile tab's essentials.
+- **All ranks** (Right Shift by default): on an open card it switches to every kit on every list,
+  wrapping rows onto more lines, and back again. With Tab held it opens the selected player straight
+  into All ranks; otherwise it opens whoever the look-at card shows. It never drops a kit: if the
+  screen is too small it shrinks the text as a last resort.
 - F12 by default opens settings. All keys are rebindable.
 
 ### Profile card
@@ -178,7 +196,10 @@ player's 3D model, name, region, title, **highest rank** and **total points**. B
 with tier chips and vanilla kit icons. No coloured underlines beneath icons.
 
 Each tier shows the date it was achieved, plus peak and retired state. A "Card detail" setting
-controls how much appears: Minimal, Standard (default) or Full.
+controls how much appears: Minimal, Standard (default) or Full. A "Last column" setting picks
+what follows the third kit in Standard: the Date (default), a 4th tier in the same slot grid, or
+Nothing for a narrower card. The moon always sits 24 pixels left of the rank, wherever the rank
+moves.
 
 **Position.** The player chooses where the card sits: nine anchors (corners, edge centres, centre),
 fine X and Y offsets, and dragging it on a live preview. It stays inside the screen, and the card
@@ -192,7 +213,7 @@ drafts and the mod:
 | Model | 3D model | Fixed width, full card height |
 | List | Logo, then name | Fixed logo slot, left-aligned text |
 | Kit 1, 2, 3 | Icon, then tier chip | Fixed-width slots wide enough for the widest chip |
-| Date | Achieved date | Right-aligned to the card's inner edge |
+| Date, or Kit 4 | Achieved date, or a 4th kit | Date right-aligned to the card's inner edge |
 
 - Every list row uses the same columns, including rows with no tiers. Empty slots stay empty.
 - Column widths are measured from the font, so text can never touch or overlap its neighbour.
@@ -220,7 +241,11 @@ the world. Nothing touches gameplay or sends anything to the Minecraft server, s
 a fight or get anyone banned. This is a hard rule.
 
 Players edit their own profile in the in-game config, on a **Profile** tab:
-- Card model: armor material per slot, trim pattern, trim material. Purely a visual on the card.
+- Card model: armor material, trim pattern and trim material per piece, so the helmet and the
+  chestplate can carry different trims. Pick a piece, or All. Purely a visual on the card. Older
+  saved cards with one shared trim load with that trim on every piece.
+- Lists and kits on my card: leave a list (say one you're unranked on) or kits off your own card,
+  for you and everyone who sees it. This adds to each viewer's own filters and never changes them.
 - Card background: animated scenes such as moon and night sky, starfield, nebula, embers, snow, plain.
 - Card border: thin, double, glowing, animated shimmer, corner ornaments.
 - Effects: sparkles, drifting particles, floating motes, with an intensity slider and an off switch.
@@ -245,6 +270,12 @@ edit your own profile:
 
 The player's access token goes **only to Mojang**, never to our server. Say this plainly in the
 README and the first-run notice. Offline or cracked accounts can't save a profile, but can view.
+
+### Help on hover
+
+Every setting and every tab on the rail explains itself: hover for a quarter of a second and a
+vanilla-style tooltip beside the mouse says what it does in one or two plain sentences. It fades in,
+stays on screen, and is drawn above everything.
 
 ## Design language
 
@@ -296,8 +327,8 @@ The look must be vanilla and official, so lists are easy to tell apart at a glan
 
 Modrinth's rules require clear disclosure of data sent to a remote server. Say in the README, on
 the Modrinth page and in a first-run notice that the mod sends the UUIDs and names of players in
-your tab list to the TierProfiles server, and your own card style when you choose to save it. Send
-nothing else. The mod also downloads list logos directly from those lists' websites. Your Minecraft
+your tab list to the five list websites (or, in Server mode, to the TierProfiles server), and in
+Server mode your own card style when you choose to save it. Send nothing else. The mod also downloads list logos directly from those lists' websites. Your Minecraft
 access token only ever goes to Mojang. Include a setting to turn lookups off.
 
 ## Credits

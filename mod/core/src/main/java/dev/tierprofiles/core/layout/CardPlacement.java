@@ -1,5 +1,6 @@
 package dev.tierprofiles.core.layout;
 
+import dev.tierprofiles.core.Maths;
 import dev.tierprofiles.core.settings.CardSettings.Anchor;
 
 /**
@@ -49,8 +50,8 @@ public final class CardPlacement {
     }
 
     private static Rect clamp(Rect rect, int screenWidth, int screenHeight) {
-        int x = Math.clamp(rect.x, 0, Math.max(0, screenWidth - rect.width));
-        int y = Math.clamp(rect.y, 0, Math.max(0, screenHeight - rect.height));
+        int x = Maths.clamp(rect.x, 0, Math.max(0, screenWidth - rect.width));
+        int y = Maths.clamp(rect.y, 0, Math.max(0, screenHeight - rect.height));
         return new Rect(x, y, rect.width, rect.height);
     }
 

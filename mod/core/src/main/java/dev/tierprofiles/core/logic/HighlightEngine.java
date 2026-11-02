@@ -40,16 +40,16 @@ public final class HighlightEngine {
             if (!filters.isEnabled(list) || (rule.list != null && rule.list != list)) {
                 continue;
             }
-            if (hasMatchingTier(profile.list(list), rule)) {
+            if (hasMatchingTier(profile.list(list), rule, filters)) {
                 return true;
             }
         }
         return false;
     }
 
-    private static boolean hasMatchingTier(ListProfile listProfile, HighlightRule rule) {
+    private static boolean hasMatchingTier(ListProfile listProfile, HighlightRule rule, Filters filters) {
         for (TierEntry entry : listProfile.tiers()) {
-            if (rule.ignoreRetired && entry.retired()) {
+            if (rule.ignoreRetired && entry.retired() || !filters.isKitShown(entry.kit())) {
                 continue;
             }
             if (rule.kit != null && !rule.kit.equals(entry.kit())) {

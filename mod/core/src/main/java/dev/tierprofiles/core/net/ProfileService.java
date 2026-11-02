@@ -34,6 +34,9 @@ import java.util.function.Supplier;
  */
 public final class ProfileService {
     public static final int BATCH_SIZE = 8;
+    /** Going direct, each player is five calls from this PC, so batches are smaller and spaced out. */
+    static final int DIRECT_BATCH_SIZE = 3;
+    static final long DIRECT_GAP_MILLIS = 1000;
 
     static final long FRESH_MILLIS = 10 * 60 * 1000;
     static final long RETRY_BUSY_MILLIS = 30 * 1000;
@@ -49,6 +52,7 @@ public final class ProfileService {
     }
 
     private final Transport transport;
+    private final DirectLists direct;
     private final Supplier<Global> global;
     private final LongSupplier clock;
 
@@ -60,11 +64,13 @@ public final class ProfileService {
 
     private volatile String lastStatus = "nothing sent yet";
     private long backoffUntil;
+    private long nextDirectAt;
     private int failures;
     private ScheduledExecutorService executor;
 
     public ProfileService(Transport transport, Supplier<Global> global, LongSupplier clock) {
         this.transport = transport;
+        this.direct = new DirectLists(transport, clock);
         this.global = global;
         this.clock = clock;
     }
@@ -184,6 +190,7 @@ public final class ProfileService {
         if (executor != null) {
             executor.shutdownNow();
         }
+        direct.stop();
     }
 
     private void pumpSafely() {
@@ -206,14 +213,26 @@ public final class ProfileService {
         }
 
         long now = clock.getAsLong();
+        boolean viaServer = settings.usesServer();
         Map<UUID, String> batch;
         synchronized (this) {
-            if (now < backoffUntil) {
+            if (now < backoffUntil || !viaServer && now < nextDirectAt) {
                 return;
             }
-            batch = takeBatch();
+            batch = takeBatch(viaServer ? BATCH_SIZE : DIRECT_BATCH_SIZE);
         }
         if (batch.isEmpty()) {
+            return;
+        }
+
+        if (!viaServer) {
+            // Each list fails on its own here, so there's no whole-call failure to back off from.
+            String reply = direct.lookup(batch);
+            synchronized (this) {
+                nextDirectAt = clock.getAsLong() + DIRECT_GAP_MILLIS;
+            }
+            lastStatus = "ok, " + batch.size() + " players, straight from the lists";
+            store(reply, now);
             return;
         }
 
@@ -233,16 +252,16 @@ public final class ProfileService {
         store(reply, now);
     }
 
-    private Map<UUID, String> takeBatch() {
+    private Map<UUID, String> takeBatch(int size) {
         Map<UUID, String> batch = new LinkedHashMap<>();
-        moveInto(batch, urgent);
-        moveInto(batch, queued);
+        moveInto(batch, urgent, size);
+        moveInto(batch, queued, size);
         return batch;
     }
 
-    private static void moveInto(Map<UUID, String> batch, Map<UUID, String> source) {
+    private static void moveInto(Map<UUID, String> batch, Map<UUID, String> source, int size) {
         Iterator<Map.Entry<UUID, String>> entries = source.entrySet().iterator();
-        while (entries.hasNext() && batch.size() < BATCH_SIZE) {
+        while (entries.hasNext() && batch.size() < size) {
             Map.Entry<UUID, String> entry = entries.next();
             batch.put(entry.getKey(), entry.getValue());
             entries.remove();
@@ -328,7 +347,7 @@ public final class ProfileService {
             if (result.status() != ListStatus.UNAVAILABLE) {
                 continue;
             }
-            if ("busy".equals(result.reason())) {
+            if ("busy".equals(result.reason()) || "circuit_open".equals(result.reason())) {
                 return RETRY_BUSY_MILLIS;
             }
             if (list != TierList.PVPHQ) {
