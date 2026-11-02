@@ -1,5 +1,6 @@
 package dev.tierprofiles.ui;
 
+//? if >=26.1
 import com.mojang.blaze3d.Blaze3D;
 import dev.tierprofiles.TierProfiles;
 import dev.tierprofiles.core.config.ConfigStore;
@@ -85,7 +86,11 @@ public final class FirstRunScreen extends Screen {
         int buttonY = y + HEIGHT - 28;
         ui.text("You can change this any time in Settings, More.", left, buttonY + 6, Theme.MUTED);
         if (ui.button(x + WIDTH - PADDING - 166, buttonY, 80, 20, "Read more", false)) {
+            //? if >=26.1 {
             Blaze3D.openUri(URI.create(README));
+            //?} else {
+            /*net.minecraft.util.Util.getPlatform().openUri(URI.create(README));
+            *///?}
         }
         if (ui.button(x + WIDTH - PADDING - 82, buttonY, 82, 20, "Sounds good", true)) {
             accept();

@@ -40,7 +40,11 @@ public final class KitIcon {
             item("og_vanilla", Items.GOLDEN_SWORD),
             item("minecart", Items.TNT_MINECART),
             item("trident", Items.TRIDENT),
+            //? if >=26.1 {
             Map.entry("bed", () -> new ItemStack(Items.BED.pick(DyeColor.RED))),
+            //?} else {
+            /*Map.entry("bed", () -> new ItemStack(Items.RED_BED)),
+            *///?}
             Map.entry("speed", () -> potion(Items.POTION, Potions.SWIFTNESS)),
             Map.entry("debuff", () -> potion(Items.SPLASH_POTION, Potions.POISON)),
             item("creeper", Items.CREEPER_SPAWN_EGG),

@@ -7,7 +7,7 @@ The mod is split into two parts:
 
 The split isn't just tidiness. Minecraft isn't on the core's classpath at all, so a Minecraft import
 there won't compile. That means all this logic can be tested in seconds, with no game running.
-`./gradlew :core:test` runs 184 tests.
+`./gradlew :core:test` runs the core tests (355 on 2 Nov 2026).
 
 Think of the core as the brain and the mod as the hands. The core says "show `[HT3]` in this colour",
 and the mod works out how to actually paint that on a nametag.

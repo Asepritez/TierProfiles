@@ -168,7 +168,12 @@ public final class Ui {
      * making an ItemStack before this point crashes the game.
      */
     public static boolean itemsReady() {
+        //? if >=26.1 {
         return Items.STONE.builtInRegistryHolder().areComponentsBound();
+        //?} else {
+        /*// Before 26.1, item data is ready as soon as the game has started.
+        return true;
+        *///?}
     }
 
     /** Draws an item, or nothing at all until items are ready. */

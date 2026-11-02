@@ -85,6 +85,10 @@ public final class Portrait {
 
         Vector3f translation = new Vector3f(0, state.boundingBoxHeight / 2.0f + FOOT_OFFSET, 0);
         Quaternionf rotation = new Quaternionf().rotateZ((float) Math.PI);
+        //? if >=26.1 {
         graphics.entity(state, size, translation, rotation, null, x0, y0, x1, y1);
+        //?} else {
+        /*graphics.submitEntityRenderState(state, size, translation, rotation, null, x0, y0, x1, y1);
+        *///?}
     }
 }

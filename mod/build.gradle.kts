@@ -1,13 +1,20 @@
 plugins {
-    id("net.fabricmc.fabric-loom") version "1.19.3"
+    // Applies the right Loom for this Minecraft version.
+    id("dev.kikugie.loom-back-compat")
 }
 
-val modVersion = property("mod_version") as String
-val minecraftVersion = property("minecraft_version") as String
+// The jar carries core's classes, so core must be set up first.
+evaluationDependsOn(":core")
+
+val modVersion = sc.properties.get<String>("mod.version")
+val minecraftVersion = sc.current.version
+val javaVersion = sc.properties.get<Long>("mod.java").toInt()
 
 group = "dev.tierprofiles"
 version = "$modVersion+mc$minecraftVersion"
+base.archivesName = "tierprofiles"
 
+// One JDK builds everything. Older versions get older bytecode.
 java.toolchain.languageVersion = JavaLanguageVersion.of(25)
 
 repositories {
@@ -17,7 +24,7 @@ repositories {
 
 // Real in-game tests. They run inside an actual game window with the offline dev
 // account, so they're never part of `build` and must be started by hand with
-// `./gradlew runClientGameTest`.
+// `./gradlew :<version>:runClientGameTest`.
 fabricApi {
     configureTests {
         createSourceSet = true
@@ -30,8 +37,10 @@ fabricApi {
 
 dependencies {
     minecraft("com.mojang:minecraft:$minecraftVersion")
-    implementation("net.fabricmc:fabric-loader:${property("loader_version")}")
-    implementation("net.fabricmc.fabric-api:fabric-api:${property("fabric_api_version")}")
+    // Mojang's own names on versions that are still obfuscated.
+    loomx.applyMojangMappings()
+    modImplementation("net.fabricmc:fabric-loader:${sc.properties.get<String>("deps.fabric_loader")}")
+    modImplementation("net.fabricmc.fabric-api:fabric-api:${sc.properties.get<String>("deps.fabric_api")}")
     implementation(project(":core"))
 
     // Reads WebP, because SubTiers and the MCTiers badges publish nothing else.
@@ -47,29 +56,47 @@ dependencies {
     }
 
     // Optional: the mod runs fine without Mod Menu.
-    compileOnly("com.terraformersmc:modmenu:${property("modmenu_version")}")
+    modCompileOnly("com.terraformersmc:modmenu:${sc.properties.get<String>("deps.modmenu")}")
 }
 
 tasks.withType<JavaCompile> {
     options.encoding = "UTF-8"
-    options.release = 25
+    options.release = javaVersion
 }
 
 tasks.processResources {
-    inputs.property("version", modVersion)
+    val props = mapOf(
+        "version" to modVersion,
+        "minecraft" to sc.properties.get<String>("mod.mc_compat"),
+        "java" to javaVersion.toString(),
+        "loader" to sc.properties.get<String>("deps.fabric_loader"),
+    )
+    inputs.properties(props)
     filesMatching("fabric.mod.json") {
-        expand("version" to modVersion)
+        expand(props)
+    }
+    filesMatching("*.mixins.json") {
+        expand(props)
     }
 }
 
-tasks.jar {
-    from(project(":core").sourceSets.main.get().output)
-    from(rootDir.resolve("../LICENSE"))
-    from(rootDir.resolve("../THIRD_PARTY_NOTICES.txt"))
+tasks.withType<Jar> {
+    if (name == "jar" || name == "remapJar") {
+        from(project(":core").extensions.getByType<SourceSetContainer>()["main"].output)
+        from(rootProject.file("../LICENSE"))
+        from(rootProject.file("../THIRD_PARTY_NOTICES.txt"))
+    }
 }
 
 loom {
     runs.named("clientGameTest") {
         runDir("run/gametest")
     }
+}
+
+// Every version's finished jar, collected in one place.
+tasks.register<Copy>("collectJar") {
+    group = "build"
+    from(loomx.modJar.flatMap { it.archiveFile })
+    into(rootProject.layout.buildDirectory.dir("libs"))
 }

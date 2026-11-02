@@ -1,0 +1,17 @@
+mod.version = "0.1.0"
+loomx.loom_version = "1.19.3"
+
+["1.21.11"]
+mod.mc_compat = "1.21.11"
+mod.java = 21
+# The oldest loader Fabric API for 1.21.11 accepts, so older launcher installs still work.
+deps.fabric_loader = "0.17.3"
+deps.fabric_api = "0.141.6+1.21.11"
+deps.modmenu = "17.0.1"
+
+["26.3"]
+mod.mc_compat = "~26.3"
+mod.java = 25
+deps.fabric_loader = "0.20.1"
+deps.fabric_api = "0.165.0+26.3"
+deps.modmenu = "21.0.0"

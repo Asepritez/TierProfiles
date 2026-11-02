@@ -34,7 +34,11 @@ abstract class ChatListenerMixin {
             method = "showMessageToPlayer",
             at = @At(
                     value = "INVOKE",
+                    //? if >=26.1 {
                     target = "Lnet/minecraft/client/gui/components/ChatComponent;addPlayerMessage(Lnet/minecraft/network/chat/Component;Lnet/minecraft/network/chat/MessageSignature;Lnet/minecraft/client/multiplayer/chat/GuiMessageTag;)V"))
+                    //?} else {
+                    /*target = "Lnet/minecraft/client/gui/components/ChatComponent;addMessage(Lnet/minecraft/network/chat/Component;Lnet/minecraft/network/chat/MessageSignature;Lnet/minecraft/client/GuiMessageTag;)V"))
+                    *///?}
     private void tierprofiles$tagPlayerChat(
             ChatComponent chat,
             Component message,

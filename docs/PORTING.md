@@ -51,6 +51,25 @@ Fabric builds also run on Quilt, so Quilt costs nothing extra.
 Items a version doesn't have fall back to the closest item it does have, and settings for
 features a version can't show (trims before 1.20) are hidden rather than broken.
 
+## Building
+
+```
+./gradlew :26.3:build            # one version, jar in versions/26.3/build/libs
+./gradlew :1.21.11:build
+./gradlew :1.21.11:runClientGameTest
+```
+
+The source on disk is written for the newest version (`vcsVersion` in `settings.gradle.kts`).
+Older versions get it through `//? if` blocks and the name swaps in `stonecutter.gradle.kts`.
+Mixin targets aren't checked by the compiler, so each new version needs its in-game test run.
+
+## Progress
+
+| Version | State |
+|---|---|
+| 26.3 | Built and tested in game |
+| 1.21.11 | Built and tested in game on 2 Nov 2026 |
+
 ## Order
 
 1. 1.21.11, the version most PvP servers and clients are on.

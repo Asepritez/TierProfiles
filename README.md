@@ -5,6 +5,9 @@ profile, and lets you customize exactly what you see.
 
 Early development. See [docs/SPEC.md](docs/SPEC.md) for the design.
 
+Builds for Minecraft 1.21.11 and 26.3, with more versions on the way. See
+[docs/PORTING.md](docs/PORTING.md).
+
 ## Privacy
 
 Your login stays with Minecraft. We never see your account token.

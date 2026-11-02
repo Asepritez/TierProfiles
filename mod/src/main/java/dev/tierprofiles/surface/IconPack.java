@@ -126,10 +126,18 @@ public final class IconPack implements PackResources {
         List<PackResources> sources = new ArrayList<>();
         Pack programmerArt = classic ? minecraft.getResourcePackRepository().getPack(PROGRAMMER_ART) : null;
         if (programmerArt != null) {
+            //? if >=26.1 {
             programmerArt.open().forEach(sources::add);
+            //?} else {
+            /*sources.add(programmerArt.open());
+            *///?}
         }
         // The vanilla pack belongs to the game, so closing our list mustn't close it.
+        //? if >=26.1 {
         sources.add(new KeptOpen(minecraft.getVanillaPackResources().fullResources()));
+        //?} else {
+        /*sources.add(new KeptOpen(minecraft.getVanillaPackResources()));
+        *///?}
         return sources;
     }
 

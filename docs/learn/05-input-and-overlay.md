@@ -68,4 +68,4 @@ press real keys. Two tricks make that possible:
 - **A frozen clock.** Animations read time through `CardState.now()`. Tests can replace that clock, so a
   screenshot shows exactly 100 ms into a glide rather than whenever the screenshot happened to land.
 
-Run them with `./gradlew runClientGameTest`. They need `wrangler dev` running in `server/`.
+Run them with `./gradlew :26.3:runClientGameTest` or `./gradlew :1.21.11:runClientGameTest`. They need `wrangler dev` running in `server/`, and `node test/mock-mojang.mjs` for the card-saving test.
