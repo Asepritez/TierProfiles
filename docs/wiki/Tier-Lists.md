@@ -1,13 +1,12 @@
-## The four lists
+## The five lists
 
 | List | Shows | Notes |
 |---|---|---|
-| **PVPHQ** | Ranked tiers | Shown first by default |
+| **MCTiers** | Tiers, peak tiers, region, rank, points and titles | Shown first by default |
+| **PVPHQ** | Ranked tiers | |
 | **McPvP** | Tiers and rank | Marked **beta**: it's a new list |
 | **PvPTiers** | Tiers, peak tiers and dates | |
 | **SubTiers** | Tiers and dates | |
-
-MCTiers used to be here too. It shut down in November 2026, so TierProfiles 0.7.0 and later no longer ask it.
 
 Each list tests players separately, so the same player can be HT3 on one list and LT2 on another. The card shows each list's own result. Tags show the highest one by default, whichever list it's from. See **Best from any list** in [[Settings]].
 
@@ -46,4 +45,4 @@ Titles come from points:
 | Combat Novice | 10 |
 | Rookie | 1 |
 
-None of the lists give titles themselves now, so the card uses this ladder on McPvP, PvPTiers and SubTiers points, shows the highest title of the three, and says **(TierProfiles title)** so nobody mistakes it for an official one.
+MCTiers gives these titles itself. For the other lists, the card uses the same ladder on their points and says **(TierProfiles title)** so nobody mistakes it for an official one. The card shows the highest title from any list.

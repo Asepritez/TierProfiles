@@ -40,11 +40,6 @@ public final class ProfileCard {
     private static final int STRIP_BACKGROUND = 0x30000000;
     private static final int STRIP_LINE = 0xFF2E3338;
     private static final int CARD_COLOR = 0x0C0E10;
-    /**
-     * A faint light tint rather than a solid colour, so the card's own background and
-     * opacity show through each chip instead of a dark box sitting on top.
-     */
-    private static final int SLOT_FILL = 0x10FFFFFF;
     private static final int SLOT_BORDER = 0xFF39424B;
     /** Retired keeps the same shape and swaps the border to a muted red, so it reads at a glance. */
     private static final int RETIRED_OUTLINE = 0xFF8C4A4A;
@@ -676,7 +671,7 @@ public final class ProfileCard {
         int width = grid.slotWidth;
         int rgb = pass.settings().style.color(list, entry.rank());
 
-        graphics.fill(x, y, x + width, y + CardGrid.SLOT_HEIGHT, pass.color(SLOT_FILL));
+        // No fill, so the card's own background shows through. The border alone marks the chip.
         graphics.outline(x, y, width, CardGrid.SLOT_HEIGHT, pass.color(entry.retired() ? RETIRED_OUTLINE : SLOT_BORDER));
 
         KitIcon.draw(graphics, entry.kit(), x + 1, y + 1, pass.settings().style.iconSet, pass.alpha());

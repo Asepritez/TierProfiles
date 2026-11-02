@@ -188,7 +188,7 @@ class TagSelectorTest {
 
     @Test
     void mcpvpIsNeverTopPriorityByDefault() {
-        assertEquals(TierList.PVPHQ, settings().filters.listPriority.getFirst());
+        assertEquals(TierList.MCTIERS, settings().filters.listPriority.getFirst());
         assertTrue(settings().filters.listPriority.indexOf(TierList.MCPVP) > 0);
     }
 
@@ -310,7 +310,7 @@ class TagSelectorTest {
     void unrankedShowsOnlyWhenAsked() {
         Settings settings = settings();
         PlayerProfile profile = player(
-                TierList.PVPHQ, ListProfile.UNRANKED, TierList.MCPVP, ListProfile.UNRANKED,
+                TierList.MCTIERS, ListProfile.UNRANKED, TierList.PVPHQ, ListProfile.UNRANKED, TierList.MCPVP, ListProfile.UNRANKED,
                 TierList.PVPTIERS, ListProfile.UNRANKED, TierList.SUBTIERS, ListProfile.UNRANKED);
         assertEquals(0, select(profile, settings).size());
 

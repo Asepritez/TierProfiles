@@ -3,6 +3,12 @@
 Each version's jar is named `tierprofiles-<version>+mc<minecraft>.jar`, for example
 `tierprofiles-0.3.0+mc1.21.11.jar`.
 
+## 0.8.0 (3 Nov 2026)
+
+- MCTiers is back. It looked shut down, but it's still active, so it's a list again and first by default: MCTiers, PVPHQ, McPvP, PvPTiers, SubTiers. If you never changed your list order, you get the new one.
+- Card chips have no fill now, so the card's background shows straight through. The thin borders stay, with the red one for retired tiers.
+- Hold Tab and use the scroll wheel to move through players, like the arrow keys. The hotbar doesn't change while you do.
+
 ## 0.7.0 (2 Nov 2026)
 
 - MCTiers is gone. It shut down, so the mod no longer asks it, and its logo, badges and settings are removed. Your other settings are kept, and old share codes still import.

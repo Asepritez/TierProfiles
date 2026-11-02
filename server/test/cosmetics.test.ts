@@ -18,7 +18,7 @@ const look = {
   intensity: 70,
   accent: catalog.accents[0],
   featuredKit: "sword",
-  featuredList: "mcpvp",
+  featuredList: "mctiers",
 };
 
 /** What an older client's card becomes: every piece takes the shared trim, and nothing is hidden. */

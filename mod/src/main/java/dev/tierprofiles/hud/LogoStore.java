@@ -41,10 +41,14 @@ public final class LogoStore {
     private static final Map<String, String> SOURCES = new LinkedHashMap<>();
 
     static {
+        SOURCES.put("mctiers", "https://mctiers.gg/icon.png");
         SOURCES.put("mcpvp", "https://www.mcpvp.com/apple-touch-icon.png");
         SOURCES.put("pvptiers", "https://pvptiers.com/hex-logo.png");
         SOURCES.put("subtiers", "https://subtiers.net/subtiers-icon.webp");
         SOURCES.put("pvphq", "https://pvphq.com/assets/pvphq-logo.png");
+        SOURCES.put("title_grandmaster", "https://mctiers.gg/titles/combat_grandmaster.webp");
+        SOURCES.put("title_master", "https://mctiers.gg/titles/combat_master.webp");
+        SOURCES.put("title_ace", "https://mctiers.gg/titles/combat_ace.webp");
     }
 
     private static final Set<String> ready = Collections.synchronizedSet(new HashSet<>());

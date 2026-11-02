@@ -58,7 +58,7 @@ Vertical, top of the card = 0:
 | Padding | 131 | 6 |
 | | **137** | Card height |
 
-Every list always gets a row, in list order, PVPHQ first by default. The card height never changes between
+Every list always gets a row, in list order, MCTiers first. The card height never changes between
 players.
 
 ### Top strip

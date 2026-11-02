@@ -437,6 +437,24 @@ KIT["speed"] = """
 # List marks: neutral two-letter tiles. Each list gets its own tile colour AND tile shape, so
 # they stay distinct for colourblind players. These are not any community's logo.
 LIST = {}
+LIST["mctiers"] = """
+................
+..bbbbbbbbbbbb..
+.bbbbbbbbbbbbbB.
+.bwbbbwbwwwwwbB.
+.bwwbwwbbbwbbbB.
+.bwbwbwbbbwbbbB.
+.bwbbbwbbbwbbbB.
+.bwbbbwbbbwbbbB.
+.bwbbbwbbbwbbbB.
+.bwbbbwbbbwbbbB.
+.bwbbbwbbbwbbbB.
+.bbbbbbbbbbbbbB.
+.bbbbbbbbbbbbBB.
+..BBBBBBBBBBBB..
+................
+................
+"""
 LIST["mcpvp"] = """
 ................
 ...YYYYYYYYYY...

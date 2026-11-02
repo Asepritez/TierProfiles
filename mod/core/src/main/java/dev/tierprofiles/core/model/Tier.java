@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * One rank, such as HT3. Lists disagree on how many there are: most have HT and
+ * One rank, such as HT3. Lists disagree on how many there are: MCTiers has HT and
  * LT on levels 1 to 5, while McPvP adds MT and ST and goes down to level 6.
  *
  * To compare them all, every tier gets a score on one shared scale, where lower

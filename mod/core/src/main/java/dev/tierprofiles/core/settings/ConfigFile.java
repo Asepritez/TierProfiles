@@ -13,7 +13,7 @@ public final class ConfigFile {
     public static final int MAX_NAME_LENGTH = 32;
 
     /** Bumped when saved settings need a one-time change on load. */
-    public static final int CURRENT_VERSION = 4;
+    public static final int CURRENT_VERSION = 5;
 
     public int version = CURRENT_VERSION;
     public Global global = new Global();
@@ -55,11 +55,14 @@ public final class ConfigFile {
             // Before the server was online the default pointed at this PC, which only worked in tests.
             global.serverUrl = Global.DEFAULT_SERVER_URL;
         }
-        if (version < 4) {
-            // MCTiers shut down. Anyone still on the old default order gets the new one, led by PVPHQ.
-            List<TierList> oldDefault = List.of(TierList.MCPVP, TierList.PVPTIERS, TierList.SUBTIERS, TierList.PVPHQ);
+        if (version < 5) {
+            // Anyone still on an earlier default order gets the new one, led by MCTiers. 0.7.0
+            // left MCTiers out, so its order comes back here with MCTiers added on the end.
+            List<List<TierList>> oldDefaults = List.of(
+                    List.of(TierList.MCTIERS, TierList.MCPVP, TierList.PVPTIERS, TierList.SUBTIERS, TierList.PVPHQ),
+                    List.of(TierList.PVPHQ, TierList.MCPVP, TierList.PVPTIERS, TierList.SUBTIERS, TierList.MCTIERS));
             for (Settings settings : profiles.values()) {
-                if (settings.filters.listPriority.equals(oldDefault)) {
+                if (oldDefaults.contains(settings.filters.listPriority)) {
                     settings.filters.listPriority = new ArrayList<>(TierList.DEFAULT_PRIORITY);
                 }
             }

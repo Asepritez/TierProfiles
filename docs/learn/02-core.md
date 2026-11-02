@@ -32,7 +32,7 @@ HT4 scores 12, so it's hidden. One small idea handles every comparison in the mo
 It walks the lists in your priority order. Each list offers its best tier that survives every filter
 (retired, minimum tier, kit choice). The first offers fill the available slots. So with one slot,
 MCTiers gets it if it has anything to offer, and McPvP only gets it if the lists above came up empty.
-Since 0.7.0 PVPHQ comes first by default, then McPvP. (MCTiers led until it shut down in Nov 2026.) Before that, McPvP was never first unless you moved it, because it's new and
+MCTiers comes first by default, and McPvP is never first unless you move it, because it's new and
 labelled beta.
 
 One subtle detail: the unranked placeholder. If MCTiers says "unranked" but PVPHQ timed out, we don't

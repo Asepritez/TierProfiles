@@ -1,10 +1,10 @@
-// Lists disagree on gamemode names. The mod shouldn't have to know that one list
+// Lists disagree on gamemode names. The mod shouldn't have to know that MCTiers
 // says "vanilla" where PvPTiers says "crystal" for the same kit, so we settle on
 // one id here. Anything not listed passes through, with dashes turned to
 // underscores, so a brand new kit still shows up without a server update.
 
 const ALIASES: Record<string, string> = {
-  // ItzRealMe's old MCTiers "vanilla" and PvPTiers "crystal" share an attained
+  // ItzRealMe's MCTiers "vanilla" and PvPTiers "crystal" share an attained
   // timestamp to the second, so these are one kit.
   vanilla: "crystal",
   nethop: "neth_pot",

@@ -140,15 +140,15 @@ class ShareCodeTest {
     }
 
     @Test
-    void anOldCodeWithMctiersStillImports() throws IOException {
+    void aCodeNamingMctiersKeepsIt() throws IOException {
         String old = """
                 {"filters": {"listPriority": ["MCTIERS", "MCPVP"], "disabledLists": ["MCTIERS"]},
                  "rules": [{"list": "MCTIERS", "minimumTier": "HT1"}, {"minimumTier": "HT3"}]}""";
         Settings settings = ShareCode.decode(craft(old));
 
-        assertEquals(TierList.MCPVP, settings.filters.listPriority.getFirst());
-        assertTrue(settings.filters.disabledLists.isEmpty());
-        assertEquals(1, settings.rules.size(), "only the rule that wasn't tied to MCTiers is left");
+        assertEquals(TierList.MCTIERS, settings.filters.listPriority.getFirst());
+        assertEquals(java.util.Set.of(TierList.MCTIERS), settings.filters.disabledLists);
+        assertEquals(2, settings.rules.size());
     }
 
     @Test

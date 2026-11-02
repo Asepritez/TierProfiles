@@ -29,7 +29,7 @@ class ConfigTest {
         return new ConfigFile().sanitize();
     }
 
-    /** A 0.6 settings file, from when MCTiers was a list. */
+    /** A 0.6 settings file, before 0.7.0 left MCTiers out for a while. */
     private static final String WITH_MCTIERS = """
             {"version": 3, "global": {"noticeSeen": true}, "activeProfile": "Default", "profiles": {"Default": {
               "filters": {"listPriority": ["MCTIERS", "MCPVP", "PVPTIERS", "SUBTIERS", "PVPHQ"],
@@ -39,7 +39,7 @@ class ConfigTest {
                         {"list": "MCPVP", "minimumTier": "HT2", "color": 16711680}]}}}""";
 
     @Test
-    void settingsFromWhenMctiersExistedStillLoad(@TempDir Path dir) throws IOException {
+    void settingsFrom06KeepTheirMctiersChoices(@TempDir Path dir) throws IOException {
         Path file = dir.resolve("tierprofiles.json");
         Files.writeString(file, WITH_MCTIERS);
         ConfigFile config = new ConfigStore(file).load();
@@ -49,19 +49,29 @@ class ConfigTest {
         assertTrue(settings.style.longNames, "their other settings are kept");
         assertTrue(config.global.noticeSeen);
         assertEquals(TierList.DEFAULT_PRIORITY, settings.filters.listPriority, "the old default order moves to the new one");
-        assertEquals(java.util.Set.of(TierList.PVPHQ), settings.filters.disabledLists);
-        assertEquals(java.util.Map.of(TierList.MCPVP, "HT2"), settings.filters.listMinimums);
-        assertTrue(settings.style.listColors.isEmpty());
-        assertEquals(1, settings.rules.size(), "a rule on MCTiers can't become a rule on every list");
-        assertEquals(TierList.MCPVP, settings.rules.getFirst().list);
+        assertEquals(java.util.Set.of(TierList.MCTIERS, TierList.PVPHQ), settings.filters.disabledLists);
+        assertEquals(java.util.Map.of(TierList.MCTIERS, "LT3", TierList.MCPVP, "HT2"), settings.filters.listMinimums);
+        assertTrue(settings.style.listColors.containsKey(TierList.MCTIERS));
+        assertEquals(2, settings.rules.size());
+        assertEquals(TierList.MCTIERS, settings.rules.getFirst().list);
     }
 
     @Test
-    void aChosenOrderIsKeptWithoutMctiers(@TempDir Path dir) throws IOException {
+    void the07DefaultOrderMovesToTheNewOne(@TempDir Path dir) throws IOException {
+        Path file = dir.resolve("tierprofiles.json");
+        Files.writeString(file, WITH_MCTIERS.replace("\"version\": 3", "\"version\": 4")
+                .replace("[\"MCTIERS\", \"MCPVP\", \"PVPTIERS\", \"SUBTIERS\", \"PVPHQ\"]", "[\"PVPHQ\", \"MCPVP\", \"PVPTIERS\", \"SUBTIERS\"]"));
+        Settings settings = new ConfigStore(file).load().active();
+        assertEquals(TierList.MCTIERS, settings.filters.listPriority.getFirst());
+        assertEquals(TierList.DEFAULT_PRIORITY, settings.filters.listPriority);
+    }
+
+    @Test
+    void aChosenOrderIsKept(@TempDir Path dir) throws IOException {
         Path file = dir.resolve("tierprofiles.json");
         Files.writeString(file, WITH_MCTIERS.replace("[\"MCTIERS\", \"MCPVP\", \"PVPTIERS\", \"SUBTIERS\", \"PVPHQ\"]", "[\"SUBTIERS\", \"MCTIERS\", \"MCPVP\"]"));
         Settings settings = new ConfigStore(file).load().active();
-        assertEquals(List.of(TierList.SUBTIERS, TierList.MCPVP, TierList.PVPHQ, TierList.PVPTIERS), settings.filters.listPriority);
+        assertEquals(List.of(TierList.SUBTIERS, TierList.MCTIERS, TierList.MCPVP, TierList.PVPHQ, TierList.PVPTIERS), settings.filters.listPriority);
     }
 
     @Test

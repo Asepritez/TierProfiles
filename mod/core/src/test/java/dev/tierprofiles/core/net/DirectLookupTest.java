@@ -93,10 +93,11 @@ class DirectLookupTest {
         service.request(REAL, "JokingDK");
         service.pump();
 
-        waitFor(() -> service.profile(REAL) != null && service.profile(REAL).list(TierList.SUBTIERS).isOk(), "SubTiers");
+        // The fast lists answer on their own threads, so wait for both rather than racing one against the other.
+        waitFor(() -> service.profile(REAL) != null && service.profile(REAL).list(TierList.MCTIERS).isOk()
+                && service.profile(REAL).list(TierList.MCPVP).isOk(), "MCTiers and McPvP");
         PlayerProfile early = service.profile(REAL);
         assertEquals("missing", early.list(TierList.PVPHQ).reason(), "PVPHQ is still being asked");
-        assertEquals(ListStatus.OK, early.list(TierList.MCPVP).status());
 
         lists.pvphq.countDown();
         waitFor(() -> service.queueSize() == 0, "every list to finish");

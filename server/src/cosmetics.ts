@@ -35,8 +35,6 @@ export interface Cosmetics {
 const PIECES = ["helmet", "chestplate", "leggings", "boots"] as const;
 const MAX_HIDDEN_KITS = 32;
 
-// MCTiers shut down in Nov 2026, but 0.6 and older clients can still send it, so
-// it's still accepted here. Newer clients drop it before saving.
 const LIST_IDS = ["mctiers", "mcpvp", "pvptiers", "subtiers", "pvphq"];
 const KIT = /^[a-z0-9_]{1,24}$/;
 export const SAVE_COOLDOWN_MS = 10_000;

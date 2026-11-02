@@ -18,7 +18,7 @@ Your login stays with Minecraft. We never see your account token.
 Here is exactly what leaves your game:
 
 - **Tier lookups.** The names and UUIDs of players in your tab list go straight to the five tier
-  list websites (PVPHQ, McPvP, PvPTiers and SubTiers), the same way their own pages ask.
+  list websites (MCTiers, McPvP, PvPTiers, SubTiers and PVPHQ), the same way their own pages ask.
   If you switch Settings, More, Advanced, Look up from to Server, they go to the TierProfiles
   server instead, which asks the lists for you.
 - **Rows with made-up IDs.** Some servers fill the tab list with real players' names under made-up
@@ -32,7 +32,7 @@ Here is exactly what leaves your game:
   Mojang that it makes when you join an online server, and our server asks Mojang to confirm it. Your
   access token goes only to Mojang.
 
-- **List logos.** Each list's own logo is downloaded once from that
+- **List logos.** Each list's own logo, and MCTiers' title badges, are downloaded once from that
   list's website and kept in your config folder. You can turn this off in Settings, More, Advanced,
   and the mod uses its own letter marks instead.
 

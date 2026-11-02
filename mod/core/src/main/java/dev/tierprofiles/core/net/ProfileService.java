@@ -341,7 +341,7 @@ public final class ProfileService {
 
     /**
      * Hands everyone waiting to the lists at once. Each list has its own queue, so
-     * PvPTiers answering in a blink isn't held up by a slow list, and each answer shows
+     * MCTiers answering in a blink isn't held up by a slow list, and each answer shows
      * as soon as it's in.
      */
     private void pumpDirect() {

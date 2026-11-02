@@ -299,6 +299,18 @@ public final class SurfaceGameTest implements FabricClientGameTest {
         context.takeScreenshot("tp-02b-tab-small-card");
         check(context.computeOnClient(client -> TabSelection.selected() != null), "arrows should select a row");
         check(context.computeOnClient(client -> client.gui.screen() == null), "selecting must not open a Screen");
+
+        // The scroll wheel moves the selection like the arrows, and leaves the hotbar alone.
+        int slot = context.computeOnClient(client -> client.player.getInventory().getSelectedSlot());
+        PlayerInfoName beforeScroll = context.computeOnClient(client -> new PlayerInfoName(TabSelection.selected()));
+        input.scroll(1.0);
+        context.waitTicks(3);
+        PlayerInfoName afterScroll = context.computeOnClient(client -> new PlayerInfoName(TabSelection.selected()));
+        check(!beforeScroll.equals(afterScroll), "scrolling up should move the selection");
+        check(context.computeOnClient(client -> client.player.getInventory().getSelectedSlot()) == slot, "scrolling in Tab must not change the hotbar");
+        input.scroll(-1.0);
+        context.waitTicks(3);
+        check(beforeScroll.equals(context.computeOnClient(client -> new PlayerInfoName(TabSelection.selected()))), "scrolling down should move back");
         context.takeScreenshot("tp-03-tab-selected");
 
         input.pressKey(Keys.PIN);
@@ -339,6 +351,13 @@ public final class SurfaceGameTest implements FabricClientGameTest {
     static void check(boolean condition, String message) {
         if (!condition) {
             throw new AssertionError(message);
+        }
+    }
+
+    /** A selected tab row by name, so two moments can be compared. */
+    private record PlayerInfoName(String name) {
+        PlayerInfoName(net.minecraft.client.multiplayer.PlayerInfo info) {
+            this(info == null ? null : info.getProfile().name());
         }
     }
 }

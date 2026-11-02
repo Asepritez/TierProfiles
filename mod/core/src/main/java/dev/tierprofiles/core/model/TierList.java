@@ -7,10 +7,14 @@ public enum TierList {
     MCPVP("mcpvp", "McPvP", "MPV", true, true),
     PVPTIERS("pvptiers", "PvPTiers", "PVT", false, true),
     SUBTIERS("subtiers", "SubTiers", "SUB", false, true),
-    PVPHQ("pvphq", "PVPHQ", "PHQ", false, false);
+    PVPHQ("pvphq", "PVPHQ", "PHQ", false, false),
+    MCTIERS("mctiers", "MCTiers", "MCT", false, true);
 
-    /** PVPHQ comes first, then McPvP. MCTiers led until it shut down in Nov 2026. */
-    public static final List<TierList> DEFAULT_PRIORITY = List.of(PVPHQ, MCPVP, PVPTIERS, SUBTIERS);
+    /**
+     * MCTiers leads. It looked shut down in Nov 2026 and was left out of 0.7.0, then
+     * turned out to still be active.
+     */
+    public static final List<TierList> DEFAULT_PRIORITY = List.of(MCTIERS, PVPHQ, MCPVP, PVPTIERS, SUBTIERS);
 
     private final String id;
     private final String displayName;

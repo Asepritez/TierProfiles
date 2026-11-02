@@ -43,7 +43,7 @@ dependencies {
     modImplementation("net.fabricmc.fabric-api:fabric-api:${sc.properties.get<String>("deps.fabric_api")}")
     implementation(project(":core"))
 
-    // Reads WebP, because SubTiers publishes nothing else.
+    // Reads WebP, because SubTiers and the MCTiers badges publish nothing else.
     // Pure Java, BSD licensed, and only used on downloaded images.
     for (library in listOf(
         "imageio:imageio-webp", "imageio:imageio-core", "imageio:imageio-metadata",

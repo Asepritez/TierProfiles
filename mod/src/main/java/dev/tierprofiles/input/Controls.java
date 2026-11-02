@@ -12,7 +12,7 @@ import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.multiplayer.PlayerInfo;
 
 /**
- * Hold Tab, use the arrows, press Enter to pin. No Screen ever opens, because
+ * Hold Tab, use the arrows or the scroll wheel, press Enter to pin. No Screen ever opens, because
  * opening one releases movement keys, and that would stop you moving mid-fight.
  */
 public final class Controls {
@@ -56,6 +56,18 @@ public final class Controls {
             return togglePin();
         }
         return false;
+    }
+
+    /**
+     * With Tab held, scrolling up or down moves one row, like the arrow keys. Returns true
+     * when we used it, so the hotbar doesn't also change.
+     */
+    public static boolean onScroll(double amount) {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (amount == 0 || minecraft.gui.screen() != null || minecraft.player == null || !TabSelection.isListVisible()) {
+            return false;
+        }
+        return moved(amount > 0 ? -1 : 1, 0);
     }
 
     private static boolean isPinKeyWithListClosed(KeyEvent event) {

@@ -53,7 +53,7 @@ Where tier tags show, and what they say. Pick a place with **Show on** at the to
 
 ## Rules
 
-Rules change how names look, based on tiers. For example, *"anyone HT1 on PvPTiers gets a purple bold name"*.
+Rules change how names look, based on tiers. For example, *"anyone HT1 on MCTiers gets a purple bold name"*.
 
 Each rule has a condition (**If tier** at, above, or at-or-above a tier, **On list**, **In kit**) and a look (**Name colour**, **Gradient**, **Bold**, **Star before name**, **Glow around tag**). **Ignore retired** and **Judge by peak** change how the tier is judged.
 

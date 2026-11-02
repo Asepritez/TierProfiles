@@ -7,6 +7,7 @@
     "ChatListenerMixin",
     "EntityRendererMixin",
     "KeyboardHandlerMixin",
+    "MouseHandlerMixin",
     "PlayerTabOverlayAccessor",
     "PlayerTabOverlayMixin",
     "ReloadableResourceManagerMixin"

@@ -2,7 +2,7 @@ Here is exactly what leaves your game, and where it goes.
 
 | What | Sent to | When |
 |---|---|---|
-| Names and UUIDs of players around you | The four tier list websites: PVPHQ, McPvP, PvPTiers, SubTiers | When a player shows up on screen or in the tab list |
+| Names and UUIDs of players around you | The five tier list websites: MCTiers, McPvP, PvPTiers, SubTiers, PVPHQ | When a player shows up on screen or in the tab list |
 | The name on a tab row with a made-up ID | McPvP's search | Some servers list real players under made-up IDs, such as a top players board. This finds the real player |
 | The same UUIDs | The TierProfiles server | To load the card styles those players picked |
 | Your card style (a few preset choices) | The TierProfiles server | Only when you change it and press Apply |
@@ -29,4 +29,4 @@ Answers are saved in `.minecraft/config/tierprofiles-cache.json` for up to 7 day
 
 ## Being polite to the lists
 
-Each list gets only a few calls at a time (four for PvPTiers and SubTiers, fewer for McPvP and PVPHQ), answers are reused for 10 minutes and kept for 7 days, and a list that keeps failing is left alone for a minute. That's fast enough to fill a lobby in seconds without flooding anyone.
+Each list gets only a few calls at a time (six for MCTiers, fewer for the others), answers are reused for 10 minutes and kept for 7 days, and a list that keeps failing is left alone for a minute. That's fast enough to fill a lobby in seconds without flooding anyone.

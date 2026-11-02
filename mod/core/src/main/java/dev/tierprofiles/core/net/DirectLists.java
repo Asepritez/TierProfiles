@@ -87,6 +87,7 @@ public final class DirectLists {
      */
     static int concurrency(TierList list) {
         return switch (list) {
+            case MCTIERS -> 6;
             case PVPTIERS, SUBTIERS -> 4;
             case MCPVP -> 3;
             case PVPHQ -> 2;
@@ -365,6 +366,7 @@ public final class DirectLists {
     static String url(TierList list, UUID uuid, String name) {
         String plain = uuid.toString().replace("-", "");
         return switch (list) {
+            case MCTIERS -> "https://mctiers.gg/api/profile/" + uuid;
             // A loose name search, so the UUID decides which result is really them.
             case MCPVP -> name == null || name.length() < MCPVP_MIN_QUERY ? null
                     : "https://www.mcpvp.com/tiers/search?q=" + URLEncoder.encode(name, StandardCharsets.UTF_8);
@@ -383,14 +385,14 @@ public final class DirectLists {
             throw new ListFailure("bad_json");
         }
         return switch (list) {
-            case PVPTIERS, SUBTIERS -> parseRankings(root);
+            case MCTIERS, PVPTIERS, SUBTIERS -> parseRankings(root);
             case MCPVP -> parseMcPvp(root, uuid);
             case PVPHQ -> parsePvpHq(root);
         };
     }
 
     /**
-     * PvPTiers and SubTiers share a format:
+     * MCTiers, PvPTiers and SubTiers share a format:
      * {region, points, overall, rankings: {sword: {tier, pos, peak_tier, peak_pos, attained, retired}}}.
      * pos 0 is High and 1 is Low, so tier 3 pos 1 is LT3.
      */
@@ -406,7 +408,7 @@ public final class DirectLists {
             }
             String rank = rankLabel(value.get("tier"), value.get("pos"));
             String kit = canonicalKit(kitEntry.getKey());
-            // A list can send both "nethop" and "neth_pot", which become one kit here.
+            // MCTiers sends both "nethop" and "neth_pot", which become one kit here.
             if (rank == null || !seen.add(kit)) {
                 continue;
             }

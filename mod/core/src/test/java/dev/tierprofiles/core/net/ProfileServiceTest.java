@@ -47,7 +47,7 @@ class ProfileServiceTest {
             body.getAsJsonArray("players").forEach(player -> {
                 String uuid = player.getAsJsonObject().get("uuid").getAsString();
                 out.add("{\"uuid\":\"" + uuid + "\",\"lists\":{\"subtiers\":" + first
-                        + ",\"mcpvp\":{\"status\":\"unranked\"},\"pvptiers\":{\"status\":\"unranked\"}"
+                        + ",\"mctiers\":{\"status\":\"unranked\"},\"mcpvp\":{\"status\":\"unranked\"},\"pvptiers\":{\"status\":\"unranked\"}"
                         + ",\"pvphq\":{\"status\":\"unavailable\",\"reason\":\"timeout\"}}}");
             });
             return "{\"profiles\":[" + String.join(",", out) + "]}";

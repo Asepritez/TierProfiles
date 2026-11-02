@@ -77,7 +77,7 @@ public final class ShareCode {
 
         String json = decodeUtf8(inflate(data));
         try {
-            Settings settings = ConfigStore.GSON.fromJson(ConfigStore.withoutRemovedLists(json), Settings.class);
+            Settings settings = ConfigStore.GSON.fromJson(json, Settings.class);
             if (settings == null) {
                 throw new IOException("That code is empty.");
             }
