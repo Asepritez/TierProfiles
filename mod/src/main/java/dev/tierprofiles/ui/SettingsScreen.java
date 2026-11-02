@@ -213,7 +213,7 @@ public final class SettingsScreen extends Screen {
         int x = MARGIN + RAIL_W;
         int width = virtualWidth - x - MARGIN;
         ui.graphics.fill(x, HEADER_Y, x + width, HEADER_Y + HEADER_H, Theme.INK);
-        ui.graphics.item(new ItemStack(Items.SPYGLASS), x + 4, HEADER_Y + 4);
+        ui.item(Items.SPYGLASS, x + 4, HEADER_Y + 4);
 
         boolean searching = isSearching();
         String prompt = "Search all " + catalog.all().size() + " settings";
@@ -246,7 +246,7 @@ public final class SettingsScreen extends Screen {
                 ui.graphics.fill(MARGIN, y, MARGIN + 2, y + height, Theme.ACCENT);
             }
             ui.graphics.outline(MARGIN, y, RAIL_W - 1, height, on ? 0x00000000 : 0xFF1E2329);
-            ui.graphics.item(new ItemStack(candidate.icon()), MARGIN + 6, y + (height - 16) / 2);
+            ui.item(candidate.icon(), MARGIN + 6, y + (height - 16) / 2);
             ui.text(candidate.title(), MARGIN + 27, y + (height - 8) / 2, on ? 0xFFFFFFFF : Theme.MUTED);
             if (ui.clicked(MARGIN, y, RAIL_W, height)) {
                 openTab(candidate);
@@ -484,7 +484,7 @@ public final class SettingsScreen extends Screen {
             if (ui.slot(x, center, surfaces[i] == surface)) {
                 surface = surfaces[i];
             }
-            ui.graphics.item(new ItemStack(icons[i]), x + 2, center - 8);
+            ui.item(icons[i], x + 2, center - 8);
             if (ui.hovered(x, center - 10, Ui.SLOT, Ui.SLOT)) {
                 ui.hint(surfaces[i].displayName(), "Everything below applies to this surface.");
             }
@@ -502,13 +502,14 @@ public final class SettingsScreen extends Screen {
     }
 
     private int drawRow(Setting setting, int left, int right, int y) {
+        int height = ROW + (setting.rows() - 1) * ROW_STEP;
         int center = y + ROW / 2;
-        if (ui.hovered(left, y, right - left, ROW)) {
+        if (ui.hovered(left, y, right - left, height)) {
             ui.hint(setting.label(), setting.hint());
         }
         ui.text(setting.label(), left, center - 4, Theme.TEXT);
         setting.control().draw(ui, left + LABEL_W, center, right - left - LABEL_W);
-        return y + ROW_STEP;
+        return y + setting.rows() * ROW_STEP;
     }
 
     private int drawAdvancedRow(int left, int right, int y, String summary, boolean open) {
@@ -801,7 +802,7 @@ public final class SettingsScreen extends Screen {
                 if (ui.slot(cx, c, staged().icon == i)) {
                     staged().icon = i;
                 }
-                ui.graphics.item(new ItemStack(SETUP_ICONS.get(i)), cx + 2, c - 8);
+                ui.item(SETUP_ICONS.get(i), cx + 2, c - 8);
                 cx += Ui.SLOT + 1;
             }
         });
@@ -943,7 +944,7 @@ public final class SettingsScreen extends Screen {
             }
             if (used) {
                 int icon = config().profiles.get(names.get(i)).icon;
-                ui.graphics.item(new ItemStack(SETUP_ICONS.get(icon)), x + 2, center - 8);
+                ui.item(SETUP_ICONS.get(icon), x + 2, center - 8);
             }
             if (ui.hovered(x, center - 10, Ui.SLOT, Ui.SLOT)) {
                 ui.hint(used ? names.get(i) : "Empty slot", used ? "Press " + (i + 1) + " to use this setup." : "Click to save a copy of this setup here.");

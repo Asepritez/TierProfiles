@@ -11,8 +11,9 @@ import java.util.Locale;
  * @param surface  for per-surface settings, which one, or else null
  * @param advanced tucked under the tab's Advanced section until you open it
  * @param hint     a sentence shown when you hover
+ * @param rows     how many rows it takes, for controls taller than one row
  */
-public record Setting(SettingsTab tab, String path, Object surface, String label, String hint, boolean advanced, Control control) {
+public record Setting(SettingsTab tab, String path, Object surface, String label, String hint, boolean advanced, int rows, Control control) {
     /** Draws the control starting at `x`, centred on `centerY`, within `width`. */
     @FunctionalInterface
     public interface Control {

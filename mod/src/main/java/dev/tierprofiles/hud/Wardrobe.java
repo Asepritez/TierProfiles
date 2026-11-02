@@ -30,6 +30,9 @@ final class Wardrobe {
     }
 
     static void dress(RemotePlayer model, Cosmetics look) {
+        if (!dev.tierprofiles.ui.Ui.itemsReady()) {
+            return;
+        }
         String[] pieces = look == null ? new String[] {"none", "none", "none", "none"}
                 : new String[] {look.helmet, look.chestplate, look.leggings, look.boots};
         for (int slot = 0; slot < SLOTS.length; slot++) {

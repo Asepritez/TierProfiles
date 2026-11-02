@@ -9,17 +9,24 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 
-
-/** The privacy notice. No lookups happen until this has been seen. */
+/**
+ * The privacy notice. No lookups happen until this has been seen. Like the settings it
+ * picks its own whole-number scale, so it fits and stays sharp at any GUI scale.
+ */
 public final class FirstRunScreen extends Screen {
-    private static final int WIDTH = 330;
-    private static final int HEIGHT = 196;
+    private static final int WIDTH = 520;
+    private static final int HEIGHT = 218;
+    private static final int PADDING = 10;
+    private static final int FACT_GAP = 4;
     private static final String README = "https://github.com/Asepritez/TierProfiles#privacy";
 
     private final Screen parent;
     private final Ui ui = new Ui();
     private boolean lookups = true;
+    private float scale = 1;
 
     public FirstRunScreen(Screen parent) {
         super(Component.literal("Welcome to TierProfiles"));
@@ -31,50 +38,73 @@ public final class FirstRunScreen extends Screen {
         graphics.fill(0, 0, width, height, 0xC0000000);
     }
 
-    @Override
-    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
-        ui.begin(graphics, mouseX, mouseY);
-        int x = (width - WIDTH) / 2;
-        int y = Math.max(2, (height - HEIGHT) / 2);
-        ui.panel(x, y, WIDTH, HEIGHT);
-
-        int left = x + 8;
-        int top = y + 8;
-        ui.text(Component.literal("Welcome to TierProfiles").withStyle(s -> s.withBold(true)), left, top, 0xFFFFFFFF);
-        ui.text("To show tiers, we look up the players around you.", left, top + 14, Theme.TEXT);
-        ui.text("Here is exactly what leaves your game.", left, top + 24, Theme.TEXT);
-
-        fact(left, top + 37, "We send: names and UUIDs of players in your tab list", "They go to the TierProfiles server, which asks the tier lists.", null);
-        fact(left, top + 63, "Your login stays with Minecraft", "We never see your account token.", null);
-        fact(left, top + 89, "We send nothing else", "No chat, no server address, no position.", "Your card style is sent only when you save it. Logos come from each list's site.");
-
-        int rowY = top + 125;
-        graphics.fill(left, rowY, left + WIDTH - 16, rowY + 24, Theme.ROW);
-        graphics.outline(left, rowY, WIDTH - 16, 24, lookups ? Theme.GOOD : Theme.BORDER);
-        ui.text("Look up tiers online", left + 5, rowY + 4, 0xFFFFFFFF);
-        ui.text("Off means no data is sent and no tiers show.", left + 5, rowY + 14, Theme.MUTED);
-        lookups = ui.toggle(left + WIDTH - 66, rowY + 12, lookups);
-
-        int buttonY = y + HEIGHT - 22;
-        if (ui.button(x + WIDTH - 158, buttonY, 72, 16, "Read more", false)) {
-            Blaze3D.openUri(URI.create(README));
-        }
-        if (ui.button(x + WIDTH - 80, buttonY, 72, 16, "Sounds good", true)) {
-            accept();
-        }
-        ui.text("Change this any time in Settings, More.", left, buttonY + 4, Theme.MUTED);
-        ui.end();
+    /** The largest whole number of screen pixels per panel pixel that still fits. */
+    private void measure() {
+        int physicalWidth = minecraft.getWindow().getWidth();
+        int physicalHeight = minecraft.getWindow().getHeight();
+        int pixels = Math.max(1, Math.min((physicalWidth - 40) / WIDTH, (physicalHeight - 40) / HEIGHT));
+        scale = (float) pixels / minecraft.getWindow().getGuiScale();
     }
 
-    private void fact(int x, int y, String title, String detail, String extra) {
-        int height = extra == null ? 24 : 34;
-        ui.graphics.fill(x, y, x + WIDTH - 16, y + height, Theme.ROW);
-        ui.graphics.outline(x, y, WIDTH - 16, height, 0xFF333333);
-        ui.text(title, x + 5, y + 4, 0xFFFFFFFF);
-        ui.text(detail, x + 5, y + 14, Theme.MUTED);
-        if (extra != null) {
-            ui.text(extra, x + 5, y + 24, Theme.MUTED);
+    @Override
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+        measure();
+        int virtualWidth = Math.round(width / scale);
+        int virtualHeight = Math.round(height / scale);
+        graphics.pose().pushMatrix();
+        graphics.pose().scale(scale, scale);
+        ui.begin(graphics, Math.round(mouseX / scale), Math.round(mouseY / scale));
+
+        int x = (virtualWidth - WIDTH) / 2;
+        int y = Math.max(2, (virtualHeight - HEIGHT) / 2);
+        ui.panel(x, y, WIDTH, HEIGHT);
+
+        int left = x + PADDING;
+        int inner = WIDTH - 2 * PADDING;
+        ui.item(Items.NAME_TAG, left, y + 8);
+        ui.bigText("Welcome to TierProfiles", left + 22, y + 10, 1.5f, 0xFFFFFFFF);
+        ui.text("To show tiers, we look up the players around you.", left, y + 32, Theme.TEXT);
+        ui.text("Here is exactly what leaves your game.", left, y + 43, Theme.TEXT);
+
+        int factY = y + 58;
+        factY = fact(left, factY, inner, Items.COMPASS, "We send: names and UUIDs of players in your tab list",
+                "They go to the TierProfiles server, which asks the tier lists.", null);
+        factY = fact(left, factY, inner, Items.SHIELD, "Your login stays with Minecraft",
+                "We never see your account token.", null);
+        factY = fact(left, factY, inner, Items.ENDER_PEARL, "We send nothing else",
+                "No chat, no server address, no position. Your card style is sent only when you save it.",
+                "List logos are downloaded from each list's own website.");
+
+        int rowY = factY;
+        graphics.fill(left, rowY, left + inner, rowY + 28, Theme.ROW);
+        graphics.outline(left, rowY, inner, 28, lookups ? Theme.GOOD : Theme.BORDER);
+        ui.text("Look up tiers online", left + 6, rowY + 5, 0xFFFFFFFF);
+        ui.text("Off means no data is sent and no tiers show.", left + 6, rowY + 16, Theme.MUTED);
+        lookups = ui.toggle(left + inner - 62, rowY + 14, lookups);
+
+        int buttonY = y + HEIGHT - 28;
+        ui.text("You can change this any time in Settings, More.", left, buttonY + 6, Theme.MUTED);
+        if (ui.button(x + WIDTH - PADDING - 166, buttonY, 80, 20, "Read more", false)) {
+            Blaze3D.openUri(URI.create(README));
         }
+        if (ui.button(x + WIDTH - PADDING - 82, buttonY, 82, 20, "Sounds good", true)) {
+            accept();
+        }
+        ui.end();
+        graphics.pose().popMatrix();
+    }
+
+    private int fact(int x, int y, int width, net.minecraft.world.item.Item icon, String title, String detail, String extra) {
+        int height = extra == null ? 26 : 37;
+        ui.graphics.fill(x, y, x + width, y + height, Theme.ROW);
+        ui.graphics.outline(x, y, width, height, 0xFF2E3338);
+        ui.item(icon, x + 5, y + (height - 16) / 2);
+        ui.text(title, x + 26, y + 4, 0xFFFFFFFF);
+        ui.text(detail, x + 26, y + 15, Theme.MUTED);
+        if (extra != null) {
+            ui.text(extra, x + 26, y + 26, Theme.MUTED);
+        }
+        return y + height + FACT_GAP;
     }
 
     private void accept() {

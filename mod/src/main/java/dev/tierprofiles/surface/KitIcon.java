@@ -71,7 +71,7 @@ public final class KitIcon {
     public static void draw(GuiGraphicsExtractor graphics, String kit, int x, int y, Style.IconSet set, float alpha) {
         Supplier<ItemStack> stack = ITEMS.get(kit);
         if (set == Style.IconSet.DEFAULT && stack != null) {
-            if (alpha * 255 >= ITEM_FADE_CUTOFF) {
+            if (alpha * 255 >= ITEM_FADE_CUTOFF && dev.tierprofiles.ui.Ui.itemsReady()) {
                 graphics.item(stack.get(), x, y);
             }
             return;

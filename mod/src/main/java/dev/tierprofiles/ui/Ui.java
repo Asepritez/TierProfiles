@@ -8,6 +8,9 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 
 /**
  * A small immediate-mode UI kit. Instead of keeping a tree of widget objects, a screen
@@ -157,6 +160,22 @@ public final class Ui {
         graphics.pose().scale(scale, scale);
         graphics.text(font, text, 0, 0, color);
         graphics.pose().popMatrix();
+    }
+
+    /**
+     * True once the game has finished loading item data. A screen can open while the
+     * loading overlay is still up, as the first-run notice does on a fresh install, and
+     * making an ItemStack before this point crashes the game.
+     */
+    public static boolean itemsReady() {
+        return Items.STONE.builtInRegistryHolder().areComponentsBound();
+    }
+
+    /** Draws an item, or nothing at all until items are ready. */
+    public void item(Item item, int x, int y) {
+        if (itemsReady()) {
+            graphics.item(new ItemStack(item), x, y);
+        }
     }
 
     public void panel(int x, int y, int width, int height) {

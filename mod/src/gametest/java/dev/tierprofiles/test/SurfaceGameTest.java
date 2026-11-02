@@ -32,7 +32,13 @@ public final class SurfaceGameTest implements FabricClientGameTest {
 
     @Override
     public void runTest(ClientGameTestContext context) {
+        context.waitFor(client -> client.gui.screen() instanceof dev.tierprofiles.ui.FirstRunScreen, 600);
+        context.waitTicks(20);
+        SurfaceGameTest.check(context.computeOnClient(client -> client.gui.screen() instanceof dev.tierprofiles.ui.FirstRunScreen),
+                "a fresh install should open the privacy notice");
+        context.takeScreenshot("tp-00-first-launch-notice");
         context.runOnClient(client -> TestWorld.acceptNotice());
+        context.setScreen(() -> null);
 
         try (TestSingleplayerContext world = context.worldBuilder().create()) {
             world.getConnection().waitForChunksRender();

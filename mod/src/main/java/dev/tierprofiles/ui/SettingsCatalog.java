@@ -83,7 +83,11 @@ final class SettingsCatalog {
     }
 
     private void add(SettingsTab tab, String path, String label, String hint, boolean advanced, Setting.Control control) {
-        all.add(new Setting(tab, path, currentSurface, label, hint, advanced, control));
+        all.add(new Setting(tab, path, currentSurface, label, hint, advanced, 1, control));
+    }
+
+    private void addTall(SettingsTab tab, String path, String label, String hint, boolean advanced, int rows, Setting.Control control) {
+        all.add(new Setting(tab, path, currentSurface, label, hint, advanced, rows, control));
     }
 
     private <O> void toggle(SettingsTab tab, String path, String label, String hint, boolean advanced,
@@ -304,9 +308,11 @@ final class SettingsCatalog {
                 if (ui.slot(x, y, on)) {
                     set.accept(target, id);
                 }
-                ItemStack item = stack.apply(id);
-                if (!item.isEmpty()) {
-                    ui.graphics.item(item, x + 2, y - 8);
+                if (Ui.itemsReady()) {
+                    ItemStack item = stack.apply(id);
+                    if (!item.isEmpty()) {
+                        ui.graphics.item(item, x + 2, y - 8);
+                    }
                 }
                 x += Ui.SLOT + 1;
             }
@@ -356,7 +362,7 @@ final class SettingsCatalog {
                 if (ui.slot(x, y, id.equals(target.trimMaterial))) {
                     target.trimMaterial = id;
                 }
-                ui.graphics.item(new ItemStack(Armor.trimItem(id)), x + 2, y - 8);
+                ui.item(Armor.trimItem(id), x + 2, y - 8);
                 x += Ui.SLOT + 1;
             }
         });
@@ -401,11 +407,11 @@ final class SettingsCatalog {
         Supplier<CardSettings> card = () -> active().card;
         String path = "Position";
 
-        add(tab, path, "Anchor", "Which part of the screen the card sits in.", false, (ui, x, y, width) -> {
+        addTall(tab, path, "Anchor", "Which part of the screen the card sits in.", false, 2, (ui, x, y, width) -> {
             CardSettings target = card.get();
             for (CardSettings.Anchor anchor : CardSettings.Anchor.values()) {
                 int cellX = x + anchor.column() * (Ui.SLOT + 1);
-                int cellY = y - 13 + (anchor.row() - 1) * (Ui.SLOT + 1) + 3;
+                int cellY = y + 16 - Ui.SLOT / 2 + (anchor.row() - 1) * (Ui.SLOT + 1);
                 boolean on = anchor == target.anchor;
                 ui.graphics.fill(cellX, cellY, cellX + Ui.SLOT, cellY + Ui.SLOT, Theme.ROW);
                 ui.graphics.fill(cellX + 8, cellY + 8, cellX + 12, cellY + 12, on ? Theme.ACCENT : Theme.MUTED);
