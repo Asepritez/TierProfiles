@@ -3,6 +3,10 @@
 Each version's jar is named `tierprofiles-<version>+mc<minecraft>.jar`, for example
 `tierprofiles-0.3.0+mc1.21.11.jar`.
 
+## 0.8.1 (3 Nov 2026)
+
+- The Live Stage in settings is see-through grey now, so you see your actual game behind your card instead of a drawn scene of trees and grass.
+
 ## 0.8.0 (3 Nov 2026)
 
 - MCTiers is back. It looked shut down, but it's still active, so it's a list again and first by default: MCTiers, PVPHQ, McPvP, PvPTiers, SubTiers. If you never changed your list order, you get the new one.

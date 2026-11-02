@@ -114,6 +114,9 @@ public final class SettingsScreen extends Screen {
     private int virtualWidth;
     private int virtualHeight;
     private float scale;
+    /** Where the Live Stage was drawn last frame, in screen units before scaling, or null. */
+    private int[] stageArea;
+    private static final int BACKDROP = 0xFC090B0C;
 
     public SettingsScreen(Screen parent) {
         super(Component.literal("TierProfiles"));
@@ -203,9 +206,25 @@ public final class SettingsScreen extends Screen {
         return virtualWidth >= MIN_WIDTH_FOR_STAGE;
     }
 
+    /**
+     * Dark everywhere except where the Live Stage sits, so the real game shows through its
+     * glass. With no world loaded there's nothing to see, so the stage gets solid grey.
+     */
     @Override
     public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
-        graphics.fill(0, 0, width, height, 0xFC090B0C);
+        int[] hole = stageArea;
+        if (hole == null || minecraft == null || minecraft.level == null) {
+            graphics.fill(0, 0, width, height, BACKDROP);
+            return;
+        }
+        int left = Math.round(hole[0] * scale);
+        int top = Math.round(hole[1] * scale);
+        int right = Math.round((hole[0] + hole[2]) * scale);
+        int bottom = Math.round((hole[1] + hole[3]) * scale);
+        graphics.fill(0, 0, width, top, BACKDROP);
+        graphics.fill(0, bottom, width, height, BACKDROP);
+        graphics.fill(0, top, left, bottom, BACKDROP);
+        graphics.fill(right, top, width, bottom, BACKDROP);
     }
 
     @Override
@@ -298,6 +317,9 @@ public final class SettingsScreen extends Screen {
         }
         if (stageBeside || showingStage) {
             stage.draw(ui, stageX, top, stageWidth, bottom - top, tab, editor.staged(), scale);
+            stageArea = new int[] {stageX, top, stageWidth, bottom - top};
+        } else {
+            stageArea = null;
         }
     }
 

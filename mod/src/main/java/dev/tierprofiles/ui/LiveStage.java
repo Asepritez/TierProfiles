@@ -13,9 +13,7 @@ import dev.tierprofiles.hud.ProfileCard;
 import dev.tierprofiles.surface.Decorator;
 import java.util.UUID;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
 
 /**
  * The permanent preview on the right of the settings screen. It shows staged settings,
@@ -23,11 +21,11 @@ import net.minecraft.resources.Identifier;
  * real surfaces, so what you see is what you get.
  */
 final class LiveStage {
-    private static final Identifier BRICKS = Identifier.withDefaultNamespace("textures/block/stone_bricks.png");
-    private static final Identifier GRASS = Identifier.withDefaultNamespace("textures/block/moss_block.png");
-    private static final Identifier LOG = Identifier.withDefaultNamespace("textures/block/oak_log.png");
-    private static final Identifier LEAVES = Identifier.withDefaultNamespace("textures/block/oak_leaves.png");
-    private static final int TILE = 16;
+    /** A see-through grey, so the real game shows behind the preview. The screen leaves a hole for it. */
+    static final int GLASS = 0x8C24282E;
+    private static final int GLASS_TOP = 0x14FFFFFF;
+    private static final int GLASS_BOTTOM = 0x00FFFFFF;
+    private static final int FLOOR_SHADOW = 0x40000000;
     private static final int PADDING = 7;
     private static final int LABEL = 22;
     private static final int STRIP = 18;
@@ -39,7 +37,8 @@ final class LiveStage {
     private int grabY;
 
     void draw(Ui ui, int x, int y, int width, int height, SettingsTab tab, ConfigFile config, float scale) {
-        ui.panel(x, y, width, height);
+        ui.graphics.fill(x, y, x + width, y + height, GLASS);
+        ui.graphics.outline(x, y, width, height, Theme.LINE);
         int inner = x + PADDING;
         int innerWidth = width - 2 * PADDING;
 
@@ -92,22 +91,14 @@ final class LiveStage {
         return new Subject(own, name, TierProfiles.profiles().profile(own));
     }
 
-    /** A little scene built from the game's own block textures, with the model standing in it. */
+    /** The model on a soft see-through grey, with the game itself visible behind. */
     private static void drawScene(Ui ui, int x, int y, int width, int height, Settings settings, Subject subject, float scale) {
         ui.graphics.enableScissor(x, y, x + width, y + height);
-        ui.graphics.fillGradient(x, y, x + width, y + height, 0xFF6D9BE0, 0xFFB7D0F2);
-
-        int wallTop = y + height * 2 / 5;
-        int groundTop = wallTop + 2 * TILE;
-        for (int tree : new int[] {width / 6, width / 2 + 34, width - 60}) {
-            drawTree(ui, x + tree, wallTop);
-        }
-        tile(ui, BRICKS, x, wallTop, width, 2 * TILE, 0xFFFFFFFF);
-        tile(ui, GRASS, x, groundTop, width, y + height - groundTop, 0xFF9CC77A);
-        ui.graphics.fill(x, wallTop, x + width, y + height, 0x30000000);
+        ui.graphics.fillGradient(x, y, x + width, y + height, GLASS_TOP, GLASS_BOTTOM);
 
         int center = x + width / 2;
         int feet = y + height - 10;
+        ui.graphics.fill(center - 22, feet - 1, center + 22, feet + 2, FLOOR_SHADOW);
         int modelTop = feet - MODEL_SIZE * 2;
         int left = Math.round((center - MODEL_SIZE) * scale);
         int right = Math.round((center + MODEL_SIZE) * scale);
@@ -121,28 +112,6 @@ final class LiveStage {
         ui.graphics.fill(tagX - 2, tagY - 1, tagX + tagWidth + 1, tagY + 9, 0x60000000);
         ui.text(tag, tagX, tagY, 0xFFFFFFFF);
         ui.graphics.disableScissor();
-    }
-
-    /** A tree behind the wall, built from the game's own log and leaf textures. */
-    private static void drawTree(Ui ui, int centerX, int groundY) {
-        int canopyWidth = 5 * TILE;
-        int canopyTop = groundY - 4 * TILE;
-        int left = centerX - canopyWidth / 2;
-        ui.graphics.fill(left, canopyTop, left + canopyWidth, canopyTop + 2 * TILE, 0xFF2C5A22);
-        ui.graphics.fill(left + TILE, canopyTop - TILE, left + canopyWidth - TILE, canopyTop, 0xFF2C5A22);
-        tile(ui, LEAVES, left, canopyTop, canopyWidth, 2 * TILE, 0xFF5E9B44);
-        tile(ui, LEAVES, left + TILE, canopyTop - TILE, canopyWidth - 2 * TILE, TILE, 0xFF5E9B44);
-        tile(ui, LOG, centerX - TILE / 2, canopyTop + 2 * TILE, TILE, 2 * TILE, 0xFFFFFFFF);
-    }
-
-    private static void tile(Ui ui, Identifier texture, int x, int y, int width, int height, int color) {
-        for (int row = 0; row < height; row += TILE) {
-            for (int column = 0; column < width; column += TILE) {
-                int tileWidth = Math.min(TILE, width - column);
-                int tileHeight = Math.min(TILE, height - row);
-                ui.graphics.blit(RenderPipelines.GUI_TEXTURED, texture, x + column, y + row, 0, 0, tileWidth, tileHeight, tileWidth, tileHeight, TILE, TILE, color);
-            }
-        }
     }
 
     /** One tab list row and one chat line. */
@@ -176,7 +145,7 @@ final class LiveStage {
         int left = x + (width - miniWidth) / 2;
         int top = y + (height - miniHeight) / 2;
 
-        ui.graphics.fillGradient(left, top, left + miniWidth, top + miniHeight, 0xFF39506E, 0xFF23272B);
+        ui.graphics.fillGradient(left, top, left + miniWidth, top + miniHeight, 0x6039506E, 0x6023272B);
         ui.graphics.outline(left, top, miniWidth, miniHeight, Theme.BORDER);
 
         drawZone(ui, CardPlacement.crosshair(screenWidth, screenHeight), left, top, mini, 0x60FF7777);
