@@ -2,12 +2,13 @@ import { canonicalKit } from "../kits";
 import type { ListResult, PlayerRef, TierEntry } from "../types";
 import { checkStatus, isRecord, numberOrNull, parseJson, Provider, ProviderError } from "./provider";
 
-// UNVERIFIED. This endpoint has never answered us: it hung on every request
-// during development while the rest of pvphq.com stayed up. The field names come
-// from the MIT mod MicahXX/HQTiers, so expect to revisit this once it returns.
-//
-// Expected shape: { data: { sword: { rating, peakRating, gamesPlayed, grantedTier } } }
-// where a missing grantedTier means the player hasn't finished placement.
+// This list goes down for long stretches: it hung or sent 502 for most of development.
+// The shape below was confirmed against real replies on 2026-11-02:
+//   { data: { SWORD: { rating, peakRating, gamesPlayed, grantedTier } }, globalPosition }
+// Players it doesn't know get a 200 with empty `data`, not a 404.
+
+/** What `globalPosition` holds for a player who isn't on the leaderboard. */
+const NO_POSITION = 99999;
 
 const SPELLED_OUT: [RegExp, string][] = [
   [/^HIGH[_ -]?TIER[_ -]?/, "HT"],
@@ -22,6 +23,12 @@ function normalizeRank(raw: unknown): string | null {
   for (const [pattern, short] of SPELLED_OUT) rank = rank.replace(pattern, short);
   rank = rank.replaceAll(/[_ -]/g, "");
   return /^(HT|MT|LT)[1-5]$/.test(rank) ? rank : null;
+}
+
+/** Positions count from zero here, and from one everywhere else. */
+function position(raw: unknown): number | null {
+  const value = numberOrNull(raw);
+  return value === null || value < 0 || value >= NO_POSITION ? null : value + 1;
 }
 
 export const pvphq: Provider = {
@@ -63,7 +70,7 @@ export const pvphq: Provider = {
       region: null,
       country: null,
       points: null,
-      overall: numberOrNull(root.globalPosition),
+      overall: position(root.globalPosition),
       tiers,
     };
   },

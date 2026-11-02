@@ -234,7 +234,6 @@ final class SettingsCatalog {
         String path = "Tags, Format";
 
         choice(tab, path, "Tag position", "Before or after the player's name.", true, List.of(Style.Position.values()), SettingsCatalog::words, style, s -> s.position, (s, v) -> s.position = v);
-        choice(tab, path, "Icon style", "Default is real game items. Classic is the older Programmer Art look, for the items that pack has.", true, List.of(Style.IconSet.values()), SettingsCatalog::words, style, s -> s.iconSet, (s, v) -> s.iconSet = v);
         choice(tab, path, "Brackets", "What wraps a tag.", true, List.of(Style.Brackets.values()), SettingsCatalog::bracketName, style, s -> s.brackets, (s, v) -> s.brackets = v);
         choice(tab, path, "Separator", "What goes between tags.", true, List.of(Style.Separator.values()), s -> s.text.isBlank() ? "Space" : s.text.strip(), style, s -> s.separator, (s, v) -> s.separator = v);
         toggle(tab, path, "Long names", "High Tier 3 instead of HT3.", true, style, s -> s.longNames, (s, v) -> s.longNames = v);
@@ -406,7 +405,7 @@ final class SettingsCatalog {
             CardSettings target = card.get();
             for (CardSettings.Anchor anchor : CardSettings.Anchor.values()) {
                 int cellX = x + anchor.column() * (Ui.SLOT + 1);
-                int cellY = y - 7 - Ui.SLOT + anchor.row() * (Ui.SLOT + 1) + 8;
+                int cellY = y - 13 + (anchor.row() - 1) * (Ui.SLOT + 1) + 3;
                 boolean on = anchor == target.anchor;
                 ui.graphics.fill(cellX, cellY, cellX + Ui.SLOT, cellY + Ui.SLOT, Theme.ROW);
                 ui.graphics.fill(cellX + 8, cellY + 8, cellX + 12, cellY + 12, on ? Theme.ACCENT : Theme.MUTED);
@@ -423,6 +422,14 @@ final class SettingsCatalog {
         number(tab, path, "X offset", "Fine adjustment across.", false, -300, 300, "", card, c -> c.offsetX, (c, v) -> c.offsetX = v);
         number(tab, path, "Y offset", "Fine adjustment down.", false, -200, 200, "", card, c -> c.offsetY, (c, v) -> c.offsetY = v);
         toggle(tab, path, "Snap", "Pull the card to anchors and edges while dragging.", false, card, c -> c.snap, (c, v) -> c.snap = v);
+        add(tab, path, "Entrance", "The card always arrives from the edge it's closest to.", false, (ui, x, y, width) -> {
+            String edge = switch (card.get().anchor.column()) {
+                case 0 -> "left";
+                case 2 -> "right";
+                default -> card.get().anchor.row() == 2 ? "bottom" : "top";
+            };
+            ui.text("Glides in from the " + edge + " edge", x, y - 4, Theme.TEXT);
+        });
 
         String advanced = "Position, Advanced";
         choice(tab, advanced, "Look-at position", "Where the small card sits.", true, List.of(CardSettings.LookAtAnchor.values()), SettingsCatalog::words, card, c -> c.lookAtAnchor, (c, v) -> c.lookAtAnchor = v);
@@ -455,14 +462,11 @@ final class SettingsCatalog {
 
         toggle(tab, path, "Look up tiers online", "Off means no data is sent and no tiers show.", false, this::global, g -> g.lookupsEnabled, (g, v) -> g.lookupsEnabled = v);
         toggle(tab, path, "Reduce motion", "Turns off every animation in TierProfiles.", false, this::global, g -> g.reduceMotion, (g, v) -> g.reduceMotion = v);
+        Supplier<Style> style = () -> active().style;
+        choice(tab, path, "Icon style", "Default is real game items. Classic is the older Programmer Art look, for the items that pack has.", false, List.of(Style.IconSet.values()), SettingsCatalog::words, style, s -> s.iconSet, (s, v) -> s.iconSet = v);
 
         String advanced = "More, Advanced";
         toggle(tab, advanced, "Official list logos", "Downloads each list's logo from its own website. Off uses our letter marks.", true, this::global, g -> g.officialLogos, (g, v) -> g.officialLogos = v);
         add(tab, advanced, "Server address", "Where lookups go.", true, (ui, x, y, width) -> screen.drawServerBox(ui, x, y, width));
-        add(tab, advanced, "Diagnostics", "The real status of each list, and of our server.", true, (ui, x, y, width) -> {
-            if (ui.button(x, y - 10, 110, Ui.SLOT, "Open", false)) {
-                screen.openDiagnostics();
-            }
-        });
     }
 }

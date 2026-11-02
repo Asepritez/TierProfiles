@@ -277,6 +277,25 @@ public final class Ui {
         return result;
     }
 
+    /** Every tier as a tab. Picks which tier the sliders below are editing. */
+    public Tier tierTabs(int x, int centerY, Tier value, ToIntFunction<Tier> color) {
+        int y = centerY - SLOT / 2;
+        Tier result = value;
+        for (Tier tier : Tier.STANDARD) {
+            boolean selected = tier.equals(value);
+            graphics.fill(x, y, x + TIER_CELL, y + SLOT, hovered(x, y, TIER_CELL, SLOT) ? Theme.SELECTED : Theme.SLOT);
+            if (selected) {
+                frame(x, y, TIER_CELL, SLOT);
+            }
+            graphics.centeredText(font, tier.label(), x + TIER_CELL / 2, centerY - 4, Theme.opaque(color.applyAsInt(tier)));
+            if (clicked(x, y, TIER_CELL, SLOT)) {
+                result = tier;
+            }
+            x += TIER_CELL + 1;
+        }
+        return result;
+    }
+
     /** One tier in a cell. Clicking steps through the tiers, and right clicking steps back. */
     public Tier cycleTier(int x, int centerY, Tier value, ToIntFunction<Tier> color) {
         int y = centerY - SLOT / 2;

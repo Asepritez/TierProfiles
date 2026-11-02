@@ -121,23 +121,30 @@ describe("McPvP", () => {
   });
 });
 
-describe("PVPHQ, against a made-up response built from HQTiers field names", () => {
-  // Not a capture: this API has never answered us. See the note in pvphq.ts.
-  const body = JSON.stringify({
-    rank: "HT2",
-    globalPosition: 41,
-    data: {
-      SWORD: { rating: 1800, peakRating: 1900, gamesPlayed: 50, grantedTier: "High Tier 3" },
-      AXE: { rating: 1500, gamesPlayed: 12, grantedTier: "LT4" },
-      MACE: { rating: 1000, gamesPlayed: 2, grantedTier: null },
-    },
+describe("PVPHQ, from real responses", () => {
+  it("reads a real ranked player", () => {
+    const result = ok(pvphq.parse(200, fixture("pvphq-ranked.json"), ITZ));
+    expect(result.tiers).toEqual([{ kit: "spear", rank: "LT5", peak: null, attained: null, retired: false, rating: 1738, games: 4 }]);
   });
 
-  it("normalizes tiers and leaves out ladders still in placement", () => {
+  it("treats 99999 as no position, so nobody shows up as #99999", () => {
+    expect(ok(pvphq.parse(200, fixture("pvphq-ranked.json"), ITZ)).overall).toBeNull();
+  });
+
+  it("counts real positions from one, like every other list", () => {
+    const body = JSON.stringify({ globalPosition: 41, data: { SWORD: { grantedTier: "HT2" } } });
+    expect(ok(pvphq.parse(200, body, ITZ)).overall).toBe(42);
+  });
+
+  it("reads a player it doesn't know, who still gets a 200", () => {
+    expect(pvphq.parse(200, fixture("pvphq-unranked.json"), ITZ)).toEqual({ status: "unranked" });
+  });
+
+  it("accepts spelled-out tiers and leaves out ladders still in placement", () => {
+    const body = JSON.stringify({ data: { AXE: { grantedTier: "High Tier 3" }, MACE: { grantedTier: null } } });
     const result = ok(pvphq.parse(200, body, ITZ));
-    expect(result.tiers).toHaveLength(2);
-    expect(tier(result, "sword")).toMatchObject({ rank: "HT3", rating: 1800, games: 50 });
-    expect(tier(result, "axe")?.rank).toBe("LT4");
+    expect(result.tiers).toHaveLength(1);
+    expect(tier(result, "axe")?.rank).toBe("HT3");
   });
 
   it("handles every way of saying nothing", () => {
@@ -146,7 +153,7 @@ describe("PVPHQ, against a made-up response built from HQTiers field names", () 
     expect(pvphq.parse(200, `{"data":{}}`, ITZ)).toEqual({ status: "unranked" });
   });
 
-  it("treats the 502 it was actually serving as a failure", () => {
+  it("treats the 502 it serves when down as a failure", () => {
     expect(() => pvphq.parse(502, "error code: 502", ITZ)).toThrow(new ProviderError("http_502"));
   });
 });
@@ -177,6 +184,10 @@ describe("canonicalKit", () => {
     ["end-game", "end_game"],
     ["SWORD", "sword"],
     ["brand-new-kit", "brand_new_kit"],
+    ["SPEAR_MACE", "spear"],
+    ["HT_CART", "minecart"],
+    ["DIAMOND_POT", "pot"],
+    ["NETHERITE_OP", "neth_pot"],
   ])("%s becomes %s", (raw, expected) => {
     expect(canonicalKit(raw)).toBe(expected);
   });

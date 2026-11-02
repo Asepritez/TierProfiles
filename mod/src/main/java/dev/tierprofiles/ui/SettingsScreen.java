@@ -6,11 +6,15 @@ import dev.tierprofiles.core.config.ConfigEditor;
 import dev.tierprofiles.core.config.ConfigStore;
 import dev.tierprofiles.core.config.ShareCode;
 import dev.tierprofiles.core.model.Kits;
+import dev.tierprofiles.core.model.Tier;
 import dev.tierprofiles.core.model.TierList;
+import dev.tierprofiles.core.settings.Colors;
 import dev.tierprofiles.core.settings.ConfigFile;
 import dev.tierprofiles.core.settings.Global;
 import dev.tierprofiles.core.settings.HighlightRule;
+import dev.tierprofiles.core.settings.Palette;
 import dev.tierprofiles.core.settings.Settings;
+import dev.tierprofiles.core.settings.Style;
 import dev.tierprofiles.core.settings.Surface;
 import dev.tierprofiles.surface.KitIcon;
 import java.io.IOException;
@@ -83,14 +87,23 @@ public final class SettingsScreen extends Screen {
 
     private final TextField search = new TextField(40, "");
     private final TextField serverBox = new TextField(200, "");
-    private final TextField nameBox = new TextField(ConfigFile.MAX_NAME_LENGTH, "New setup name");
-    private final TextField codeBox = new TextField(65536, "Paste a share code");
+    private final TextField nameBox = new TextField(ConfigFile.MAX_NAME_LENGTH, "Type a new name");
+    private final TextField codeBox = new TextField(65536, "Paste a code");
+    private final TextField hexBox = new TextField(7, "");
+    private final Object redSlider = new Object();
+    private final Object greenSlider = new Object();
+    private final Object blueSlider = new Object();
 
     private ColorPicker colorPicker;
     private KeyMapping listeningKey;
     private boolean confirmingClose;
     private boolean showingStage;
-    private boolean diagnostics;
+    private boolean importFilters = true;
+    private boolean importColours = true;
+    private boolean importRules = true;
+    private boolean importCard = true;
+    private TierList colourList = TierList.MCTIERS;
+    private Tier colourTier = Tier.parse("HT3");
     private int selectedRule;
     private String sharingMessage = "";
     private Settings pendingImport;
@@ -117,7 +130,6 @@ public final class SettingsScreen extends Screen {
     public void openTab(SettingsTab wanted) {
         tab = wanted;
         search.value = "";
-        diagnostics = false;
     }
 
     /** For tests: type into the search box. */
@@ -130,7 +142,8 @@ public final class SettingsScreen extends Screen {
     }
 
     public void openDiagnostics() {
-        diagnostics = true;
+        tab = SettingsTab.MORE;
+        advancedOpen.put(SettingsTab.MORE, true);
     }
 
     /** Stages a change from code, for tests. */
@@ -279,8 +292,6 @@ public final class SettingsScreen extends Screen {
         int y = listTop - scroll;
         if (isSearching()) {
             y = drawSearchResults(left, right, y);
-        } else if (diagnostics) {
-            y = drawDiagnostics(left, right, y);
         } else {
             y = drawTab(left, right, y);
         }
@@ -300,7 +311,7 @@ public final class SettingsScreen extends Screen {
     }
 
     private void drawTitle(int left, int right, int y) {
-        String title = isSearching() ? resultCount() + " results" : diagnostics ? "Diagnostics" : tab.title();
+        String title = isSearching() ? resultCount() + " results" : tab.title();
         ui.bigText(title, left, y, TITLE_SCALE, 0xFFFFFFFF);
 
         String note = switch (tab) {
@@ -310,7 +321,7 @@ public final class SettingsScreen extends Screen {
             case PROFILE -> TierProfiles.cosmetics().state().message();
             default -> "";
         };
-        if (!isSearching() && !diagnostics) {
+        if (!isSearching()) {
             if (Boolean.TRUE.equals(advancedOpen.get(tab))) {
                 note = "Advanced";
             }
@@ -325,45 +336,142 @@ public final class SettingsScreen extends Screen {
 
     private int drawTab(int left, int right, int y) {
         boolean advanced = Boolean.TRUE.equals(advancedOpen.get(tab));
+        if (tab == SettingsTab.RULES) {
+            return drawHintBox(left, right, drawRules(left, right, y, advanced) + 6);
+        }
         if (advanced) {
             y = drawRows(catalog.forTab(tab, surface, true), left, right, y);
+            if (tab == SettingsTab.MORE) {
+                y = drawDiagnostics(left, y);
+            }
+            if (tab == SettingsTab.SHARING) {
+                y = drawSetups(left, right, y);
+            }
             return drawAdvancedRow(left, right, y, "Back to the essentials", true);
         }
 
         switch (tab) {
-            case RULES -> y = drawRules(left, right, y);
-            case SHARING -> {
-                return drawSharing(left, right, y);
-            }
+            case COLOURS -> y = drawColours(left, right, y);
+            case SHARING -> y = drawSharing(left, right, y);
             default -> {
                 if (tab == SettingsTab.TAGS) {
                     y = drawSurfaceSlots(left, y);
                 }
-                y = drawRows(essentials(), left, right, y);
+                y = drawRows(catalog.forTab(tab, surface, false), left, right, y);
             }
         }
 
-        int more = catalog.forTab(tab, surface, true).size();
+        int more = catalog.forTab(tab, surface, true).size() + (tab == SettingsTab.SHARING ? config().profiles.size() : 0)
+                + (tab == SettingsTab.MORE ? TierList.values().length : 0);
         if (more > 0) {
             y = drawAdvancedRow(left, right, y, more + " more: " + advancedSummary(), false);
         }
         return drawHintBox(left, right, y + 6);
     }
 
-    private List<Setting> essentials() {
-        return tab == SettingsTab.RULES ? List.of() : catalog.forTab(tab, surface, false);
-    }
-
     private String advancedSummary() {
         return switch (tab) {
             case TAGS -> "per-list minimums, list order, format";
             case COLOURS -> "retired chips, colours per list";
-            case RULES -> "";
+            case RULES -> "gradient, gamemode, retired, peak";
+            case SHARING -> "your setups";
             case PROFILE -> "per-slot armor, trims, effects, accent, size";
             case POSITION -> "look-at card";
             case MORE -> "logos, server, diagnostics";
             default -> "";
         };
+    }
+
+    private int drawColours(int left, int right, int y) {
+        Style style = staged().style;
+
+        y = line("Preset", left, y, (x, c) -> {
+            for (Palette palette : Palette.values()) {
+                int cellWidth = 68;
+                int top = c - Ui.SLOT / 2;
+                boolean on = style.palette == palette && style.tierColors.isEmpty();
+                ui.graphics.fill(x, top, x + cellWidth, top + Ui.SLOT, Theme.SLOT);
+                int swatch = x + 6;
+                for (int i = 0; i < Tier.STANDARD.size(); i += 2) {
+                    ui.graphics.fill(swatch, top + 5, swatch + 11, top + 15, Theme.opaque(palette.color(Tier.STANDARD.get(i))));
+                    swatch += 11;
+                }
+                if (on) {
+                    ui.frame(x, top, cellWidth, Ui.SLOT);
+                }
+                if (ui.hovered(x, top, cellWidth, Ui.SLOT)) {
+                    ui.hint(palette.displayName(), "A ready-made set of tier colours.");
+                }
+                if (ui.clicked(x, top, cellWidth, Ui.SLOT)) {
+                    style.palette = palette;
+                    style.tierColors.clear();
+                }
+                x += cellWidth + 3;
+            }
+        });
+
+        y = line("Applies to", left, y, (x, c) -> {
+            style.perListColors = ui.segments(x, c, List.of(false, true), style.perListColors, on -> on ? "Per list" : "All lists");
+            if (style.perListColors) {
+                x += 118;
+                for (TierList list : TierList.values()) {
+                    if (ui.slot(x, c, colourList == list)) {
+                        colourList = list;
+                    }
+                    dev.tierprofiles.hud.Logos.draw(ui.graphics, list, x + 2, c - 8, 16, 1);
+                    x += Ui.SLOT + 1;
+                }
+            }
+        });
+
+        y = line("Tier", left, y, (x, c) -> colourTier = ui.tierTabs(x, c, colourTier, tier -> style.color(colourList, tier)));
+
+        int current = style.color(colourList, colourTier);
+        int red = channel(left, y, "Red", redSlider, current >> 16 & 0xFF);
+        y += ROW_STEP;
+        int green = channel(left, y, "Green", greenSlider, current >> 8 & 0xFF);
+        y += ROW_STEP;
+        int blue = channel(left, y, "Blue", blueSlider, current & 0xFF);
+        y += ROW_STEP;
+        int edited = red << 16 | green << 8 | blue;
+        if (edited != current) {
+            setColour(style, edited);
+        }
+
+        return line("Hex", left, y, (x, c) -> {
+            if (!hexBox.focused) {
+                hexBox.value = Colors.toHex(style.color(colourList, colourTier));
+            }
+            hexBox.draw(ui, x, c - 10, 84, Ui.SLOT);
+            Integer typed = Colors.parseHex(hexBox.value);
+            if (hexBox.focused && typed != null) {
+                setColour(style, typed);
+            }
+            if (ui.button(x + 88, c - 10, 46, Ui.SLOT, "Copy", false)) {
+                minecraft.keyboardHandler.setClipboard(Colors.toHex(style.color(colourList, colourTier)));
+            }
+            if (ui.button(x + 138, c - 10, 50, Ui.SLOT, "Reset", false)) {
+                style.tierColors.remove(colourTier.label());
+                Map<String, Integer> forList = style.listColors.get(colourList);
+                if (forList != null) {
+                    forList.remove(colourTier.label());
+                }
+            }
+        });
+    }
+
+    private int channel(int left, int y, String label, Object id, int value) {
+        int center = y + ROW / 2;
+        ui.text(label, left, center - 4, Theme.TEXT);
+        return Math.round(ui.slider(id, left + LABEL_W, center, 200, value, 0, 255, Integer.toString(value)));
+    }
+
+    private void setColour(Style style, int rgb) {
+        if (style.perListColors) {
+            style.listColors.computeIfAbsent(colourList, unused -> new java.util.LinkedHashMap<>()).put(colourTier.label(), rgb);
+        } else {
+            style.tierColors.put(colourTier.label(), rgb);
+        }
     }
 
     private int drawSurfaceSlots(int left, int y) {
@@ -518,7 +626,7 @@ public final class SettingsScreen extends Screen {
         return String.join(", ", parts);
     }
 
-    private int drawRules(int left, int right, int y) {
+    private int drawRules(int left, int right, int y, boolean advanced) {
         List<HighlightRule> rules = staged().rules;
         for (int i = 0; i < rules.size(); i++) {
             y = drawRuleRow(rules, i, left, right, y);
@@ -530,7 +638,11 @@ public final class SettingsScreen extends Screen {
         y += ROW + 4;
 
         if (selectedRule < rules.size()) {
-            y = drawRuleEditor(rules.get(selectedRule), left, right, y);
+            y = drawRuleEditor(rules.get(selectedRule), left, y);
+            y = drawAdvancedRow(left, right, y, advanced ? "Back to the essentials" : "4 more: " + advancedSummary(), advanced);
+            if (advanced) {
+                y = drawRuleExtras(rules.get(selectedRule), left, y);
+            }
         }
         return y;
     }
@@ -590,7 +702,7 @@ public final class SettingsScreen extends Screen {
         return y + ROW_STEP;
     }
 
-    private int drawRuleEditor(HighlightRule rule, int left, int right, int y) {
+    private int drawRuleEditor(HighlightRule rule, int left, int y) {
         y = line("If tier", left, y, (x, c) -> {
             rule.comparison = ui.segments(x, c, List.of(HighlightRule.Comparison.values()), rule.comparison, value -> switch (value) {
                 case AT -> "At";
@@ -626,12 +738,15 @@ public final class SettingsScreen extends Screen {
                 pickColor(shown, picked -> rule.color = picked);
             }
         });
-        y = line("Style", left, y, (x, c) -> {
+        return line("Style", left, y, (x, c) -> {
             int cell = 50;
             rule.bold = styleCell(x, c, cell, "Bold", rule.bold);
             rule.star = styleCell(x + cell + 1, c, cell, "Star", rule.star);
             rule.glow = styleCell(x + 2 * (cell + 1), c, cell, "Glow", rule.glow);
         });
+    }
+
+    private int drawRuleExtras(HighlightRule rule, int left, int y) {
         y = line("Gradient", left, y, (x, c) -> {
             boolean on = ui.toggle(x, c, rule.gradientEnd != null);
             if (on && rule.gradientEnd == null) {
@@ -672,10 +787,89 @@ public final class SettingsScreen extends Screen {
     }
 
     private int drawSharing(int left, int right, int y) {
-        int width = right - left;
-        ui.text("Setups", left, y + 2, Theme.ACCENT);
-        y += 16;
+        int x = left + LABEL_W;
+        int width = right - x;
 
+        y = line("Setup name", left, y, (cx, c) -> {
+            nameBox.draw(ui, cx, c - 10, width - 74, Ui.SLOT);
+            if (ui.button(right - 70, c - 10, 70, Ui.SLOT, "Rename", false) && editor.renameProfile(config().activeProfile, nameBox.value.trim())) {
+                nameBox.value = "";
+            }
+        });
+        y = line("Slot icon", left, y, (cx, c) -> {
+            for (int i = 0; i <= Settings.MAX_ICON; i++) {
+                if (ui.slot(cx, c, staged().icon == i)) {
+                    staged().icon = i;
+                }
+                ui.graphics.item(new ItemStack(SETUP_ICONS.get(i)), cx + 2, c - 8);
+                cx += Ui.SLOT + 1;
+            }
+        });
+        y = line("Share code", left, y, (cx, c) -> {
+            ui.graphics.fill(cx, c - 10, cx + width - 74, c + 10, Theme.ROW);
+            ui.text(ui.font.plainSubstrByWidth(shareCode(), width - 86), cx + 5, c - 4, Theme.ACCENT);
+            if (ui.button(right - 70, c - 10, 70, Ui.SLOT, "Copy", false)) {
+                copyCode();
+            }
+        });
+        y = line("Import", left, y, (cx, c) -> {
+            codeBox.draw(ui, cx, c - 10, width - 74, Ui.SLOT);
+            if (ui.button(right - 70, c - 10, 70, Ui.SLOT, "Preview", false)) {
+                previewCode();
+            }
+        });
+        y = line("Include", left, y, (cx, c) -> {
+            int cell = 62;
+            importFilters = styleCell(cx, c, cell, "Filters", importFilters);
+            importColours = styleCell(cx + cell + 1, c, cell, "Colours", importColours);
+            importRules = styleCell(cx + 2 * (cell + 1), c, cell, "Rules", importRules);
+            importCard = styleCell(cx + 3 * (cell + 1), c, cell, "Card", importCard);
+        });
+
+        if (!sharingMessage.isEmpty()) {
+            ui.text(sharingMessage, x, y + 2, Theme.MUTED);
+            y += 16;
+        }
+        if (pendingImport != null) {
+            if (ui.button(x, y, 110, Ui.SLOT, "Use this code", true)) {
+                useImport();
+            }
+            y += ROW;
+        }
+        return y;
+    }
+
+    /** Takes only the parts you ticked, so a code can't touch what you want to keep. */
+    private void useImport() {
+        Settings target = staged();
+        Settings incoming = ConfigStore.copy(pendingImport);
+        if (importFilters) {
+            target.filters = incoming.filters;
+            target.surfaces = incoming.surfaces;
+        }
+        if (importColours) {
+            target.style = incoming.style;
+        }
+        if (importRules) {
+            target.rules = incoming.rules;
+        }
+        if (importCard) {
+            target.card = incoming.card;
+        }
+        pendingImport = null;
+        codeBox.value = "";
+        sharingMessage = "Imported. Apply to keep it.";
+    }
+
+    private String shareCode() {
+        try {
+            return ShareCode.encode(staged());
+        } catch (IOException e) {
+            return "";
+        }
+    }
+
+    private int drawSetups(int left, int right, int y) {
         for (String name : new ArrayList<>(config().profiles.keySet())) {
             boolean active = name.equals(config().activeProfile);
             ui.graphics.fill(left, y, right, y + RULE_ROW, active ? Theme.SELECTED : Theme.ROW);
@@ -688,43 +882,7 @@ public final class SettingsScreen extends Screen {
             }
             y += RULE_ROW + 2;
         }
-
-        y += 4;
-        int boxWidth = Math.min(180, width - 130);
-        nameBox.draw(ui, left, y, boxWidth, Ui.SLOT);
-        if (ui.button(left + boxWidth + 4, y, 60, Ui.SLOT, "New", false) && editor.createProfile(nameBox.value.trim(), staged())) {
-            nameBox.value = "";
-        }
-        if (ui.button(left + boxWidth + 68, y, 60, Ui.SLOT, "Rename", false) && editor.renameProfile(config().activeProfile, nameBox.value.trim())) {
-            nameBox.value = "";
-        }
-        y += ROW + 6;
-
-        ui.text("Share code", left, y + 2, Theme.ACCENT);
-        y += 16;
-        if (ui.button(left, y, 120, Ui.SLOT, "Copy my code", false)) {
-            copyCode();
-        }
-        y += ROW;
-
-        codeBox.draw(ui, left, y, width - 84, Ui.SLOT);
-        if (ui.button(left + width - 80, y, 80, Ui.SLOT, "Preview", false)) {
-            previewCode();
-        }
-        y += ROW;
-
-        ui.text(sharingMessage, left, y + 2, Theme.MUTED);
-        y += 16;
-        if (pendingImport != null) {
-            if (ui.button(left, y, 110, Ui.SLOT, "Use this code", true)) {
-                config().profiles.put(config().activeProfile, ConfigStore.copy(pendingImport));
-                pendingImport = null;
-                codeBox.value = "";
-                sharingMessage = "Imported. Apply to keep it.";
-            }
-            y += ROW;
-        }
-        return y;
+        return y + 6;
     }
 
     private void copyCode() {
@@ -740,8 +898,6 @@ public final class SettingsScreen extends Screen {
     private void previewCode() {
         try {
             pendingImport = ShareCode.decode(codeBox.value);
-            ConfigFile copy = ConfigStore.copy(config());
-            copy.profiles.put(copy.activeProfile, ConfigStore.copy(pendingImport));
             ConfigEditor comparison = new ConfigEditor(config());
             comparison.staged().profiles.put(comparison.staged().activeProfile, ConfigStore.copy(pendingImport));
             sharingMessage = "This code would change " + comparison.changeCount() + " settings.";
@@ -751,16 +907,22 @@ public final class SettingsScreen extends Screen {
         }
     }
 
-    private int drawDiagnostics(int left, int right, int y) {
-        if (ui.button(left, y, 90, Ui.SLOT, "Back", false)) {
-            diagnostics = false;
+    /** The truth behind the card's Unranked: what each list really did. */
+    private int drawDiagnostics(int left, int y) {
+        ui.text("Diagnostics", left, y + 2, Theme.ACCENT);
+        y += 16;
+        for (Diagnostics.Row row : Diagnostics.lists()) {
+            int center = y + ROW / 2;
+            dev.tierprofiles.hud.Logos.draw(ui.graphics, row.list(), left, center - 8, 16, 1);
+            ui.text(row.list().displayName(), left + 20, center - 4, Theme.TEXT);
+            ui.text(row.text(), left + LABEL_W, center - 4, row.healthy() ? Theme.GOOD : Theme.BAD);
+            y += ROW_STEP;
         }
-        y += ROW;
-        for (String line : Diagnostics.lines()) {
-            ui.text(line, left, y, Theme.TEXT);
-            y += 13;
+        for (String line : Diagnostics.server()) {
+            ui.text(line, left, y, Theme.MUTED);
+            y += 12;
         }
-        return y;
+        return y + 8;
     }
 
     /** The bottom row: your nine setups, like a hotbar, then Discard and Apply. */
@@ -773,11 +935,18 @@ public final class SettingsScreen extends Screen {
         for (int i = 0; i < 9; i++) {
             boolean used = i < names.size();
             boolean active = used && names.get(i).equals(config().activeProfile);
-            if (ui.slot(x, center, active) && used) {
+            boolean clicked = ui.slot(x, center, active);
+            if (clicked && used) {
                 editor.switchProfile(names.get(i));
+            } else if (clicked) {
+                addSetup(i);
             }
             if (used) {
-                ui.graphics.item(new ItemStack(SETUP_ICONS.get(i)), x + 2, center - 8);
+                int icon = config().profiles.get(names.get(i)).icon;
+                ui.graphics.item(new ItemStack(SETUP_ICONS.get(icon)), x + 2, center - 8);
+            }
+            if (ui.hovered(x, center - 10, Ui.SLOT, Ui.SLOT)) {
+                ui.hint(used ? names.get(i) : "Empty slot", used ? "Press " + (i + 1) + " to use this setup." : "Click to save a copy of this setup here.");
             }
             x += Ui.SLOT + 1;
         }
@@ -796,6 +965,14 @@ public final class SettingsScreen extends Screen {
         }
         if (ui.button(right - 118, y, 56, FOOTER_BUTTON, "Discard", false)) {
             discard();
+        }
+    }
+
+    private void addSetup(int slot) {
+        String name = "Setup " + (slot + 1);
+        if (editor.createProfile(name, staged())) {
+            config().profiles.get(name).icon = Math.min(slot, Settings.MAX_ICON);
+            editor.switchProfile(name);
         }
     }
 
@@ -849,7 +1026,7 @@ public final class SettingsScreen extends Screen {
         if (event.input() == InputConstants.KEY_ESCAPE) {
             return onEscape();
         }
-        if (search.onKey(event) || serverBox.onKey(event) || nameBox.onKey(event) || codeBox.onKey(event)) {
+        if (search.onKey(event) || serverBox.onKey(event) || nameBox.onKey(event) || codeBox.onKey(event) || hexBox.onKey(event)) {
             return true;
         }
         if (event.key() == InputConstants.KEY_F && event.hasControlDownWithQuirk()) {
@@ -887,7 +1064,7 @@ public final class SettingsScreen extends Screen {
 
     @Override
     public boolean charTyped(CharacterEvent event) {
-        return search.onChar(event) || serverBox.onChar(event) || nameBox.onChar(event) || codeBox.onChar(event);
+        return search.onChar(event) || serverBox.onChar(event) || nameBox.onChar(event) || codeBox.onChar(event) || hexBox.onChar(event);
     }
 
     @Override

@@ -11,6 +11,14 @@ const ALIASES: Record<string, string> = {
   netherite_pot: "neth_pot",
   cart: "minecart",
   diamond_smp: "dia_smp",
+  // PVPHQ's ladder names.
+  spear_mace: "spear",
+  spearmace: "spear",
+  ht_cart: "minecart",
+  carts: "minecart",
+  diamond_pot: "pot",
+  netherite_op: "neth_pot",
+  netherite_smp: "smp",
 };
 
 export function canonicalKit(raw: string): string {

@@ -17,23 +17,53 @@ final class Diagnostics {
     private Diagnostics() {
     }
 
-    static List<String> lines() {
-        ProfileService service = TierProfiles.profiles();
-        List<String> lines = new ArrayList<>();
-        lines.add("Server: " + TierProfiles.config().global.serverUrl);
-        lines.add("Last answer: " + service.lastStatus());
-        lines.add("Players known: " + service.knownPlayers() + ", waiting: " + service.queueSize());
-        lines.add("Card: " + TierProfiles.cosmetics().state().message());
-        lines.add("");
+    /** One list's real state, in plain words. */
+    record Row(TierList list, String text, boolean healthy) {
+    }
 
-        Map<TierList, ListHealth> health = service.health();
+    static List<String> server() {
+        ProfileService service = TierProfiles.profiles();
+        return List.of(
+                "Server: " + TierProfiles.config().global.serverUrl,
+                "Last answer: " + service.lastStatus(),
+                "Players known: " + service.knownPlayers() + ", waiting: " + service.queueSize(),
+                "Card: " + TierProfiles.cosmetics().state().message());
+    }
+
+    static List<Row> lists() {
+        Map<TierList, ListHealth> health = TierProfiles.profiles().health();
+        List<Row> rows = new ArrayList<>();
         for (TierList list : TierList.values()) {
             ListHealth entry = health.get(list);
-            lines.add(list.displayName() + ": " + entry.count(ListStatus.OK) + " ranked, "
-                    + entry.count(ListStatus.UNRANKED) + " unranked, "
-                    + entry.count(ListStatus.UNAVAILABLE) + " down"
-                    + (entry.lastReason() == null ? "" : " (" + entry.lastReason() + ")"));
+            int down = entry.count(ListStatus.UNAVAILABLE);
+            int answered = entry.count(ListStatus.OK) + entry.count(ListStatus.UNRANKED);
+            if (down > 0) {
+                rows.add(new Row(list, "Down, " + reason(entry.lastReason()), false));
+            } else if (answered == 0) {
+                rows.add(new Row(list, "Not asked yet", true));
+            } else {
+                rows.add(new Row(list, "Online, " + entry.count(ListStatus.OK) + " of " + answered + " players ranked", true));
+            }
         }
-        return lines;
+        return rows;
+    }
+
+    private static String reason(String reason) {
+        if (reason == null) {
+            return "no reason given";
+        }
+        if (reason.startsWith("http_")) {
+            return "server replied " + reason.substring(5);
+        }
+        return switch (reason) {
+            case "timeout" -> "not answering";
+            case "network" -> "can't be reached";
+            case "circuit_open" -> "resting after failures";
+            case "busy" -> "our server was busy";
+            case "bad_json", "bad_shape" -> "sent something unreadable";
+            case "name_required", "name_too_short" -> "needs a longer name";
+            case "search_truncated" -> "too many name matches";
+            default -> reason;
+        };
     }
 }

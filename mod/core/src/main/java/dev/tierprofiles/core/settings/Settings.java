@@ -12,12 +12,15 @@ import java.util.Map;
  */
 public final class Settings {
     public static final int MAX_RULES = 32;
+    public static final int MAX_ICON = 8;
 
     public Filters filters = new Filters();
     public Map<Surface, SurfaceSettings> surfaces = defaultSurfaces();
     public Style style = new Style();
     public List<HighlightRule> rules = new ArrayList<>();
     public CardSettings card = new CardSettings();
+    /** Which icon this setup has in the hotbar. */
+    public int icon = 0;
 
     private static Map<Surface, SurfaceSettings> defaultSurfaces() {
         Map<Surface, SurfaceSettings> surfaces = new EnumMap<>(Surface.class);
@@ -67,6 +70,7 @@ public final class Settings {
             }
         }
         rules = cleanRules;
+        icon = Math.clamp(icon, 0, MAX_ICON);
         return this;
     }
 }
