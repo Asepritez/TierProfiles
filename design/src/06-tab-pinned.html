@@ -1,9 +1,9 @@
 <!doctype html><meta charset="utf8"><title>Tab pinned</title>
-<link rel="stylesheet" href="base.css"><script src="lib.js"></script><script src="cards.js"></script><script src="hudkit.js"></script>
+<link rel="stylesheet" href="base.css"><script src="lib.js"></script><script src="card.js"></script><script src="hudkit.js"></script>
 <body><div class="scene" style="background-image:url(../_tmp/bg/fight.png)"></div>
 <script>
 mount(hud(0));
 mount(`<div class="abs" style="left:660px;top:20px">${tablist(TAB,'JokingDK')}</div>`);
 mount(`<div class="abs" style="left:660px;top:326px;width:600px;display:flex;justify-content:center">${keyHint().replace('Pin card','Close card')}</div>`);
-mount(`<div class="abs" style="right:12px;top:20px">${cardA(JOKING,{w:636,kits:3,noLegend:1})}</div>`);
+mount(`<div class="abs" style="left:1272px;top:20px">${defaultCard(JOKING,{w:628,noDate:1})}</div>`);
 </script></body>

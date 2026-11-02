@@ -1,6 +1,6 @@
 // The settings screen frame. Same structure as Tallium (tab row, staged Apply bar), with more
 // character: kit icons on tabs, pixel bevels, a dither backdrop and a search that spans every tab.
-const TABS = [['Tags','sword'],['Colours','pot'],['Rules','end_game'],['Profile','vanilla'],['Sharing','elytra'],['Keys','speed'],['More','shield']];
+const TABS = [['Tags','sword'],['Colours','pot'],['Rules','end_game'],['Profile','diamond_smp'],['Sharing','elytra'],['Keys','bow'],['More','shield']];
 
 function shell(active, body, o = {}) {
   return `<div class="shell"></div>

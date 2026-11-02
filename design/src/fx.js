@@ -41,27 +41,22 @@ function twinkle(p, n, seed, t, cols, region) {
 }
 
 // The moon: 7 tones, a soft terminator and hand-placed craters. Drawn at 1 GUI pixel.
-function moon(p, cx, cy, R, t) {
-  // halo: dithered rings that breathe slowly
-  const breathe=.5+.5*Math.sin(t/LOOP*6.283);
-  for(let y=cy-R-22;y<=cy+R+22;y++)for(let x=cx-R-22;x<=cx+R+22;x++){ const d=Math.hypot(x-cx,y-cy);
-    if(d>R){ const k=1-(d-R)/(16+4*breathe); if(k>0&&k*k*.55>BAYER[y&3][x&3]) p.set(x,y,hex('#8FA6E8'),.34+.1*breathe); } }
-  // the game's own moon texture, added over the sky the way the game blends it
-  const S=MOON_TEX.length, sc=Math.max(1,Math.round(2*R/S));
-  const ox=cx-Math.floor(S*sc/2), oy=cy-Math.floor(S*sc/2);
-  for(let j=0;j<S;j++)for(let i=0;i<S;i++){ const [r,g,b,a]=MOON_TEX[j][i]; if(!a||r+g+b<12) continue;
+function moon(p, cx, cy, R, t) {  // R is half the lit body's size in GUI pixels
+  // The game's own texture: an 8x8 moon inside a 32x32 image with its glow baked in, on black.
+  // The game adds it over the sky, so do the same, at a whole-number scale of the lit body.
+  const N=MOON_TEX.length, sc=Math.max(1,Math.round(2*R/8)), mid=(N*sc)/2;
+  const ox=Math.round(cx-mid), oy=Math.round(cy-mid), glow=.85+.15*Math.sin(t/LOOP*6.283);
+  for(let j=0;j<N;j++)for(let i=0;i<N;i++){ const [r,g,b]=MOON_TEX[j][i]; if(r+g+b<4) continue;
+    const body=r+g+b>150, k=body?1:glow;
     for(let u=0;u<sc;u++)for(let v=0;v<sc;v++){ const X=ox+i*sc+u,Y=oy+j*sc+v; if(X<0||Y<0||X>=p.w||Y>=p.h) continue;
-      const q=(Y*p.w+X)*4,d=p.d; d[q]=Math.min(255,d[q]+r); d[q+1]=Math.min(255,d[q+1]+g); d[q+2]=Math.min(255,d[q+2]+b); } }
+      const q=(Y*p.w+X)*4,d=p.d; d[q]=Math.min(255,d[q]+r*k); d[q+1]=Math.min(255,d[q+1]+g*k); d[q+2]=Math.min(255,d[q+2]+b*k); } }
 }
 
 const BG_FN = {
   moon(p,t,o){
     ditherSky(p,['#070A1F','#0D1433','#17204E','#26306B','#3A3F85'],p.h*1.05);
     twinkle(p,110,11,t,['#FFFFFF','#BFD0FF','#FFE9B8'],p.h*.8);
-    moon(p,o.mx??56,o.my??46,o.mr??32,t);
-    // thin clouds drifting across the moon, then a jagged hill line
-    const cl=noiseField(120,p.h,24,5), sh=(t/LOOP)*120;
-    for(let y=34;y<86;y++)for(let x=0;x<p.w;x++){ const n=cl(x+sh,y*2.4); if(n>.62){ const k=(n-.62)*3; if(k>BAYER[y&3][x&3]) p.set(x,y,hex('#5A5FA8'),.5); } }
+    moon(p,o.mx??214,o.my??16,o.mr??12,t);
     const hr=rng(3); let hgt=[]; for(let x=0;x<p.w;x+=6){ const v=8+hr()*10; for(let i=0;i<6;i++) hgt.push(v); }
     for(let x=0;x<p.w;x++) for(let y=p.h-hgt[x];y<p.h;y++) p.set(x,y,hex('#070A1A'));
   },

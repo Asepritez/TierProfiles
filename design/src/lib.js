@@ -10,6 +10,8 @@ const TIER = { HT1:'#FFCF4A', LT1:'#E6B422', HT2:'#D0D6E0', LT2:'#9FA8B8', HT3:'
                MT1:'#F2C236', MT2:'#B8BFCC', MT3:'#CC7D47', MT4:'#6E9D5B', MT5:'#7A7F88' };
 
 function ic(kit, s = 2) { return `<img src="${TEX}/kit/${kit}.png" width="${16*s}" height="${16*s}">`; }
+const FONTW = {"!":2,"\"":4,"#":6,"$":6,"%":6,"&":6,"'":2,"(":4,")":4,"*":4,"+":6,",":2,"-":6,".":2,"/":6,"0":6,"1":6,"2":6,"3":6,"4":6,"5":6,"6":6,"7":6,"8":6,"9":6,":":2,";":2,"<":5,"=":6,">":5,"?":6,"@":7,"A":6,"B":6,"C":6,"D":6,"E":6,"F":6,"G":6,"H":6,"I":4,"J":6,"K":6,"L":6,"M":6,"N":6,"O":6,"P":6,"Q":6,"R":6,"S":6,"T":6,"U":6,"V":6,"W":6,"X":6,"Y":6,"Z":6,"[":4,"\\":6,"]":4,"^":6,"_":6,"`":3,"a":6,"b":6,"c":6,"d":6,"e":6,"f":5,"g":6,"h":6,"i":2,"j":6,"k":5,"l":3,"m":6,"n":6,"o":6,"p":6,"q":6,"r":6,"s":6,"t":4,"u":6,"v":6,"w":6,"x":6,"y":6,"z":6,"{":4,"|":2,"}":4,"~":7," ":4};
+const textW = t => [...t].reduce((a,c)=>a+(FONTW[c]||6),0)-1;
 const HUDT = `${TEX}/cur/gui/sprites/hud`;
 const sprite = (p, w, h, s = 2, st = '') => `<img src="${HUDT}/${p}.png" width="${w*s}" height="${h*s}" style="${st}">`;
 function lm(list, s = 2) { const n = 16*s, f = n > 64 ? 128 : n > 32 ? 64 : 32; return `<img src="${LOGO}/${list}-${f}.png" width="${n}" height="${n}" style="image-rendering:auto">`; }
@@ -17,8 +19,8 @@ function lm(list, s = 2) { const n = 16*s, f = n > 64 ? 128 : n > 32 ? 64 : 32; 
 // one tier chip. o: {ret, peak, big}
 function chip(t, o = {}) {
   const col = (o.pal||TIER)[t]||'#777';
-  const st = o.ret ? `background:#0E1012;color:${col};box-shadow:inset 0 0 0 2px ${col};` : `background-color:${col};`;
-  return `<span class="chip ${o.cls||''}" style="${st}${o.style||''}">${t}${o.peak?peakMark():''}</span>`;
+  const st = o.ret ? `background:transparent;box-shadow:inset 0 0 0 2px #39424B;color:${col};` : `background:#151B21;color:${col};`;
+  return `<span class="chip" style="${st}${o.style||''}">${t}${o.peak?`<i class="abs" style="right:0;top:0;width:8px;height:8px;background:#FFCF4A;clip-path:polygon(0 0,100% 0,100% 100%,75% 100%,75% 75%,50% 75%,50% 50%,25% 50%,25% 25%,0 25%)"></i>`:''}</span>`;
 }
 // peak marker: a tiny pixel arrow that sits on the chip's corner
 function peakMark(inline) {
@@ -56,7 +58,7 @@ const LISTS = {
   subtiers: { name:'SubTiers', short:'SubT', mark:'subtiers' },
   pvphq:    { name:'PVPHQ',    short:'HQ',   mark:'pvphq' },
 };
-const betaTag = `<span style="color:#FFCF4A">beta</span>`;
+const betaTag = `<span style="color:#C9A94E">beta</span>`;
 
 // k: kit icon id, t: tier, p: peak if different, r: retired, m: months since attained
 const JOKING = {

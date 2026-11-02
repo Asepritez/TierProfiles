@@ -676,8 +676,9 @@ def models():
     model("m-joking-front", jok, yaw=-.25, head_yaw=.1, W=480, H=600)
     a = armor_overlay(dict(head="netherite", chest="diamond", legs="netherite", feet="diamond"), "rib", "amethyst")
     model("m-joking-armor", jok, overlay=a, yaw=-.55, W=720, H=1280)
-    show = armor_overlay(dict(head="netherite", chest="netherite", legs="netherite", feet="netherite"), "sentry", "gold")
+    show = armor_overlay(dict(head="netherite", chest="netherite", legs="netherite", feet="netherite"), "coast", "amethyst")
     model("m-armor-hero", jok, overlay=show, yaw=-.5, W=400, H=395)
+    model("m-armor-card", jok, overlay=show, yaw=-.5, W=240, H=290)
     model("m-armor-sm", jok, overlay=show, yaw=-.5, W=220, H=176)
     model("m-armor-lg", jok, overlay=show, yaw=-.5, W=460, H=575)
     for i, yaw in enumerate((-.55, .55, 3.14)):

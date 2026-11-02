@@ -1,0 +1,14 @@
+<!doctype html><meta charset="utf8"><title>Default card</title>
+<link rel="stylesheet" href="base.css"><script src="lib.js"></script><script src="../_tmp/vanilla/moon.js"></script><script src="fx.js"></script><script src="card.js"></script>
+<body><div class="scene" style="background-image:url(../_tmp/bg/fight.png)"></div>
+<script>
+const q = new URLSearchParams(location.search), who = q.get('p') === 'm' ? MARLOWWW : JOKING;
+const pos = q.get('at') || 'tr', W = R(GRID.W), H = R(GRID.rowsY + 5 * GRID.rowH + GRID.pad);
+const at = { tl:'left:20px;top:20px', tr:'right:20px;top:20px', bl:'left:20px;bottom:20px', br:'right:20px;bottom:20px' }[pos];
+const from = { tl:'left', tr:'right', bl:'left', br:'right' }[pos];
+mount(hud(0));
+const o = { guides: q.has('guides') };
+if (q.has('moon')) Object.assign(o, { bg:'moon', border:'shimmer', fx:['sparkles'], intensity:.7, accent:'#FFE9A8', model:`${BG}/m-armor-card.png`, t:+(q.get('t') ?? 2.6) });
+mount(`<div class="abs" style="${at};overflow:visible">${defaultCard(who, o)}</div>`);
+if (q.has('t') && !q.has('moon')) animate(document.body, +q.get('t'), { from });
+</script></body>
