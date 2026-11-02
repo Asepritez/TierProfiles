@@ -11,6 +11,8 @@ import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.state.EntityRenderState;
 import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.player.PlayerModelPart;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
@@ -41,6 +43,21 @@ public final class Portrait {
         @Override
         public boolean isInvisible() {
             return false;
+        }
+
+        /**
+         * The skin's outer layer (hat, jacket, sleeves, trousers). A pretend player starts
+         * with all of it off, which leaves the skin flat, so copy what the real player
+         * chose: your own skin options for you, or their entity if they're nearby.
+         */
+        @Override
+        public boolean isModelPartShown(PlayerModelPart part) {
+            Minecraft minecraft = Minecraft.getInstance();
+            if (minecraft.player != null && minecraft.player.getUUID().equals(getUUID())) {
+                return minecraft.options.isModelPartEnabled(part);
+            }
+            Player real = level().getPlayerByUUID(getUUID());
+            return real == null || real == this || real.isModelPartShown(part);
         }
     }
 

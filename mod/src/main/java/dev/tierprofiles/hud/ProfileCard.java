@@ -134,6 +134,13 @@ public final class ProfileCard {
         }
     }
 
+    private static CardPlacement.Rect lastRect;
+
+    /** Where the HUD card was last drawn, at rest, for tests. */
+    public static CardPlacement.Rect lastRect() {
+        return lastRect;
+    }
+
     /** Where and how the card sits once fitted to a screen. */
     private record Layout(CardPlacement.Rect rect, Shape shape) {
     }
@@ -161,9 +168,11 @@ public final class ProfileCard {
             rect = layout.rect();
         }
         if (tabRight > rect.x() && rect.y() < belowTab) {
-            rect = new CardPlacement.Rect(rect.x(), belowTab, rect.width(), rect.height());
+            layout = belowTab(settings, rows, allRanks, belowTab, screenWidth, screenHeight);
+            rect = layout.rect();
         }
 
+        lastRect = rect;
         AnimationStyle style = card.effectiveStyle(TierProfiles.config().global.reduceMotion);
         CardPlacement.Glide glide = CardPlacement.glide(card.anchor, rect, screenWidth, screenHeight);
         CardPose pose = CardPose.of(style, CardState.progress(), glide.dx(), glide.dy());
@@ -221,6 +230,28 @@ public final class ProfileCard {
                 screenWidth - CardGrid.SCREEN_ROOM, screenHeight - CardGrid.SCREEN_ROOM,
                 candidate -> CardPlacement.isClear(placed(card, grid, candidate, rows, screenWidth, screenHeight), screenWidth, screenHeight));
         return new Layout(placed(card, grid, shape, rows, screenWidth, screenHeight), shape);
+    }
+
+    /**
+     * Fits the card into the space under the tab list and its hints, so a long tab list
+     * shrinks the card rather than pushing it off the bottom of the screen.
+     */
+    private static Layout belowTab(Settings settings, List<Row> rows, boolean allRanks, int top, int screenWidth, int screenHeight) {
+        CardSettings card = settings.card;
+        CardGrid grid = grid();
+        int ranked = (int) rows.stream().filter(Row::hasTiers).count();
+        int guiScale = Math.max(1, Minecraft.getInstance().getWindow().getGuiScale());
+        int margin = CardGrid.SCREEN_ROOM / 2;
+        int room = Math.max(1, screenHeight - top - margin);
+
+        Shape shape = grid.fit(card.detail, card.lastColumn, allRanks, candidate -> lines(candidate, rows), ranked, card.overlayScale, guiScale,
+                screenWidth - CardGrid.SCREEN_ROOM, room, candidate -> true);
+        int width = Math.round(grid.width(shape) * shape.scale());
+        int height = Math.round(grid.height(shape, lines(shape, rows)) * shape.scale());
+        // Keep the side the player anchored the card to, only lower.
+        int x = CardPlacement.place(card.anchor, card.offsetX, card.offsetY, width, height, screenWidth, screenHeight).x();
+        x = Math.max(margin, Math.min(x, screenWidth - width - margin));
+        return new Layout(new CardPlacement.Rect(x, top, width, height), shape);
     }
 
     private static Layout withoutDate(Layout layout, CardSettings card, List<Row> rows, int screenWidth, int screenHeight) {

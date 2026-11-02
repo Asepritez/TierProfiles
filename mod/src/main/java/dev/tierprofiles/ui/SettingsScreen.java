@@ -82,6 +82,9 @@ public final class SettingsScreen extends Screen {
     private Surface surface = Surface.NAMETAG;
     private final Map<SettingsTab, Boolean> advancedOpen = new EnumMap<>(SettingsTab.class);
     private final Map<SettingsTab, Integer> scrollByTab = new EnumMap<>(SettingsTab.class);
+    private String footerNote;
+    private int footerNoteColor;
+    private long footerNoteAt;
     private int contentHeight;
     private int visibleHeight;
 
@@ -409,7 +412,7 @@ public final class SettingsScreen extends Screen {
             case COLOURS -> "retired chips, colours per list";
             case RULES -> "gradient, gamemode, retired, peak";
             case SHARING -> "your setups";
-            case PROFILE -> "trims per piece, kits on my card, accent, effects";
+            case PROFILE -> "kits on my card, accent, featured kit";
             case CARDS -> "peak marks, retired tiers, points, size, opacity";
             case POSITION -> "look-at card";
             case MORE -> "logos, server, diagnostics";
@@ -562,6 +565,7 @@ public final class SettingsScreen extends Screen {
     }
 
     private static final long TOOLTIP_DELAY_MILLIS = 250;
+    private static final long FOOTER_NOTE_MILLIS = 3000;
     private static final long TOOLTIP_FADE_MILLIS = 120;
     private static final int TOOLTIP_WIDTH = 220;
     private String tooltipFor;
@@ -1037,9 +1041,14 @@ public final class SettingsScreen extends Screen {
 
         int right = virtualWidth - MARGIN;
         int changes = editor.changeCount();
+        long noteAge = System.currentTimeMillis() - footerNoteAt;
         if (changes > 0) {
             String message = changes == 1 ? "1 change staged" : changes + " changes staged";
             ui.text(message, right - 136 - ui.width(message), center - 4, Theme.BETA);
+        } else if (footerNote != null && noteAge < FOOTER_NOTE_MILLIS) {
+            // What Apply or Discard just did, fading out over its last half second.
+            float alpha = Math.min(1, (FOOTER_NOTE_MILLIS - noteAge) / 500f);
+            ui.text(footerNote, right - 136 - ui.width(footerNote), center - 4, Theme.fade(footerNoteColor, alpha));
         }
         if (ui.button(right - 56, y, 56, FOOTER_BUTTON, "Apply", true)) {
             apply();
@@ -1058,17 +1067,34 @@ public final class SettingsScreen extends Screen {
     }
 
     private void apply() {
+        int changes = editor.changeCount();
         String before = ConfigStore.GSON.toJson(TierProfiles.config().global.cosmetics);
         TierProfiles.publish(editor.apply());
         if (!before.equals(ConfigStore.GSON.toJson(TierProfiles.config().global.cosmetics))) {
             TierProfiles.saveCosmetics();
         }
+        note(changes == 0 ? "Nothing to apply" : changes == 1 ? "✔ 1 change applied" : "✔ " + changes + " changes applied",
+                changes == 0 ? Theme.MUTED : Theme.GOOD);
     }
 
     private void discard() {
+        int changes = editor.changeCount();
+        note(changes == 0 ? "Nothing to discard" : changes == 1 ? "1 change discarded" : changes + " changes discarded",
+                changes == 0 ? Theme.MUTED : Theme.BAD);
         editor.discard();
         serverBox.value = config().global.serverUrl;
         pendingImport = null;
+    }
+
+    /** A short message beside the buttons saying what Apply or Discard did. */
+    private void note(String message, int color) {
+        footerNote = message;
+        footerNoteColor = color;
+        footerNoteAt = System.currentTimeMillis();
+    }
+
+    public String footerNoteForTest() {
+        return System.currentTimeMillis() - footerNoteAt < FOOTER_NOTE_MILLIS ? footerNote : null;
     }
 
     private void drawConfirmClose() {

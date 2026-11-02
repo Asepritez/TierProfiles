@@ -242,6 +242,19 @@ public final class SurfaceGameTest implements FabricClientGameTest {
         check(context.computeOnClient(client -> CardState.isPreview()), "moving through Tab should show the big card");
         context.takeScreenshot("tp-02c-tab-big-card");
 
+        // A server with a tall footer leaves little room under the list. The card must shrink to fit, not run off the screen.
+        context.runOnClient(client -> client.gui.hud.getTabList().setFooter(net.minecraft.network.chat.Component.literal(
+                "play.example.net\nJOIN OUR DISCORD /discord\n\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline")));
+        context.waitTicks(30);
+        check(context.computeOnClient(client -> {
+            var rect = dev.tierprofiles.hud.ProfileCard.lastRect();
+            return rect != null && rect.y() + rect.height() <= client.getWindow().getGuiScaledHeight()
+                    && rect.x() >= 0 && rect.x() + rect.width() <= client.getWindow().getGuiScaledWidth();
+        }), "the card under a tall tab list must stay on screen");
+        context.takeScreenshot("tp-02d-tab-big-card-tall-footer");
+        context.runOnClient(client -> client.gui.hud.getTabList().setFooter(
+                net.minecraft.network.chat.Component.literal("play.example.net\nJOIN OUR DISCORD /discord")));
+
         input.releaseKey(options -> options.keyPlayerList);
         context.waitTicks(5);
         check(context.computeOnClient(client -> !CardState.isOpen()), "letting go of Tab puts a browsed card away");

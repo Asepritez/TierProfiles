@@ -51,6 +51,9 @@ final class SettingsGameTest {
             TierProfiles.cosmetics().useJoiner(serverId -> { });
             screen.applyChanges();
         });
+        String note = context.computeOnClient(minecraft -> screen.footerNoteForTest());
+        SurfaceGameTest.check(note != null && note.contains("applied"), "Apply should say what it did, but said " + note);
+        shot(context, "applied-note");
         context.waitFor(minecraft -> TierProfiles.cosmetics().state() != CosmeticsService.SaveState.SAVING, 200);
         CosmeticsService.SaveState state = context.computeOnClient(minecraft -> TierProfiles.cosmetics().state());
         SurfaceGameTest.check(state == CosmeticsService.SaveState.SAVED, "the card should save, but got " + state);
@@ -121,6 +124,12 @@ final class SettingsGameTest {
             look.hiddenLists.add("pvptiers");
         });
         shot(context, "profile-styled");
+        // The trims sit under the armor, outside Advanced, so scroll down to them.
+        context.getInput().setCursorPos(600, 600);
+        context.getInput().scroll(-20);
+        context.waitTicks(2);
+        shot(context, "profile-trims");
+        context.getInput().scroll(20);
         onScreen(context, current -> current.setAdvanced(true));
         shot(context, "profile-advanced");
         testSavingACard(context);

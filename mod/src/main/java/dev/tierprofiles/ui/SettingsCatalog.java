@@ -427,23 +427,11 @@ final class SettingsCatalog {
         for (int slot = 0; slot < 4; slot++) {
             armorRow(slot);
         }
-        listSwitches(tab, path, "Lists on my card", "Leave a list off your own card, for you and everyone else. Handy if you're unranked there.", false,
-                list -> style.get().hiddenLists.contains(list.id()),
-                (list, hide) -> {
-                    List<String> hidden = style.get().hiddenLists;
-                    hidden.remove(list.id());
-                    if (hide) {
-                        hidden.add(list.id());
-                    }
-                });
-
-        String advanced = "Profile, Advanced";
-        kitSwitches(tab, advanced, "Kits on my card", "Leave kits off your own card, for you and everyone else.", true, () -> style.get().hiddenKits);
-        add(tab, advanced, "Trims for", "Which piece the trim rows below change. All changes every piece together.", true, (ui, x, y, width) -> {
+        add(tab, path, "Trims for", "Which piece the trim rows below change. All changes every piece together.", false, (ui, x, y, width) -> {
             List<Integer> choices = List.of(-1, 0, 1, 2, 3);
             piece = ui.segments(x, y, choices, piece, slot -> slot < 0 ? "All" : PIECES[slot]);
         });
-        addTall(tab, advanced, "Trim", "A trim pattern, from the real smithing templates.", true, 2, (ui, x, y, width) -> {
+        addTall(tab, path, "Trim", "A trim pattern, from the real smithing templates.", false, 2, (ui, x, y, width) -> {
             Cosmetics target = style.get();
             int across = perRow(width);
             for (int i = 0; i < Cosmetics.TRIM_PATTERNS.size(); i++) {
@@ -459,7 +447,7 @@ final class SettingsCatalog {
                 }
             }
         });
-        add(tab, advanced, "Trim material", "The colour of the trim.", true, (ui, x, y, width) -> {
+        add(tab, path, "Trim material", "The colour of the trim.", false, (ui, x, y, width) -> {
             Cosmetics target = style.get();
             for (String id : Cosmetics.TRIM_MATERIALS) {
                 if (ui.slot(x, y, pieceIs(target::trimMaterial, id))) {
@@ -469,6 +457,18 @@ final class SettingsCatalog {
                 x += Ui.SLOT + 1;
             }
         });
+        listSwitches(tab, path, "Lists on my card", "Leave a list off your own card, for you and everyone else. Handy if you're unranked there.", false,
+                list -> style.get().hiddenLists.contains(list.id()),
+                (list, hide) -> {
+                    List<String> hidden = style.get().hiddenLists;
+                    hidden.remove(list.id());
+                    if (hide) {
+                        hidden.add(list.id());
+                    }
+                });
+
+        String advanced = "Profile, Advanced";
+        kitSwitches(tab, advanced, "Kits on my card", "Leave kits off your own card, for you and everyone else.", true, () -> style.get().hiddenKits);
         Object intensity = new Object();
         add(tab, advanced, "Effect strength", "How busy effects are.", true, (ui, x, y, width) -> {
             Cosmetics target = style.get();

@@ -3,6 +3,13 @@
 Each version's jar is named `tierprofiles-<version>+mc<minecraft>.jar`, for example
 `tierprofiles-0.3.0+mc1.21.11.jar`.
 
+## 0.4.0 (2 Nov 2026)
+
+- A card opened from Tab shrinks to fit the space under the list, instead of running off the bottom of the screen.
+- Card models show the skin's outer layer (hat, jacket, sleeves). Yours follows your Skin Customization options.
+- Trim, Trim material and "Trims for" are in the Profile tab's main section, under the armor rows.
+- Apply and Discard say what they did beside the buttons, such as "3 changes applied".
+
 ## 0.3.0 (2 Nov 2026)
 
 Fixes from the first session on a real server.
