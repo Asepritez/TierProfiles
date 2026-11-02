@@ -19,7 +19,7 @@ import net.minecraft.world.item.Items;
  */
 public final class FirstRunScreen extends Screen {
     private static final int WIDTH = 520;
-    private static final int HEIGHT = 218;
+    private static final int HEIGHT = 250;
     private static final int PADDING = 10;
     private static final int FACT_GAP = 4;
     private static final String README = "https://github.com/Asepritez/TierProfiles#privacy";
@@ -27,6 +27,7 @@ public final class FirstRunScreen extends Screen {
     private final Screen parent;
     private final Ui ui = new Ui();
     private boolean lookups = true;
+    private boolean cardStyles = true;
     private float scale = 1;
 
     public FirstRunScreen(Screen parent) {
@@ -74,20 +75,24 @@ public final class FirstRunScreen extends Screen {
         ui.text("Here is exactly what leaves your game.", left, y + 43, Theme.TEXT);
 
         int factY = y + 58;
-        factY = fact(left, factY, inner, Items.COMPASS, "We send: names and UUIDs of players in your tab list",
+        factY = fact(left, factY, inner, Items.COMPASS, "Tiers: names and UUIDs of players around you",
                 "They go straight to the five tier list websites, the same way their own pages ask.", null);
+        factY = fact(left, factY, inner, Items.ARMOR_STAND, "Card styles: the same UUIDs go to the TierProfiles server",
+                "So you see the backgrounds and armor other players picked for their cards.",
+                "Your own style is sent only when you change it in Settings.");
         factY = fact(left, factY, inner, Items.SHIELD, "Your login stays with Minecraft",
-                "We never see your account token.", null);
+                "We never see your account token. Saving uses Minecraft's usual join check.", null);
         factY = fact(left, factY, inner, Items.ENDER_PEARL, "We send nothing else",
-                "No chat, no server address, no position. Your card style is sent only when you save it.",
-                "List logos are downloaded from each list's own website.");
+                "No chat, no server address, no position. List logos come from each list's website.", null);
 
-        int rowY = factY;
-        graphics.fill(left, rowY, left + inner, rowY + 28, Theme.ROW);
-        graphics.outline(left, rowY, inner, 28, lookups ? Theme.GOOD : Theme.BORDER);
-        ui.text("Look up tiers online", left + 6, rowY + 5, 0xFFFFFFFF);
-        ui.text("Off means no data is sent and no tiers show.", left + 6, rowY + 16, Theme.MUTED);
-        lookups = ui.toggle(left + inner - 62, rowY + 14, lookups);
+        int half = (inner - FACT_GAP) / 2;
+        lookups = choice(left, factY, half, "Look up tiers online", "Off: no tiers, nothing sent.", lookups);
+        // Styles need lookups, so they show as off while lookups are, but keep their own answer.
+        boolean styles = choice(left + half + FACT_GAP, factY, inner - half - FACT_GAP, "Load card styles",
+                "Off: every card is plain.", cardStyles && lookups);
+        if (lookups) {
+            cardStyles = styles;
+        }
 
         int buttonY = y + HEIGHT - 28;
         ui.text("You can change this any time in Settings, More.", left, buttonY + 6, Theme.MUTED);
@@ -103,6 +108,15 @@ public final class FirstRunScreen extends Screen {
         }
         ui.end();
         graphics.pose().popMatrix();
+    }
+
+    /** One switch with its label, in a box that lights up green while it's on. */
+    private boolean choice(int x, int y, int width, String title, String detail, boolean on) {
+        ui.graphics.fill(x, y, x + width, y + 28, Theme.ROW);
+        ui.graphics.outline(x, y, width, 28, on ? Theme.GOOD : Theme.BORDER);
+        ui.text(title, x + 6, y + 5, 0xFFFFFFFF);
+        ui.text(detail, x + 6, y + 16, Theme.MUTED);
+        return ui.toggle(x + width - 62, y + 14, on);
     }
 
     private int fact(int x, int y, int width, net.minecraft.world.item.Item icon, String title, String detail, String extra) {
@@ -122,6 +136,7 @@ public final class FirstRunScreen extends Screen {
         ConfigFile config = ConfigStore.copy(TierProfiles.config());
         config.global.noticeSeen = true;
         config.global.lookupsEnabled = lookups;
+        config.global.cardStyles = cardStyles;
         TierProfiles.publish(config);
         minecraft.gui.setScreen(parent);
     }

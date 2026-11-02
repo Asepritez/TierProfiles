@@ -166,6 +166,7 @@ class CardOptionsTest {
         dev.tierprofiles.core.settings.ConfigFile config = new dev.tierprofiles.core.settings.ConfigFile();
         config.global.noticeSeen = true;
         config.global.lookupsEnabled = false;
+        config.global.cardStyles = false;
         config.global.cosmetics.background = "moon";
         config.active().filters.hiddenKits.add("smp");
         config.active().card.lastColumn = LastColumn.FOURTH_TIER;
@@ -173,9 +174,24 @@ class CardOptionsTest {
         dev.tierprofiles.core.settings.ConfigFile fresh = dev.tierprofiles.core.settings.ConfigFile.defaultsKeepingConsent(config);
         assertTrue(fresh.global.noticeSeen, "the welcome page must not come back");
         assertFalse(fresh.global.lookupsEnabled, "a player who said no to lookups still has them off");
+        assertFalse(fresh.global.cardStyles, "and the same for card styles");
         assertEquals("plain", fresh.global.cosmetics.background);
         assertTrue(fresh.active().filters.hiddenKits.isEmpty());
         assertEquals(LastColumn.DATE, fresh.active().card.lastColumn);
+    }
+
+    @Test
+    void cardStylesNeedTheWelcomeAnswerLookupsAndTheirOwnSwitch() {
+        dev.tierprofiles.core.settings.Global global = new dev.tierprofiles.core.settings.Global();
+        assertEquals(null, global.cardStyleServer(), "nothing goes to our server before the welcome page is answered");
+        global.noticeSeen = true;
+        assertEquals(global.serverUrl, global.cardStyleServer());
+        assertEquals(dev.tierprofiles.core.settings.Global.Source.DIRECT, global.source, "styles load even with tiers coming from the lists");
+        global.cardStyles = false;
+        assertEquals(null, global.cardStyleServer());
+        global.cardStyles = true;
+        global.lookupsEnabled = false;
+        assertEquals(null, global.cardStyleServer(), "lookups off means nothing is sent at all");
     }
 
     @Test

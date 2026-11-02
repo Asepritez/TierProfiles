@@ -119,8 +119,9 @@ run against `wrangler dev`.
   was 1.18 to 26.3 on Fabric, Quilt and NeoForge. The core module is plain Java 17 so one core
   serves them all; only the Minecraft-facing layer differs per version.
 - Lookups go straight to the five list sites by default ("Look up from: Lists"), so the mod works
-  with nothing else running. "Server" mode uses the TierProfiles server instead, which adds shared
-  card styles. `core/net/DirectLists` and `server/src/providers` do the same work and change
+  with nothing else running. "Server" mode asks the TierProfiles server for tiers instead. Card
+  styles always come from the TierProfiles server, whichever mode tiers use, unless the player
+  turns "Card styles" off. `core/net/DirectLists` and `server/src/providers` do the same work and change
   together.
 - Package `dev.tierprofiles`, mod id `tierprofiles`.
 - Client-side only. No config library: a custom flat UI in the style of Tallium (see Credits).
@@ -346,9 +347,10 @@ The look must be vanilla and official, so lists are easy to tell apart at a glan
 
 Modrinth's rules require clear disclosure of data sent to a remote server. Say in the README, on
 the Modrinth page and in a first-run notice that the mod sends the UUIDs and names of players in
-your tab list to the five list websites (or, in Server mode, to the TierProfiles server), and in
-Server mode your own card style when you choose to save it. Send nothing else. The mod also downloads list logos directly from those lists' websites. Your Minecraft
-access token only ever goes to Mojang. Include a setting to turn lookups off.
+your tab list to the five list websites (or, in Server mode, to the TierProfiles server), the same
+UUIDs to the TierProfiles server for card styles, and your own card style when you change it. Send
+nothing else. The mod also downloads list logos directly from those lists' websites. Your Minecraft
+access token only ever goes to Mojang. Include settings to turn lookups and card styles off, both on the first-run notice.
 
 ## Credits
 

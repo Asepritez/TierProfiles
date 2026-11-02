@@ -49,7 +49,7 @@ public final class TierProfiles {
             thread.setDaemon(true);
             return thread;
         });
-        cosmetics = new CosmeticsService(transport, () -> config.global.usesServer() ? config.global.serverUrl : null, new MojangJoiner(), background, System::currentTimeMillis);
+        cosmetics = new CosmeticsService(transport, () -> config.global.cardStyleServer(), new MojangJoiner(), background, System::currentTimeMillis);
     }
 
     public static ConfigFile config() {
@@ -96,7 +96,8 @@ public final class TierProfiles {
 
     /** Makes a new config live and saves it. Saving failing shouldn't stop the game. */
     public static void publish(ConfigFile updated) {
-        boolean serverChanged = !updated.global.serverUrl.equals(config.global.serverUrl) || updated.global.source != config.global.source;
+        boolean serverChanged = !updated.global.serverUrl.equals(config.global.serverUrl) || updated.global.source != config.global.source
+                || updated.global.cardStyles != config.global.cardStyles;
         boolean lookupsOff = !updated.global.lookupsEnabled;
         config = updated;
         if (serverChanged || lookupsOff) {

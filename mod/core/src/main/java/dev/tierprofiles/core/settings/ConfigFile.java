@@ -64,6 +64,7 @@ public final class ConfigFile {
         ConfigFile fresh = new ConfigFile();
         fresh.global.noticeSeen = current.global.noticeSeen;
         fresh.global.lookupsEnabled = current.global.lookupsEnabled;
+        fresh.global.cardStyles = current.global.cardStyles;
         return fresh.sanitize();
     }
 

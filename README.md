@@ -21,9 +21,10 @@ Here is exactly what leaves your game:
   list websites (MCTiers, McPvP, PvPTiers, SubTiers and PVPHQ), the same way their own pages ask.
   If you switch Settings, More, Advanced, Look up from to Server, they go to the TierProfiles
   server instead, which asks the lists for you.
-- **Your card style.** Only with Look up from set to Server, and only when you save it. It is a
-  small set of preset choices, stored on the TierProfiles server so that other players see it on
-  your card. In the default mode your card style never leaves your game.
+- **Card styles.** The same UUIDs go to the TierProfiles server, so you see the backgrounds and armor
+  other players picked for their cards. Your own style, a small set of preset choices, is sent only
+  when you change it in Settings. Turn this off on the welcome page or in Settings, More, Advanced,
+  Card styles, and every card stays plain.
 - **Proving it's you.** To save a card style, the game makes the same silent `joinServer` call to
   Mojang that it makes when you join an online server, and our server asks Mojang to confirm it. Your
   access token goes only to Mojang.
@@ -33,7 +34,7 @@ Here is exactly what leaves your game:
   and the mod uses its own letter marks instead.
 
 We send nothing else: no chat, no server address, no position. As with any website, the list
-websites, and with Server mode the server host (Cloudflare), see your IP address when the mod
+websites and the TierProfiles server host (Cloudflare) see your IP address when the mod
 connects to them.
 
 Nothing is sent until you have seen the first-run notice, and you can turn lookups off at any time in

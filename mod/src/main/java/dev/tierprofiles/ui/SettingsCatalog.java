@@ -693,8 +693,10 @@ final class SettingsCatalog {
 
         String advanced = "More, Advanced";
         toggle(tab, advanced, "Official list logos", "Downloads each list's logo from its own website. Off uses our letter marks.", true, this::global, g -> g.officialLogos, (g, v) -> g.officialLogos = v);
-        choice(tab, advanced, "Look up from", "Lists asks each list's website yourself. Server goes through TierProfiles, which also shares card styles.", true,
+        choice(tab, advanced, "Look up from", "Where tiers come from. Lists asks each list's website yourself. Server asks TierProfiles, which asks the lists for you.", true,
                 List.of(Global.Source.values()), source -> source == Global.Source.DIRECT ? "Lists" : "Server", this::global, g -> g.source, (g, v) -> g.source = v);
-        add(tab, advanced, "Server address", "Where lookups go when Look up from is Server.", true, (ui, x, y, width) -> screen.drawServerBox(ui, x, y, width));
+        toggle(tab, advanced, "Card styles", "Loads the card styles other players picked from the TierProfiles server, and saves yours there. Off keeps every card plain and sends nothing to our server for styles.", true,
+                this::global, g -> g.cardStyles, (g, v) -> g.cardStyles = v);
+        add(tab, advanced, "Server address", "The TierProfiles server, for card styles, and for tiers when Look up from is Server.", true, (ui, x, y, width) -> screen.drawServerBox(ui, x, y, width));
     }
 }

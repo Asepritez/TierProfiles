@@ -20,8 +20,20 @@ public final class Global {
     public enum Source {
         /** Ask each list's own website. Works with nothing else running. */
         DIRECT,
-        /** Ask the TierProfiles server, which also shares card styles between players. */
+        /** Ask the TierProfiles server, which asks the lists for you. */
         SERVER
+    }
+
+    /**
+     * Load other players' card styles from the TierProfiles server, and save yours there.
+     * Separate from Source: tiers can come straight from the lists while styles still come
+     * from us, because only our server knows what card someone picked.
+     */
+    public boolean cardStyles = true;
+
+    /** The server to ask for card styles, or null when that's off or not yet agreed to. */
+    public String cardStyleServer() {
+        return lookupsEnabled && noticeSeen && cardStyles ? serverUrl : null;
     }
 
     public boolean usesServer() {
