@@ -27,7 +27,7 @@ class ProfileServiceTest {
         boolean down = false;
 
         @Override
-        public String post(String url, String body) throws IOException {
+        public String send(String method, String url, String body, String bearer) throws IOException {
             urls.add(url);
             JsonObject json = JsonParser.parseString(body).getAsJsonObject();
             bodies.add(json);

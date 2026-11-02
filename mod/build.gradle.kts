@@ -11,6 +11,7 @@ version = "$modVersion+mc$minecraftVersion"
 java.toolchain.languageVersion = JavaLanguageVersion.of(25)
 
 repositories {
+    mavenCentral()
     maven("https://maven.terraformersmc.com/releases/")
 }
 
@@ -32,6 +33,18 @@ dependencies {
     implementation("net.fabricmc:fabric-loader:${property("loader_version")}")
     implementation("net.fabricmc.fabric-api:fabric-api:${property("fabric_api_version")}")
     implementation(project(":core"))
+
+    // Reads WebP, because SubTiers and the MCTiers badges publish nothing else.
+    // Pure Java, BSD licensed, and only used on downloaded images.
+    for (library in listOf(
+        "imageio:imageio-webp", "imageio:imageio-core", "imageio:imageio-metadata",
+        "common:common-lang", "common:common-io", "common:common-image",
+    )) {
+        val (group, artifact) = library.split(":")
+        val coordinates = "com.twelvemonkeys.$group:$artifact:3.15.3"
+        implementation(coordinates)
+        include(coordinates)
+    }
 
     // Optional: the mod runs fine without Mod Menu.
     compileOnly("com.terraformersmc:modmenu:${property("modmenu_version")}")

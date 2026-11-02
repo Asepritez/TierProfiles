@@ -2,6 +2,7 @@ package dev.tierprofiles.input;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import dev.tierprofiles.TierProfiles;
+import dev.tierprofiles.core.net.ProfileService;
 import dev.tierprofiles.hud.CardState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.input.KeyEvent;
@@ -68,6 +69,9 @@ public final class Controls {
         } else {
             CardState.open(info.getProfile().id(), info.getProfile().name());
             TierProfiles.profiles().requestUrgent(info.getProfile().id(), info.getProfile().name());
+            if (ProfileService.isAllowed(TierProfiles.config().global)) {
+                TierProfiles.cosmetics().request(info.getProfile().id());
+            }
         }
         return true;
     }

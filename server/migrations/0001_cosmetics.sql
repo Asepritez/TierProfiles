@@ -1,0 +1,5 @@
+CREATE TABLE IF NOT EXISTS cosmetics (
+  uuid TEXT PRIMARY KEY,
+  data TEXT NOT NULL,
+  updated_at INTEGER NOT NULL
+);

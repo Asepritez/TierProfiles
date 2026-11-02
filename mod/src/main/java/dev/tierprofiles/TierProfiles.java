@@ -3,12 +3,14 @@ package dev.tierprofiles;
 import dev.tierprofiles.core.config.ConfigStore;
 import dev.tierprofiles.core.net.HttpTransport;
 import dev.tierprofiles.core.net.ProfileService;
-import dev.tierprofiles.core.net.CosmeticsCache;
+import dev.tierprofiles.core.net.CosmeticsService;
 import dev.tierprofiles.core.settings.ConfigFile;
 import dev.tierprofiles.core.settings.Cosmetics;
 import dev.tierprofiles.core.settings.Settings;
 import java.io.IOException;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
 import org.slf4j.Logger;
@@ -30,7 +32,7 @@ public final class TierProfiles {
     private static ProfileService profiles;
     private static volatile String detectedKit;
     private static final Cosmetics DEFAULT_LOOK = new Cosmetics().sanitize();
-    private static CosmeticsCache cosmetics;
+    private static CosmeticsService cosmetics;
 
     private TierProfiles() {
     }
@@ -38,8 +40,16 @@ public final class TierProfiles {
     static void start() {
         store = new ConfigStore(FabricLoader.getInstance().getConfigDir().resolve("tierprofiles.json"));
         config = store.load();
-        profiles = new ProfileService(new HttpTransport(USER_AGENT), () -> config.global, System::currentTimeMillis);
+        HttpTransport transport = new HttpTransport(USER_AGENT);
+        profiles = new ProfileService(transport, () -> config.global, System::currentTimeMillis);
         profiles.start();
+
+        ExecutorService background = Executors.newSingleThreadExecutor(runnable -> {
+            Thread thread = new Thread(runnable, "TierProfiles cards");
+            thread.setDaemon(true);
+            return thread;
+        });
+        cosmetics = new CosmeticsService(transport, () -> config.global.serverUrl, new MojangJoiner(), background, System::currentTimeMillis);
     }
 
     public static ConfigFile config() {
@@ -54,12 +64,24 @@ public final class TierProfiles {
         return profiles;
     }
 
+    public static CosmeticsService cosmetics() {
+        return cosmetics;
+    }
+
+    /** Sends your card to the server, which is the only time it leaves your game. */
+    public static void saveCosmetics() {
+        if (!ProfileService.isAllowed(config.global)) {
+            return;
+        }
+        cosmetics.save(config.global.cosmetics, Minecraft.getInstance().getUser().getName());
+    }
+
     /** How a player's card looks. Yours comes from your settings, and others from the server. */
     public static Cosmetics cosmeticsFor(UUID uuid) {
         if (Minecraft.getInstance().isLocalPlayer(uuid)) {
             return config.global.cosmetics;
         }
-        Cosmetics theirs = cosmetics == null ? null : cosmetics.get(uuid);
+        Cosmetics theirs = cosmetics.get(uuid);
         return theirs != null ? theirs : DEFAULT_LOOK;
     }
 
@@ -79,6 +101,7 @@ public final class TierProfiles {
         config = updated;
         if (serverChanged || lookupsOff) {
             profiles.clear();
+            cosmetics.clear();
         }
         try {
             store.save(updated);

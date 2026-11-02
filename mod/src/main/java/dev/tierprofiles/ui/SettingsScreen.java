@@ -307,7 +307,7 @@ public final class SettingsScreen extends Screen {
             case TAGS -> surface.displayName();
             case RULES -> "First match wins";
             case POSITION -> words(staged().card.anchor.name());
-            case PROFILE -> "Preset choices only";
+            case PROFILE -> TierProfiles.cosmetics().state().message();
             default -> "";
         };
         if (!isSearching() && !diagnostics) {
@@ -800,7 +800,11 @@ public final class SettingsScreen extends Screen {
     }
 
     private void apply() {
+        String before = ConfigStore.GSON.toJson(TierProfiles.config().global.cosmetics);
         TierProfiles.publish(editor.apply());
+        if (!before.equals(ConfigStore.GSON.toJson(TierProfiles.config().global.cosmetics))) {
+            TierProfiles.saveCosmetics();
+        }
     }
 
     private void discard() {

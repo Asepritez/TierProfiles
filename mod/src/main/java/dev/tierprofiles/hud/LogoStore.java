@@ -1,7 +1,7 @@
 package dev.tierprofiles.hud;
 
+import com.twelvemonkeys.imageio.plugins.webp.WebPImageReaderSpi;
 import dev.tierprofiles.TierProfiles;
-import dev.tierprofiles.core.model.TierList;
 import dev.tierprofiles.core.net.ProfileService;
 import dev.tierprofiles.core.settings.Global;
 import java.awt.Graphics2D;
@@ -17,17 +17,20 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.time.Duration;
-import java.util.EnumMap;
-import java.util.EnumSet;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import javax.imageio.ImageIO;
+import javax.imageio.ImageReader;
+import javax.imageio.stream.ImageInputStream;
 import net.fabricmc.loader.api.FabricLoader;
 
 /**
- * Official list logos, downloaded once from each list's own website and kept in the
- * config folder. They're never in the mod itself. Every failure is quiet, because the
- * neutral letter mark is a perfectly good fallback.
+ * Official logos and title badges, downloaded once from each list's own website and kept
+ * in the config folder. They're never in the mod itself. Every failure is quiet, because
+ * the fallbacks are perfectly good.
  */
 public final class LogoStore {
     /** Big enough to stay sharp on a large card, small enough to stay cheap. */
@@ -35,29 +38,35 @@ public final class LogoStore {
     private static final long REFRESH_MILLIS = 30L * 24 * 60 * 60 * 1000;
     private static final long TOO_BIG_BYTES = 8 * 1024 * 1024;
 
-    /** SubTiers only offers WebP, which Java can't read, so it keeps its letter mark. */
-    private static final Map<TierList, String> SOURCES = new EnumMap<>(Map.of(
-            TierList.MCTIERS, "https://mctiers.gg/icon.png",
-            TierList.MCPVP, "https://www.mcpvp.com/apple-touch-icon.png",
-            TierList.PVPTIERS, "https://pvptiers.com/hex-logo.png",
-            TierList.PVPHQ, "https://pvphq.com/assets/pvphq-logo.png"));
+    private static final Map<String, String> SOURCES = new LinkedHashMap<>();
 
-    private static final Set<TierList> ready = java.util.Collections.synchronizedSet(EnumSet.noneOf(TierList.class));
+    static {
+        SOURCES.put("mctiers", "https://mctiers.gg/icon.png");
+        SOURCES.put("mcpvp", "https://www.mcpvp.com/apple-touch-icon.png");
+        SOURCES.put("pvptiers", "https://pvptiers.com/hex-logo.png");
+        SOURCES.put("subtiers", "https://subtiers.net/subtiers-icon.webp");
+        SOURCES.put("pvphq", "https://pvphq.com/assets/pvphq-logo.png");
+        SOURCES.put("title_grandmaster", "https://mctiers.gg/titles/combat_grandmaster.webp");
+        SOURCES.put("title_master", "https://mctiers.gg/titles/combat_master.webp");
+        SOURCES.put("title_ace", "https://mctiers.gg/titles/combat_ace.webp");
+    }
+
+    private static final Set<String> ready = Collections.synchronizedSet(new HashSet<>());
     private static volatile boolean started;
 
     private LogoStore() {
     }
 
-    public static Path file(String listId) {
-        return FabricLoader.getInstance().getConfigDir().resolve("tierprofiles").resolve("logos").resolve(listId + ".png");
+    public static Path file(String id) {
+        return FabricLoader.getInstance().getConfigDir().resolve("tierprofiles").resolve("logos").resolve(id + ".png");
     }
 
-    static boolean isReady(TierList list) {
-        return ready.contains(list);
+    static boolean isReady(String id) {
+        return ready.contains(id);
     }
 
-    static void markBroken(TierList list) {
-        ready.remove(list);
+    static void markBroken(String id) {
+        ready.remove(id);
     }
 
     /** Runs once, in the background, after the privacy notice has been seen. */
@@ -78,15 +87,17 @@ public final class LogoStore {
                 .connectTimeout(Duration.ofSeconds(6))
                 .followRedirects(HttpClient.Redirect.NORMAL)
                 .build();
-        for (Map.Entry<TierList, String> source : SOURCES.entrySet()) {
-            TierList list = source.getKey();
-            Path target = file(list.id());
+        for (Map.Entry<String, String> source : SOURCES.entrySet()) {
+            String id = source.getKey();
+            Path target = file(id);
             try {
                 if (isFresh(target) || download(client, source.getValue(), target)) {
-                    ready.add(list);
+                    ready.add(id);
                 }
             } catch (IOException | RuntimeException e) {
-                ready.remove(list);
+                if (Files.isRegularFile(target)) {
+                    ready.add(id);
+                }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 return;
@@ -110,7 +121,7 @@ public final class LogoStore {
             return false;
         }
 
-        BufferedImage source = ImageIO.read(new ByteArrayInputStream(response.body()));
+        BufferedImage source = decode(response.body());
         if (source == null) {
             return false;
         }
@@ -119,6 +130,21 @@ public final class LogoStore {
         ImageIO.write(fitted(source), "png", temporary.toFile());
         Files.move(temporary, target, StandardCopyOption.REPLACE_EXISTING);
         return true;
+    }
+
+    /** Java reads PNG itself. Some lists only publish WebP, which needs the decoder. */
+    private static BufferedImage decode(byte[] bytes) throws IOException {
+        BufferedImage image = ImageIO.read(new ByteArrayInputStream(bytes));
+        if (image != null) {
+            return image;
+        }
+        ImageReader reader = new WebPImageReaderSpi().createReaderInstance();
+        try (ImageInputStream in = ImageIO.createImageInputStream(new ByteArrayInputStream(bytes))) {
+            reader.setInput(in);
+            return reader.read(0);
+        } finally {
+            reader.dispose();
+        }
     }
 
     /** Shrinks to a square, keeping the shape, so a tall logo isn't stretched. */

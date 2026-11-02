@@ -22,18 +22,20 @@ public final class HttpTransport implements Transport {
     }
 
     @Override
-    public String post(String url, String jsonBody) throws IOException {
-        HttpRequest request = HttpRequest.newBuilder(URI.create(url))
-                .timeout(REQUEST_TIMEOUT)
-                .header("Content-Type", "application/json")
-                .header("Accept", "application/json")
-                .header("User-Agent", userAgent)
-                .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
-                .build();
+    public String send(String method, String url, String body, String bearer) throws IOException {
         try {
-            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            HttpRequest.Builder request = HttpRequest.newBuilder(URI.create(url))
+                    .timeout(REQUEST_TIMEOUT)
+                    .header("Content-Type", "application/json")
+                    .header("Accept", "application/json")
+                    .header("User-Agent", userAgent)
+                    .method(method, body == null ? HttpRequest.BodyPublishers.noBody() : HttpRequest.BodyPublishers.ofString(body));
+            if (bearer != null) {
+                request.header("Authorization", "Bearer " + bearer);
+            }
+            HttpResponse<String> response = client.send(request.build(), HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() != 200) {
-                throw new IOException("server answered " + response.statusCode());
+                throw new StatusException(response.statusCode());
             }
             return response.body();
         } catch (InterruptedException e) {

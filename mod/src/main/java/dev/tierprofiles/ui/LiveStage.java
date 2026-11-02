@@ -129,8 +129,11 @@ final class LiveStage {
     private static void drawTree(Ui ui, int centerX, int groundY) {
         int canopyWidth = 5 * TILE;
         int canopyTop = groundY - 4 * TILE;
-        tile(ui, LEAVES, centerX - canopyWidth / 2, canopyTop, canopyWidth, 2 * TILE, 0xFF5E9B44);
-        tile(ui, LEAVES, centerX - canopyWidth / 2 + TILE, canopyTop - TILE, canopyWidth - 2 * TILE, TILE, 0xFF5E9B44);
+        int left = centerX - canopyWidth / 2;
+        ui.graphics.fill(left, canopyTop, left + canopyWidth, canopyTop + 2 * TILE, 0xFF2C5A22);
+        ui.graphics.fill(left + TILE, canopyTop - TILE, left + canopyWidth - TILE, canopyTop, 0xFF2C5A22);
+        tile(ui, LEAVES, left, canopyTop, canopyWidth, 2 * TILE, 0xFF5E9B44);
+        tile(ui, LEAVES, left + TILE, canopyTop - TILE, canopyWidth - 2 * TILE, TILE, 0xFF5E9B44);
         tile(ui, LOG, centerX - TILE / 2, canopyTop + 2 * TILE, TILE, 2 * TILE, 0xFFFFFFFF);
     }
 

@@ -1,6 +1,7 @@
 package dev.tierprofiles.test;
 
 import dev.tierprofiles.TierProfiles;
+import dev.tierprofiles.core.net.CosmeticsService;
 import dev.tierprofiles.core.settings.HighlightRule;
 import dev.tierprofiles.core.settings.Settings;
 import dev.tierprofiles.core.settings.Surface;
@@ -39,6 +40,37 @@ final class SettingsGameTest {
         red.glow = true;
         settings.rules.add(top);
         settings.rules.add(red);
+    }
+
+    /**
+     * The whole save path against the local server and a stand-in for Mojang. The joiner
+     * here is a fake, so no real account or real Mojang call is involved.
+     */
+    private static void testSavingACard(ClientGameTestContext context) {
+        context.runOnClient(minecraft -> {
+            TierProfiles.cosmetics().useJoiner(serverId -> { });
+            screen.applyChanges();
+        });
+        context.waitFor(minecraft -> TierProfiles.cosmetics().state() != CosmeticsService.SaveState.SAVING, 200);
+        CosmeticsService.SaveState state = context.computeOnClient(minecraft -> TierProfiles.cosmetics().state());
+        SurfaceGameTest.check(state == CosmeticsService.SaveState.SAVED, "the card should save, but got " + state);
+
+        context.runOnClient(minecraft -> TierProfiles.cosmetics().request(TestWorld.ITZ));
+        context.waitFor(minecraft -> TierProfiles.cosmetics().get(TestWorld.ITZ) != null, 200);
+        String background = context.computeOnClient(minecraft -> TierProfiles.cosmetics().get(TestWorld.ITZ).background);
+        SurfaceGameTest.check(background.equals("moon"), "another client should see the saved card");
+
+        context.runOnClient(minecraft -> {
+            dev.tierprofiles.hud.CardState.open(TestWorld.ITZ, "ItzRealMe");
+            minecraft.gui.setScreen(null);
+        });
+        context.waitTicks(40);
+        context.takeScreenshot("tp-saved-card-seen-by-others");
+        context.runOnClient(minecraft -> {
+            dev.tierprofiles.hud.CardState.close();
+            minecraft.gui.setScreen(screen);
+        });
+        context.waitTicks(3);
     }
 
     static void run(ClientGameTestContext context) {
@@ -85,6 +117,7 @@ final class SettingsGameTest {
         shot(context, "profile-styled");
         onScreen(context, current -> current.setAdvanced(true));
         shot(context, "profile-advanced");
+        testSavingACard(context);
 
         onScreen(context, current -> current.openTab(SettingsTab.MORE));
         onScreen(context, current -> current.openDiagnostics());

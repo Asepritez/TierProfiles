@@ -23,6 +23,7 @@ final class Diagnostics {
         lines.add("Server: " + TierProfiles.config().global.serverUrl);
         lines.add("Last answer: " + service.lastStatus());
         lines.add("Players known: " + service.knownPlayers() + ", waiting: " + service.queueSize());
+        lines.add("Card: " + TierProfiles.cosmetics().state().message());
         lines.add("");
 
         Map<TierList, ListHealth> health = service.health();
