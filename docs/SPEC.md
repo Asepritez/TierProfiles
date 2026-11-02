@@ -163,8 +163,44 @@ This is the headline feature. All of it is staged until Apply, as in Tallium.
 
 ### Profile card
 
-Player's 3D model, name, region, title, a row per list with tier chips and gamemode icons, and
-for each tier: peak, whether retired, and how long ago it was attained.
+The default blends the esports card with the sparse profile, and stays minimal. Top of the card:
+player's 3D model, name, region, title, **highest rank** and **total points**. Below: a row per list
+with tier chips and vanilla kit icons. No coloured underlines beneath icons.
+
+Each tier shows the date it was achieved, plus peak and retired state. A "Card detail" setting
+controls how much appears: Minimal, Standard (default) or Full.
+
+**Position.** The player chooses where the card sits: nine anchors (corners, edge centres, centre),
+fine X and Y offsets, and dragging it on a live preview. It stays inside the screen, and the card
+glides in from the nearest edge of wherever it's placed.
+
+**Alignment is a hard rule.** All card content sits on one fixed column grid, shared by the design
+drafts and the mod:
+
+| Column | Contents | Rule |
+|---|---|---|
+| Model | 3D model | Fixed width, full card height |
+| List | Logo, then name | Fixed logo slot, left-aligned text |
+| Kit 1, 2, 3 | Icon, then tier chip | Fixed-width slots wide enough for the widest chip |
+| Date | Achieved date | Right-aligned to the card's inner edge |
+
+- Every list row uses the same columns, including rows with no tiers. Empty slots stay empty.
+- Column widths are measured from the font, so text can never touch or overlap its neighbour.
+- Retired and peak markers live inside the chip's own slot, never spilling into the next one.
+- One line-height, one padding value, one gap value. The top strip's right edge meets the date column.
+- The date shown belongs to the row's best tier. Say so in the tooltip or Full detail.
+- A list with no result shows muted **Unranked** in the Kit 1 column. Never "offline". If the list
+  is down, the row still reads Unranked, and the real status is on the Advanced > Diagnostics page.
+- Check every layout at 854×480, 1280×720 and 1920×1080, GUI scales 2, 3 and 4. If it can't fit,
+  drop detail level rather than overlap.
+
+**Animation is a priority.** Cards never just appear:
+- The card glides smoothly into the frame with easing, and glides out on close.
+- Rows and chips stagger in just after the card lands.
+- Moving selection in the tab list slides smoothly, and profile backgrounds and effects keep
+  animating.
+- Settings cover animation style (Glide, Fade, Scale, Off) and speed, and "reduce motion" turns
+  them off. Animation is time-based, never tied to frame rate, and must not block input.
 
 ### Your profile (visual only)
 
@@ -206,6 +242,10 @@ Based on Tallium's look. Dark, flat, sharp corners, thin borders, no vanilla sto
 bright. The default profile card blends Card A's compact rows with Card C's esports presentation.
 Reference sites: `mctiers.gg` and `mcpvp.com`.
 
+The config should feel unlike any other mod's config: distinctive, Minecraft-flavoured and pleasing,
+with deep customization. Keep a live preview on screen wherever a setting changes appearance. The
+same logos, vanilla icons, spacing and components appear on every tab and every screen.
+
 The config must not feel overwhelming. Each tab opens on a few essentials, with a clear "Advanced"
 section for the rest, and search finds everything.
 
@@ -231,8 +271,9 @@ The look must be vanilla and official, so lists are easy to tell apart at a glan
 
 - **Vanilla first.** Use the player's own game textures at runtime wherever possible: kit icons from
   real items with `renderItem`, the card moon from the game's own moon texture, and armor and trims
-  on the real player model. Prefer the older look McPvP uses: an "Icon style" setting offers
-  Classic, from the game's built-in Programmer Art pack, as the default, and Current.
+  on the real player model. An "Icon style" setting offers Default, which matches McPvP's small
+  icons and is the default, and Classic, from the game's built-in Programmer Art pack, which has
+  no netherite, mace, spear or trident items and so falls back to Default for those.
 - **Kit icons** match what the lists use: sword is a netherite sword, plus mace, potion, ender pearl,
   golden apple, shield, bow, creeper spawn egg, minecart with TNT, diamond and netherite chestplates.
 - **Official list logos** are downloaded at runtime from each list's own website and cached locally.
