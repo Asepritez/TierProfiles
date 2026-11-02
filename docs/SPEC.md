@@ -25,12 +25,13 @@ provider must fail softly: one list going down must never break the others.
 | McPvP | `https://www.mcpvp.com/tiers/search?q=<name>` | Name search, not exact: it matches substrings, so filter results by UUID. Query must be 3 to 16 characters. Capped at 50 results sorted by points, so a full page with no match means "unknown", not "unranked". Returns `points`, `region`, `country`, `kitRanks`, `kitPeakRanks`, `kitRetired`, `trend`. Beta tiers will reset. Add `&version=legacy` for the old list (not used). |
 | PvPTiers | `https://pvptiers.com/api/profile/<uuid>` | UUID must have **no dashes**; dashed returns 400. |
 | SubTiers | `https://subtiers.net/api/v2/profile/<uuid>` | Dashed UUID. Returns `rankings`, `region`, `points`, `overall`, `badges`. |
-| PVPHQ | `https://pvphq.com/api/ranked/<uuid>` | **Unverified**: every call failed during research, and on 2026-11-01 the API hung with no response while pvphq.com itself stayed up, so it needs a hard timeout. Field names come from the MIT mod MicahXX/HQTiers: `rating`, `tr`, `peakRating`, `wins`, `losses`, `gamesPlayed`, `leaderboardPosition`, `grantedTier`, `tierColor`. Treat as optional. |
+| PVPHQ | `https://pvphq.com/api/ranked/<uuid>` | Down for most of 2026-11-01 (hung, then 502), answering again on 2026-11-02 and verified against real replies. Returns `{data: {LADDER: {rating, peakRating, gamesPlayed, grantedTier, ...}}, globalPosition, rank}`. `globalPosition` is 0-based and `99999` means no position. Unknown players get 200 with empty `data`. Ladders include `SPEAR_MACE`, `HT_CART`, `DIAMOND_POT`, `NETHERITE_OP`. Needs a hard timeout. |
 
 MCTiers-style rankings use `{tier, pos, peak_tier, peak_pos, attained, retired}`, where `pos` 0 is
 High and 1 is Low, so `tier 3, pos 1` is LT3. McPvP uses strings such as `HT2`, and has an extra
 `MT` (mid) and `ST` (lowest) tier, with levels 1 to 6. `peak_tier` and `peak_pos` can be null. All lists
-answer 404 for a player they don't know, except McPvP, which returns an empty result.
+answer 404 for a player they don't know, except McPvP, which returns an empty result, and PVPHQ,
+which returns 200 with empty `data`.
 
 McPvP is mainstream but new, and some of its tiers look inflated, so it is included but must not be
 the default top-priority list. MCTiers comes first by default, and the UI labels McPvP as beta.
@@ -49,9 +50,18 @@ cache**: use the Workers Cache API.
 
 - `GET /v1/profile/<uuid>?name=<name>` returns one merged profile.
 - `POST /v1/profiles` takes `{"players": [{uuid, name}]}`, up to 8, and returns `{"profiles": [...]}`.
-- `GET /v1/cosmetics/<uuid>` returns a player's card customization.
-- `POST /v1/auth/challenge`, `POST /v1/auth/verify` and `PUT /v1/cosmetics` implement Identity below.
-  Store cosmetics in D1 and validate them against an allowlist of preset ids.
+- `GET /v1/cosmetics/<uuid>` returns `{uuid, cosmetics}`, where `cosmetics` is null for a player with
+  no saved style.
+- `POST /v1/auth/challenge` returns `{challenge, serverId, expires}`. The mod passes `serverId` to
+  Mojang's `joinServer`. Challenges are HMAC-signed and last 2 minutes, so no storage is needed.
+- `POST /v1/auth/verify` takes `{name, challenge}`, asks Mojang's `hasJoined`, and returns
+  `{token, uuid, expires}` (15 minutes), or 403 if Mojang didn't confirm. The UUID comes only from
+  Mojang's answer.
+- `PUT /v1/cosmetics` with `Authorization: Bearer <token>` stores the body for the token's own UUID.
+  Every value must be on the allowlist in `server/src/cosmetics.json`, which a mod test keeps in step
+  with the mod. One save per player per 10 seconds (429 otherwise). Stored in D1, table `cosmetics`.
+- Identity needs an `AUTH_SECRET` (`wrangler secret put AUTH_SECRET`, or `.dev.vars` locally). Without
+  it, identity routes answer 503. `MOJANG_SESSION_URL` exists only for local tests against a mock.
 - Cache a good result per list for 30 minutes, and "not ranked" for 2 hours.
 - A provider that fails returns `{status: "unavailable", reason}` for that list, never a 500.
 - Only version 4 UUIDs are accepted; anything else is a 400.

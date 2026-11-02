@@ -19,8 +19,12 @@ Here is exactly what leaves your game:
   Mojang that it makes when you join an online server, and our server asks Mojang to confirm it. Your
   access token goes only to Mojang.
 
+- **List logos.** Each list's own logo, and MCTiers' title badges, are downloaded once from that
+  list's website and kept in your config folder. You can turn this off in Settings, More, Advanced,
+  and the mod uses its own letter marks instead.
+
 We send nothing else: no chat, no server address, no position. As with any website, the server host
-(Cloudflare) sees your IP address when the mod connects.
+(Cloudflare) and the list websites see your IP address when the mod connects to them.
 
 Nothing is sent until you have seen the first-run notice, and you can turn lookups off at any time in
 Settings, More. With lookups off, no data is sent and no tiers show.
