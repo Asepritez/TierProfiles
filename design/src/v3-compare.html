@@ -1,0 +1,23 @@
+<!doctype html><meta charset="utf8"><title>Game compare</title>
+<link rel="stylesheet" href="base.css"><script src="lib.js"></script><script src="card.js"></script>
+<body><div class="shell"></div>
+<script>
+// Same pixel density on both sides: the game shots are 854x480 at GUI scale 2, as are the mockups.
+const real = (x, y, w, h) => `<div style="width:${w}px;height:${h}px;background:url(../ingame/0004_tp-05-card-on-hud.png) -${x}px -${y}px;image-rendering:pixelated"></div>`;
+const note = (t, s) => `<div class="row gap12" style="min-height:32px;line-height:26px"><span class="nw" style="width:210px;color:#fff">${t}</span><span class="muted">${s}</span></div>`;
+mount(`<div class="abs row gap12" style="left:60px;top:14px;height:40px"><span class="mid nw" style="color:#fff">Draft against the real game</span><span class="muted nw">Both at GUI scale 2, one to one, so text sizes can be compared directly.</span></div>
+<div class="abs" style="left:60px;top:70px"><div style="height:30px;color:#fff">In game today</div>${real(358, 8, 488, 174)}</div>
+<div class="abs" style="left:620px;top:70px"><div style="height:30px;color:#fff">Revision 3</div>${defaultCard(JOKING)}</div>
+<div class="abs col" style="left:60px;top:400px;width:1800px;gap:6px">
+ <div class="accent" style="height:32px">What the comparison shows</div>
+ ${note('Font', 'The draft now uses the game\\'s own glyphs, so its widths match. HT1 is 17 GUI pixels in both.')}
+ ${note('Width', 'The game card is 296 wide. The draft is 366, because the columns are measured to fit.')}
+ ${note('Collisions', 'In game, "HT2R" touches the next icon, and "HT39 Dec 2025" runs a tier into a date. On the grid neither can happen.')}
+ ${note('List names', 'In game, "PvPTiers" touches its first kit. The draft gives names a fixed 56 column.')}
+ ${note('Logos', 'The game still shows letter marks at 8 pixels. The draft uses official logos at 16.')}
+ ${note('Kit icons', 'The game draws them at about 9 pixels. The draft uses 16, as real items.')}
+ ${note('List order', 'The game puts McPvP fourth. MCTiers first still holds, but the draft keeps the spec order of the five lists.')}
+ ${note('PVPHQ', 'The game says Offline. The spec now says Unranked, which the draft shows.')}
+ ${note('Top strip', 'The game\\'s strip already matches: name, region, title, rank and points.')}
+</div>`);
+</script></body>

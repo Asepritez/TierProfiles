@@ -98,7 +98,20 @@ and Date stay empty. A list that is down reads the same.
 |---|---|---|---|
 | Minimal | 366 | 61 | Strip, then one row. Up to 4 ranked lists at X 72 + 67n: logo 16, gap 3, slot 42. Model 49 tall. |
 | Standard | 366 | 137 | As above |
-| Full | 408 | 218 | Rows 31 tall: slot 18 and date 11 beneath. 5 slots 46 wide from X 154, step 52. Legend line at the bottom. Rank moves to right edge − 116. |
+| Full | 414 | 211 | Rows 31 tall: slot 18 and date 11 beneath. 5 slots 46 wide from X 154, step 52, right edge 408. Legend line at the bottom. Rank moves to right edge − 116. |
+
+### Moon
+
+The `full_moon` texture is 32×32 with an 8×8 body at X 12, Y 12, with a soft glow around it on black.
+A plain 8×8 square at a large scale reads as a broken block, so:
+
+- Draw the body as normal pixels, and drop its four corner pixels so it reads as a disc.
+- Draw the glow as light, tinted `#96B2FF`, at about 5 times the texture's strength, and pulse it gently.
+- Add the strip's shade first and the moon after it, so the shade doesn't dim the moon.
+- On the card it's 3×, so 24 GUI pixels, centred at X 226, Y 16, in the strip between the name and the
+  rank. In Full detail it's centred at X 268.
+- Clip the glow to the strip, and draw the strip's text above it.
+- If the name would reach it, hide the moon rather than overlap.
 
 ### When the card doesn't fit
 
@@ -107,9 +120,18 @@ Available width is the screen's GUI width minus 8. Pick the first that fits, and
 | Available | Layout | Width |
 |---|---|---|
 | 374 or more | Standard | 366 |
-| 312 to 373 | No Date column | 304 |
-| 264 to 311 | No Date, no Kit 3 | 256 |
-| Under 264 | Minimal, one list per 67 px | 256 or less |
+| 306 to 373 | No Date column | 298 |
+| 258 to 305 | No Date, no Kit 3 | 250 |
+| Under 258 | Minimal with no model, list slots from X 6 | One list per 67 |
+
+In the top strip, the rank must not reach the points:
+
+| Layout | Rank position |
+|---|---|
+| Standard | X 250, as above |
+| No Date | Right edge − 100 |
+| No Date, no Kit 3 | Hide the rank's list line. Right-align `#1` to right edge − 36. |
+| Minimal with no model | Name and rank only, no title, no `points` label |
 
 | Screen | GUI 2 | GUI 3 | GUI 4 |
 |---|---|---|---|
@@ -126,7 +148,7 @@ Keep the card clear of:
 |---|---|
 | Hotbar | 182 wide, centred, bottom 40 of the screen including hearts |
 | Crosshair | A 33×33 box at the centre of the screen |
-| Tab list | While Tab is held, a top-centre card moves below the list |
+| Tab list | While Tab is held, a card that would touch the list drops its Date column. If it still touches, it moves below the list. |
 
 A drag snaps to anchors and edges. If a position would hit a zone, slide the card clear and show the
 final spot in the preview.
@@ -152,11 +174,24 @@ Reference size 960×540. Screens are built from these regions, and every tab use
 
 | Region | X | Y | Width | Height |
 |---|---|---|---|---|
-| Header | 10 | 10 | 940 | 24 |
-| Category rail | 10 | 40 | 88 | 440 |
-| Options panel | 98 | 40 | 462 | 440 |
-| Live Stage | 570 | 40 | 380 | 440 |
-| Hotbar row | 10 | 490 | 940 | 40 |
+| Title | 10 | 10 | 88 | 24 |
+| Search | 98 | 10 | 852 | 24 |
+| Category rail | 10 | 40 | 88 | 456, tabs 32 tall on a 34 step |
+| Options panel | 98 | 40 | 462 | 456 |
+| Live Stage | 570 | 40 | 380 | 456 |
+| Profiles hotbar | 98 | 506 | 184 | 24 |
+| Apply and Discard | 570 | 506 | 380 | 24, right-aligned |
+
+Inside the Live Stage, relative to its top left, with 7 padding:
+
+| Item | Y | Height |
+|---|---|---|
+| Caption | 5 | 14 |
+| World view | 22 | 264 |
+| Tab row and chat line | 290 | 18 |
+| Profile card (366 wide) | 312 | 137 |
+
+The world view never shows card cosmetics. Armor only appears on the card.
 
 Inside the options panel:
 
@@ -170,6 +205,7 @@ Inside the options panel:
 | Slot | 20×20, no gap inside a slot row |
 | Selected slot | 24×24 frame, as the vanilla hotbar does |
 | Advanced row | Directly below the essentials, same row height |
+| Help tooltip | Below the options, on the control column, never over a control |
 
 Every control starts on the control column, so labels and controls form two straight edges. The Stage
 needs 380 wide. Under 800 GUI wide, it becomes a toggle over the options panel.

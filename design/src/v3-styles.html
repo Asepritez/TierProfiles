@@ -1,0 +1,38 @@
+<!doctype html><meta charset="utf8"><title>Card styles</title>
+<link rel="stylesheet" href="base.css"><script src="lib.js"></script><script src="../_tmp/vanilla/moon.js"></script><script src="fx.js"></script><script src="card.js"></script>
+<style>.cap{height:28px;line-height:28px;white-space:nowrap}</style>
+<body><div class="shell"></div>
+<script>
+const q = new URLSearchParams(location.search), page = q.get('page') || 'bg', t = 2.6;
+const arm = `${BG}/m-armor-card.png`;
+const cell = (x, y, cap, sub, o) => `<div class="abs" style="left:${x}px;top:${y}px"><div class="cap"><span style="color:#fff">${cap}</span> <span class="muted">${sub}</span></div>${defaultCard(JOKING, { model: arm, t, ...o })}</div>`;
+const title = (a, b) => `<div class="abs row gap12" style="left:${L}px;top:12px;height:40px"><span class="mid nw" style="color:#fff">${a}</span><span class="muted nw">${b}</span></div>`;
+const L = 216, X2 = 972;
+if (page === 'bg') {
+  mount(title('Card styles: backgrounds', 'Animated scenes, the game\'s own moon, all on the one card grid.'));
+  const c = (i, cap, sub, o) => cell(i % 2 ? X2 : L, 58 + Math.floor(i / 2) * 338, cap, sub, { border:'thin', ...o });
+  mount([
+    c(0,'Moon','night sky, the game\'s own texture',{ bg:'moon', accent:'#FFE9A8', fx:['sparkles'], intensity:.5 }),
+    c(1,'Starfield','drifting stars',{ bg:'stars', accent:'#BFE4FF' }),
+    c(2,'Nebula','slow cloud',{ bg:'nebula', accent:'#FF8FA6', fx:['sparkles'], intensity:.5 }),
+    c(3,'Embers','rising sparks',{ bg:'embers', accent:'#FF7A1A' }),
+    c(4,'Snow','falling, with pines',{ bg:'snow', accent:'#DCE9F7' }),
+    c(5,'Plain','quiet',{ bg:'plain', accent:'#68B5D5' }),
+  ].join(''));
+} else {
+  mount(title('Card styles: borders and effects', 'Shown at Minimal detail. Effects stay in the model column, away from your tiers.'));
+  const c = (i, cap, sub, o) => cell(i % 2 ? X2 : L, 58 + Math.floor(i / 2) * 170, cap, sub, { detail:'Minimal', ...o });
+  mount([
+    c(0,'Thin','one clean line',{ bg:'stars', border:'thin', accent:'#68B5D5' }),
+    c(1,'Double','two lines',{ bg:'nebula', border:'double', accent:'#FF8FA6' }),
+    c(2,'Glowing','pulses slowly',{ bg:'moon', border:'glow', accent:'#8FA6E8' }),
+    c(3,'Shimmer','light runs round the edge',{ bg:'embers', border:'shimmer', accent:'#FF7A1A' }),
+    c(4,'Corner ornaments','',{ bg:'snow', border:'corners', accent:'#FFCF4A' }),
+    c(5,'Sparkles','at low intensity',{ bg:'moon', border:'thin', fx:['sparkles'], intensity:.5, accent:'#FFE9A8' }),
+    c(6,'Sparkles','at high intensity',{ bg:'nebula', border:'thin', fx:['sparkles'], intensity:1, accent:'#FFD9F2' }),
+    c(7,'Floating motes','drifting up',{ bg:'stars', border:'thin', fx:['motes'], intensity:.8, accent:'#9FE8FF' }),
+    c(8,'Both','with shimmer',{ bg:'embers', border:'shimmer', fx:['sparkles','motes'], intensity:.8, accent:'#FFC233' }),
+    c(9,'Off','also used by reduce motion',{ bg:'plain', border:'thin', accent:'#AAAAAA' }),
+  ].join(''));
+}
+</script></body>

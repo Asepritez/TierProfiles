@@ -649,6 +649,24 @@ def scene_lobby():
     (BG / "lobby.js").write_text("const LOBBY = " + json.dumps(players) + ";")
 
 
+def scene_stage():
+    """The Live Stage: dark dusk, so it sits quietly beside the settings."""
+    cam = Cam(732, 528, (0.0, 1.5, 5.2), 0.0, math.radians(-2), 56)
+    sc = Scene(cam, sky=((26, 34, 62), (82, 76, 110)), fog=60, clouds=False)
+    arena_ground(sc)
+    sc.box((-30, 0, -9), (30, 2, -8), "brick")
+    for x, z, h in ((-9, -13, 6), (-3, -15, 7), (4, -14, 6), (10, -13, 7)):
+        tree(sc, x, z, h)
+    sc.draw_boxes()
+    sc.draw_parts(player_parts(load_skin("JokingDK"), (0, 0, 0), yaw=-.35, pose=dict(rarm=.1, larm=-.1, rleg=.08, lleg=-.08)))
+    sc.blob(0, 0, 0, .8, .4)
+    rgb = sc.finish()
+    Image.fromarray((rgb * .62).astype(np.uint8)).save(BG / "stage.png")
+    top = cam.project((0, 2.15, 0))
+    (BG / "stage.js").write_text(f"const STAGE_POS = {{x:{top[0]/732:.3f},y:{top[1]/528:.3f}}};")
+    print("wrote stage", top)
+
+
 def model(name, skin, overlay=None, yaw=-.5, pitch=-.16, W=360, H=640, zoom=1.0, pose=None, head_yaw=.25,
           head_pitch=0.0, supersample=1, sky=False):
     """Character render on transparent background, in a near-orthographic 3/4 view."""
@@ -688,4 +706,4 @@ def models():
 if __name__ == "__main__":
     what = sys.argv[1:] or ["fight", "lobby", "models"]
     for w in what:
-        globals()["scene_" + w]() if w in ("fight", "lobby") else models()
+        globals()["scene_" + w]() if w in ("fight", "lobby", "stage") else models()

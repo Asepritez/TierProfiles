@@ -1,0 +1,20 @@
+<!doctype html><meta charset="utf8"><title>First run</title>
+<link rel="stylesheet" href="base.css"><script src="lib.js"></script><script src="card.js"></script><script src="shell.js"></script>
+<body><div class="scene" style="background-image:url(../_tmp/bg/fight.png)"></div>
+<div class="abs" style="inset:0;background:rgba(9,11,12,.78)"></div>
+<script>
+const line = (it, h, s) => `<div class="row" style="height:${R(30)}px;gap:${R(6)}px;margin-bottom:${R(4)}px">${slot(I(it))}<div class="col"><span style="color:#fff;line-height:24px">${h}</span><span class="muted" style="line-height:24px">${s}</span></div></div>`;
+const w = 462, h = 252, x = (960 - w) / 2, y = (540 - h) / 2;
+mount(box(x, y, w, h, `<div style="position:absolute;left:${R(10)}px;top:${R(8)}px;width:${R(w - 20)}px">
+  <div class="mid nw" style="color:#fff;height:${R(18)}px">Welcome to TierProfiles</div>
+  <div class="muted" style="height:${R(18)}px;line-height:${R(18)}px">Here is exactly what leaves your game.</div>
+  <div style="margin-top:${R(6)}px">
+  ${line('name_tag','Names and UUIDs of players in your tab list','These go to the TierProfiles server, which asks the tier lists.')}
+  ${line('painting','List logos','Downloaded straight from each list\'s website.')}
+  ${line('armor_stand','Your card style','Sent only when you save it.')}
+  ${line('tripwire_hook_item','Your login stays with Minecraft.','We never see your account token.')}
+  </div>
+  <div class="row" style="height:${R(S.rowH)}px;margin-top:${R(4)}px;padding:0 ${R(5)}px;background:#1A2025;box-shadow:inset 0 0 0 2px #3A4248"><span class="nw" style="width:${R(S.labelW - 5)}px;color:#fff">Look up tiers</span>${lever(1)}<span class="sp"></span><span class="muted nw">Off sends nothing, and no tiers show</span></div>
+  <div class="row" style="height:${R(20)}px;margin-top:${R(8)}px;gap:${R(4)}px"><span class="muted nw">Change this any time in More.</span><span class="sp"></span>${btnS('Read more')}${btnS('Sounds good',1)}</div>
+</div>`, 'background:#141A1F;box-shadow:inset 0 0 0 2px #3A4248').replace(I('tripwire_hook_item'), I('trial_key')));
+</script></body>

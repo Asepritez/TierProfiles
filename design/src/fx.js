@@ -2,6 +2,7 @@
 // 1 GUI pixel per canvas pixel, then shown at 2x. All art is original and procedural, so it can
 // animate in the mod the same way: t is a time in seconds, and each loop lasts LOOP seconds.
 const LOOP = 8;
+const dens = p => Math.min(1.6, p.w*p.h/18300);
 
 function rng(seed) { let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
 const hex = c => [parseInt(c.slice(1,3),16), parseInt(c.slice(3,5),16), parseInt(c.slice(5,7),16)];
@@ -32,7 +33,7 @@ function noiseField(w,h,cell,seed){ const r=rng(seed),gw=Math.ceil(w/cell),gh=Ma
     return lerp(lerp(a,b,s(u)),lerp(c,d,s(u)),s(v)); }; }
 
 function twinkle(p, n, seed, t, cols, region) {
-  const r=rng(seed);
+  const r=rng(seed); n=Math.ceil(n*dens(p));
   for(let i=0;i<n;i++){ const x=r()*p.w,y=r()*(region||p.h),ph=r()*6.283,sp=1+Math.floor(r()*3),big=r()<.14,c=cols[Math.floor(r()*cols.length)];
     const b=.5+.5*Math.sin(ph+t/LOOP*6.283*sp);
     p.set(x,y,hex(c),.3+.7*b);
@@ -41,36 +42,46 @@ function twinkle(p, n, seed, t, cols, region) {
 }
 
 // The moon: 7 tones, a soft terminator and hand-placed craters. Drawn at 1 GUI pixel.
-function moon(p, cx, cy, R, t) {  // R is half the lit body's size in GUI pixels
-  // The game's own texture: an 8x8 moon inside a 32x32 image with its glow baked in, on black.
-  // The game adds it over the sky, so do the same, at a whole-number scale of the lit body.
-  const N=MOON_TEX.length, sc=Math.max(1,Math.round(2*R/8)), mid=(N*sc)/2;
-  const ox=Math.round(cx-mid), oy=Math.round(cy-mid), glow=.85+.15*Math.sin(t/LOOP*6.283);
-  for(let j=0;j<N;j++)for(let i=0;i<N;i++){ const [r,g,b]=MOON_TEX[j][i]; if(r+g+b<4) continue;
-    const body=r+g+b>150, k=body?1:glow;
-    for(let u=0;u<sc;u++)for(let v=0;v<sc;v++){ const X=ox+i*sc+u,Y=oy+j*sc+v; if(X<0||Y<0||X>=p.w||Y>=p.h) continue;
-      const q=(Y*p.w+X)*4,d=p.d; d[q]=Math.min(255,d[q]+r*k); d[q+1]=Math.min(255,d[q+1]+g*k); d[q+2]=Math.min(255,d[q+2]+b*k); } }
+// The game's own texture: an 8x8 body at (12,12) inside a 32x32 image, glow baked in, on black.
+// Drawn on its own layer, above the strip shade: the body as plain pixels with its four corner
+// pixels dropped so it reads as a disc, and the glow as light. sc is a whole-number scale.
+function moonLayer(W, H, cx, cy, sc, t, clipH = H) {
+  const p = new Px(W, H), N = MOON_TEX.length, ox = Math.round(cx - N * sc / 2), oy = Math.round(cy - N * sc / 2);
+  const breathe = 1.5 + .25 * Math.sin(t / LOOP * 6.283);
+  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+    const [r, g, b] = MOON_TEX[j][i];
+    const inBody = i >= 12 && i < 20 && j >= 12 && j < 20;
+    const corner = (i === 12 || i === 19) && (j === 12 || j === 19);
+    const lum = (r + g + b) / 3;
+    for (let u = 0; u < sc; u++) for (let v = 0; v < sc; v++) {
+      const X = ox + i * sc + u, Y = oy + j * sc + v;
+      if (X < 0 || Y < 0 || X >= W || Y >= clipH) continue;
+      const q = (Y * W + X) * 4, d = p.d;
+      if (inBody && !corner) { d[q] = r; d[q + 1] = g; d[q + 2] = b; d[q + 3] = 255; }
+      else if (lum > 1) { d[q] = 150; d[q + 1] = 178; d[q + 2] = 255; d[q + 3] = Math.min(150, (corner ? 26 : lum) * 3.4 * breathe); }
+    }
+  }
+  return p.flush();
 }
 
 const BG_FN = {
   moon(p,t,o){
     ditherSky(p,['#070A1F','#0D1433','#17204E','#26306B','#3A3F85'],p.h*1.05);
     twinkle(p,110,11,t,['#FFFFFF','#BFD0FF','#FFE9B8'],p.h*.8);
-    moon(p,o.mx??214,o.my??16,o.mr??12,t);
-    const hr=rng(3); let hgt=[]; for(let x=0;x<p.w;x+=6){ const v=8+hr()*10; for(let i=0;i<6;i++) hgt.push(v); }
+    const hr=rng(3); let hgt=[]; for(let x=0;x<p.w;x+=6){ const v=(8+hr()*10)*Math.min(1,p.h/90); for(let i=0;i<6;i++) hgt.push(v); }
     for(let x=0;x<p.w;x++) for(let y=p.h-hgt[x];y<p.h;y++) p.set(x,y,hex('#070A1A'));
   },
   stars(p,t){
     ditherSky(p,['#02030A','#050818','#0A0E26']);
-    for(const [n,sp,col,seed] of [[170,0,['#4A5578'],2],[80,1,['#9AA8D0'],3],[36,2,['#FFFFFF','#BFE4FF','#FFD9B0'],4]]){ const r=rng(seed);
-      for(let i=0;i<n;i++){ const x=(r()*p.w+t/LOOP*p.w*sp)%p.w, y=r()*p.h, c=col[Math.floor(r()*col.length)]; p.set(p.w-x,y,hex(c));
+    for(let [n,sp,col,seed] of [[170,0,['#4A5578'],2],[80,1,['#9AA8D0'],3],[36,2,['#FFFFFF','#BFE4FF','#FFD9B0'],4]]){ const r=rng(seed);
+      n=Math.ceil(n*dens(p)); for(let i=0;i<n;i++){ const x=(r()*p.w+t/LOOP*p.w*sp)%p.w, y=r()*p.h, c=col[Math.floor(r()*col.length)]; p.set(p.w-x,y,hex(c));
         if(sp==2){ p.set(p.w-x+1,y,hex(c),.4); p.set(p.w-x+2,y,hex(c),.15); } } }
     // one shooting star per loop
     const q=(t/LOOP+.55)%1; if(q<.3){ const k=q/.3, hx=p.w*(.95-k*.9), hy=8+k*p.h*.55, L=26; for(let i=0;i<L;i++) p.set(hx+i,hy-i*.45,[255,255,255],(1-i/L)*Math.sin(k*3.14159)); }
   },
   nebula(p,t){
     ditherSky(p,['#0A0520','#100830']);
-    const a=noiseField(p.w,p.h,46,8), b=noiseField(p.w,p.h,22,9), c=noiseField(p.w,p.h,11,10), sh=t/LOOP*p.w;
+    const zk=Math.min(1,Math.max(.3,p.w/300)), a=noiseField(p.w,p.h,Math.round(46*zk),8), b=noiseField(p.w,p.h,Math.round(22*zk),9), c=noiseField(p.w,p.h,Math.max(6,Math.round(11*zk)),10), sh=t/LOOP*p.w;
     const pal=['#0A0520','#1E0F52','#3C1A86','#6B23B4','#A62CC6','#E8439F','#FF8FA6','#FFD9C2'].map(hex);
     for(let y=0;y<p.h;y++)for(let x=0;x<p.w;x++){ let n=a(x+sh,y)*.62+b(x-sh,y*1.2)*.28+c(x+sh,y)*.1;
       n=Math.pow(Math.max(0,n-.26)*1.72,1.5); const v=Math.min(.999,n)*(pal.length-1), i=Math.floor(v), f=v-i;
@@ -80,7 +91,7 @@ const BG_FN = {
   embers(p,t){
     ditherSky(p,['#0C0606','#1A0A08','#2E0F09','#511707','#8E2A05','#D84A08'],p.h*1.02);
     const r=rng(6); const pal=['#FFF2A8','#FFC233','#FF7A1A','#D23A0A'].map(hex);
-    for(let i=0;i<46;i++){ const x0=r()*p.w, ph=r(), sp=1+Math.floor(r()*2), w=2+r()*5, big=r()<.3;
+    const N=Math.ceil(46*dens(p)); for(let i=0;i<N;i++){ const x0=r()*p.w, ph=r(), sp=1+Math.floor(r()*2), w=2+r()*5, big=r()<.3;
       const q=(ph+sp*t/LOOP)%1, y=p.h+4-q*(p.h+10), x=x0+Math.sin(q*12+ph*9)*w;
       const c=pal[Math.min(3,Math.floor(q*4))];
       p.set(x,y,c); if(big){ p.set(x+1,y,c); p.set(x,y+1,c); p.set(x+1,y+1,c); }
@@ -96,7 +107,7 @@ const BG_FN = {
       for(let x=-6;x<p.w;x+=14+Math.floor(r()*14)){ const ht=26+Math.floor(r()*22);
         for(let y=0;y<ht;y++){ const w=Math.floor((y%8+y/3)*.62)+1; for(let i=-w;i<=w;i++) p.set(x+i,base-ht+y,hex(col)); } } }
     for(let x=0;x<p.w;x++){ const hh=7+Math.round(2*Math.sin(x/19)+1.2*Math.sin(x/7)); for(let y=p.h-hh;y<p.h;y++) p.set(x,y,hex(y==p.h-hh?'#FFFFFF':y<p.h-hh+3?'#DCE9F7':'#B9CCE4')); }
-    for(const [n,sp,sz,seed,a] of [[60,1,1,1,.55],[34,2,1,2,.85],[16,3,2,3,1]]){ const r=rng(seed);
+    for(let [n,sp,sz,seed,a] of [[60,1,1,1,.55],[34,2,1,2,.85],[16,3,2,3,1]]){ const r=rng(seed); n=Math.ceil(n*dens(p));
       for(let i=0;i<n;i++){ const x0=r()*p.w, ph=r(), q=(ph+sp*t/LOOP)%1, y=q*(p.h+4)-2, x=(x0+Math.sin(q*9+ph*20)*5)%p.w;
         for(let a1=0;a1<sz;a1++)for(let b1=0;b1<sz;b1++) p.set(x+a1,y+b1,[255,255,255],a); } }
   },

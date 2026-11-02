@@ -3,7 +3,7 @@
 <body><div class="scene" style="background-image:url(../_tmp/bg/fight.png)"></div>
 <script>
 const q = new URLSearchParams(location.search), who = q.get('p') === 'm' ? MARLOWWW : JOKING;
-const pos = q.get('at') || 'tr', W = R(GRID.W), H = R(GRID.rowsY + 5 * GRID.rowH + GRID.pad);
+const pos = q.get('at') || 'tr';
 const at = { tl:'left:20px;top:20px', tr:'right:20px;top:20px', bl:'left:20px;bottom:20px', br:'right:20px;bottom:20px' }[pos];
 const from = { tl:'left', tr:'right', bl:'left', br:'right' }[pos];
 mount(hud(0));

@@ -1,0 +1,20 @@
+<!doctype html><meta charset="utf8"><title>Card detail</title>
+<link rel="stylesheet" href="base.css"><script src="lib.js"></script><script src="card.js"></script>
+<style>.cap{height:30px;line-height:30px;white-space:nowrap}</style>
+<body><div class="shell"></div>
+<script>
+const cap = (x, y, a, b, h) => `<div class="abs" style="left:${x}px;top:${y}px"><div class="cap"><span style="color:#fff">${a}</span> <span class="muted">${b}</span></div>${h}</div>`;
+mount(`<div class="abs row gap12" style="left:60px;top:14px;height:40px"><span class="mid nw" style="color:#fff">Card detail</span><span class="muted nw">One setting, three levels, the same strip and columns.</span></div>
+${cap(60, 70, 'Minimal', 'best tier per list', defaultCard(JOKING, { detail:'Minimal' }))}
+${cap(60, 240, 'Standard', 'the default: top three kits, date of the best', defaultCard(JOKING))}
+${cap(60, 560, 'Standard, sparse', 'every list keeps its row', defaultCard(MARLOWWW))}
+${cap(1020, 70, 'Full', 'five kits, and a date for each tier', defaultCard(JOKING, { detail:'Full' }))}
+<div class="abs col" style="left:1020px;top:560px;width:828px;gap:12px;line-height:26px">
+  <div class="accent">Reading a chip</div>
+  <div class="row gap12">${chip('HT1')}<span>Normal: filled, text in the tier colour</span></div>
+  <div class="row gap12">${chip('HT2',{ret:1})}<span>Retired: hollow, slightly dimmed</span></div>
+  <div class="row gap12">${chip('LT3',{peak:1})}<span>Peak was higher: gold corner</span></div>
+  <div class="row gap12">${chip('LT2',{ret:1,peak:1})}<span>Both can show at once, and the slot never grows</span></div>
+  <div class="muted">No dates for McPvP: its API doesn't give any, so that cell stays empty.</div>
+</div>`);
+</script></body>

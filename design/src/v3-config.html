@@ -1,0 +1,138 @@
+<!doctype html><meta charset="utf8"><title>The Inventory</title>
+<link rel="stylesheet" href="base.css"><script src="lib.js"></script><script src="hudkit.js"></script><script src="../_tmp/vanilla/moon.js"></script><script src="fx.js"></script><script src="card.js"></script><script src="../_tmp/bg/stage.js"></script><script src="shell.js"></script>
+<body><script>
+const q = new URLSearchParams(location.search), tab = q.get('tab') || 'tags';
+const moonCard = { bg:'moon', border:'shimmer', fx:['sparkles'], intensity:.7, accent:'#FFE9A8', model:`${BG}/m-armor-card.png`, t:2.6 };
+const swatch = (c, on) => slot(`<i style="display:block;width:${R(16)}px;height:${R(16)}px;background:${c}"></i>`, on);
+const logoSlot = (id, on) => slot(lm(id), on);
+const ALL = ['mctiers','mcpvp','pvptiers','subtiers','pvphq'];
+const P = {};
+
+P.tags = () => [screen('Tags',
+  heading('Tags','Nametag') +
+  row('Show on', slots([slot(I('name_tag'),1),slot(I('book')),slot(I('paper')),slot(I('spyglass')),slot(I('armor_stand'))]) + `<span class="muted nw">Nametag</span>`) +
+  row('Show tag', lever(1)) +
+  row('Minimum tier', ladder('LT3')) +
+  row('Gamemode', seg(['Highest','Pick','Auto'],'Highest')) +
+  row('Tier', seg(['Current','Peak'],'Current')) +
+  advancedRow(18,'per-list minimums, list order, format') +
+  tip('Minimum tier: LT3', ['Hides tags below LT3. Recommended for busy lobbies.','Everyone showing HT4 tells you nothing.']))];
+
+P.colours = () => { const strip = (cs, on) => slot(`<span class="row" style="width:${R(64)}px;height:${R(12)}px">${cs.map(c => `<i style="flex:1;height:${R(12)}px;background:${c}"></i>`).join('')}</span>`, on, 72);
+  const heat=['#FF3B30','#FF7A26','#FFBA1F','#FFE85A','#FFF5B8'], mono=['#FFF','#CCC','#999','#707070','#4D4D4D'], cb=['#FFD500','#56B4E9','#E69F00','#CC79A7','#BBB'], def=[TIER.HT1,TIER.HT2,TIER.HT3,TIER.HT4,TIER.HT5];
+  return [screen('Colours',
+  heading('Colours','Default preset') +
+  row('Preset', slots([strip(def,1),strip(heat),strip(mono),strip(cb)])) +
+  row('Applies to', seg(['All lists','Per list'],'All lists')) +
+  row('Tier', ladder('HT3')) +
+  row('Red', sliderS(88,'224')) + row('Green', sliderS(54,'138')) + row('Blue', sliderS(31,'79')) +
+  row('Hex', fieldS('#E08A4F',84) + btnS('Copy') + btnS('Reset')) +
+  advancedRow(12,'colour wheel, per-list colours, retired style'),
+  { stage:{ tier:'HT3', kit:'mace' }, changes:1 })]; };
+
+P.rules = () => { const R1 = '#C98BFF', R2 = '#FF6A6A';
+  const ruleRow = (n, cond, eff, on, sel) => `<div class="row" style="height:${R(S.rowH)}px;margin-bottom:${R(S.rowGap)}px;${sel ? 'background:#3E4A50;box-shadow:inset 4px 0 0 #68B5D5;' : ''}"><span class="accent" style="width:${R(16)}px;padding-left:10px">${n}</span><span class="nw" style="width:${R(114)}px">${cond}</span><span class="nw" style="width:${R(200)}px">${eff}</span>${lever(on)}</div>`;
+  return [screen('Rules',
+  heading('Rules','First match wins') +
+  ruleRow(1,'At HT1, any list',`<span style="color:${R1};font-family:MonoB">Purple, bold, star</span>`,1) +
+  ruleRow(2,'Above HT3, any list',`<span style="color:${R2}">Red, glow</span>`,1,1) +
+  ruleRow(3,'At HT1, McPvP beta',`<span style="color:#FFCF4A">Gold gradient</span>`,0) +
+  row('If tier', seg(['At','Above','At or above'],'Above') + slot(`<span style="color:${TIER.HT3}">HT3</span>`,0,31)) +
+  row('On list', slots([txt('Any',1,36), ...ALL.map(a => logoSlot(a))])) +
+  row('Name colour', slots(['#FF6A6A','#FFCF4A','#C98BFF','#68B5D5','#77D877','#FF4FA3','#FFFFFF'].map((c,i) => swatch(c,i==0)))) +
+  row('Style', seg(['Bold','Star','Glow'],'Glow')) +
+  advancedRow(9,'gradient, gamemode, where it applies'),
+  { stage:{ tier:'HT2', nameCol:R2 }, changes:2 })]; };
+
+P.profile = () => { const sc = (b, on) => slot(`<img src="${drawScene(80, 40, {bg:b,accent:'#FFE9A8',fxw:80},2.6)}" width="80" height="40" style="image-rendering:auto">${b==='moon'?`<img class="abs" src="${moonLayer(80, 40, 30, 18, 2, 2.6)}" width="80" height="40" style="left:0;top:0">`:''}`, on, 40);
+  return [screen('Profile',
+  heading('Profile','Signed in as JokingDK') +
+  row('Background', slots(['moon','stars','nebula','embers','snow','plain'].map(b => sc(b, b==='moon')))) +
+  row('Border', seg(['Thin','Double','Glow','Shimmer','Corners'],'Shimmer')) +
+  row('Armor', slots(['netherite','diamond','iron','golden','leather'].map((m,i) => slot(I(m+'_chestplate'), i==0))) + slots([slot(I('coast_armor_trim_smithing_template'),1),slot(I('amethyst_shard'),1)])) +
+  row('Card detail', seg(['Minimal','Standard','Full'],'Standard')) +
+  row('Animation', seg(['Glide','Fade','Scale','Off'],'Glide')) +
+  row('Speed', sliderS(50,'Normal')) +
+  advancedRow(16,'per-slot armor, effects, accent, size') +
+  `<div class="row nw" style="height:${R(S.rowH)}px;color:#AAB2BA">Only shows on your TierProfiles card. Never changes your real armor.</div>`,
+  { stage:{ cardOpts:moonCard, kit:'smp', caption:'How others see your card' } })]; };
+
+P.advanced = () => { const mats = ['leather','chainmail','iron','golden','diamond','netherite'];
+  const trims = ['sentry','dune','coast','wild','ward','eye','vex','tide','snout','rib','spire','wayfinder','shaper','silence','raiser','host','flow','bolt'];
+  const TM = ['gold_ingot','amethyst_shard','redstone','lapis_lazuli','emerald','copper_ingot','quartz','diamond','netherite_ingot'];
+  const k = ['smp','shield','cart','mace','vanilla','sword','uhc','pot'];
+  return [screen('Profile',
+  heading('Profile','Advanced') +
+  row('Helmet', slots(mats.map(m => slot(I(m+'_helmet'), m==='netherite')))) +
+  row('Chestplate', slots(mats.map(m => slot(I(m+'_chestplate'), m==='netherite')))) +
+  row('Leggings', slots(mats.map(m => slot(I(m+'_leggings'), m==='netherite')))) +
+  row('Boots', slots(mats.map(m => slot(I(m+'_boots'), m==='netherite')))) +
+  row('Trim', `<span class="row" style="gap:0">${trims.map(t => slot(I(t+'_armor_trim_smithing_template',1), t==='coast', 17)).join('')}</span>`) +
+  row('Trim material', slots(TM.map(x => slot(I(x), x==='amethyst_shard')))) +
+  row('Effects', seg(['Off','Sparkles','Motes','Both'],'Sparkles') + sliderS(70,'70%',76)) +
+  row('Accent', slots(['#FFE9A8','#FFCF4A','#FF7A1A','#FF6A6A','#FF4FA3','#C98BFF','#68B5D5','#77D877'].map((c,i) => swatch(c,i==0)))) +
+  row('Featured kit', slots(k.map((x,i) => slot(ic(x), i==0)))) +
+  row('Size', sliderS(50,'100%',110) + `<span class="muted nw" style="margin-left:16px">Opacity</span>` + sliderS(90,'90%',60)) +
+  advancedRow(0,'Back to the essentials',1),
+  { stage:{ cardOpts:moonCard, caption:'Every setting is still here' }, changes:1 })]; };
+
+P.position = () => { const k = .381, sx = x => R(366) * x / 1920, sy = y => R(206) * y / 1080;
+  const anchor = `<span style="display:grid;grid-template-columns:repeat(3,${R(20)}px);gap:0">${['tl','tc','tr','ml','mc','mr','bl','bc','br'].map(a => slot(`<i style="display:block;width:8px;height:8px;background:${a==='tr'?'#68B5D5':'#4A5157'}"></i>`, a==='tr')).join('')}</span>`;
+  const zone = (x,y,w,h,l,c='#FF7777') => `<div class="abs" style="left:${sx(x)}px;top:${sy(y)}px;width:${sx(w)}px;height:${sy(h)}px;background:${c}22;box-shadow:inset 0 0 0 2px ${c}AA"></div>${l?`<div class="abs nw" style="left:${sx(x)}px;top:${sy(y+h)+2}px;color:${c}">${l}</div>`:''}`;
+  const c = R(GRID.rowsY + 5 * GRID.rowH + GRID.pad), w = R(GRID.kit3 + GRID.slotW + GRID.pad);
+  const world = `<div class="abs" style="left:0;top:0;width:${R(366)}px;height:${R(206)}px;background:url(../_tmp/bg/fight.png) 0 0/100% 100%"></div>
+    <div class="abs" style="left:0;top:0;width:${R(366)}px;height:${R(206)}px;background:rgba(9,11,14,.55)"></div>
+    ${zone(778,992,364,88,'Hotbar')}${zone(944,524,33,33,'')}${zone(660,20,600,300,'Tab list','#FFCF4A')}
+    <div class="abs" style="left:${sx(1920-20-w)}px;top:${sy(20)}px;width:${sx(w)}px;height:${sy(c)}px;overflow:hidden;box-shadow:0 0 0 2px #68B5D5"><div style="transform:scale(${k});transform-origin:0 0;width:${w}px">${defaultCard(JOKING,{layout:'noDate'})}</div></div>
+    ${[[20,20],[960,20],[1900,20],[20,540],[1900,540],[20,1060],[960,1060],[1900,1060]].map(([x,y]) => `<i class="abs" style="left:${sx(x)-4}px;top:${sy(y)-4}px;width:8px;height:8px;background:#68B5D5"></i>`).join('')}
+    <div class="abs col nw" style="left:0;top:${R(206)}px;width:${R(366)}px;height:${R(58)}px;padding:12px 12px;background:#0C0F12;line-height:26px"><span><span style="color:#68B5D5">Drag the card</span> <span class="muted">It snaps to anchors, and slides clear of the red zones.</span></span><span class="muted">Beside the tab list it drops its date column.</span></div>`;
+  return [screen('Position',
+  heading('Position','Top right') +
+  `<div class="row" style="height:${R(S.rowH * 2 + S.rowGap)}px;margin-bottom:${R(S.rowGap)}px"><span style="width:${R(S.labelW)}px;color:#E8E8E8">Anchor</span>${anchor}</div>` +
+  row('X offset', sliderS(50,'0') ) + row('Y offset', sliderS(50,'0')) +
+  row('Snap', lever(1)) +
+  row('Entrance', `<span class="nw" style="color:#E8E8E8">Glides in from the right edge</span>`) +
+  advancedRow(5,'per-detail positions, scale, tab list dodge'),
+  { stage:{ world, caption:'Drag the card, or pick an anchor' } })]; };
+
+P.sharing = () => [screen('Sharing',
+  heading('Sharing','Slot 1: Casual') +
+  row('Profile name', fieldS('Casual',170) + btnS('Rename')) +
+  row('Slot icon', slots(['ender_pearl','netherite_sword','mace','end_crystal','name_tag','golden_apple'].map((x,i) => slot(I(x), i==0)))) +
+  row('Share code', fieldS('TP1-eJyrVkrMTVWyUjIyMDBU0lFQKi0F',230,'#68B5D5') + btnS('Copy')) +
+  row('Import', fieldS('Paste a code',230,'#6A737C') + btnS('Preview')) +
+  row('Include', seg(['Filters','Colours','Rules','Card'],'Filters')) +
+  advancedRow(6,'merge rules, backups, reset all') +
+  tip('Slot 1: Casual', ['LT3 filter, rules on. Press 1 to use this setup.','Codes hold settings only, never your name or account.']))];
+
+P.keys = () => [screen('Keys',
+  heading('Keys','Rebind any key') +
+  row('Player list', keycap('Tab') + `<span class="muted nw">Hold, then use arrows</span>`) +
+  row('Pin card', keycap('Enter')) +
+  row('Close card', keycap('Esc')) +
+  row('Settings', keycap('F12')) +
+  row('Swap setup', keycap('1 to 9') + `<span class="muted nw">In this screen</span>`) +
+  advancedRow(4,'quick filter toggle, next setup')) ];
+
+P.more = () => { const st = (id, ok, s) => `<div class="row" style="height:${R(S.rowH)}px;margin-bottom:${R(S.rowGap)}px"><span class="row gap8 nw" style="width:${R(S.labelW)}px">${lm(id)}${LISTS[id].name}</span><span class="nw" style="color:${ok ? '#77D877' : '#FF7777'}">${s}</span></div>`;
+  return [screen('More',
+  heading('More') +
+  row('Look up tiers', lever(1)) +
+  row('Reduce motion', lever(0)) +
+  row('Icon style', seg(['Current','Classic'],'Current')) +
+  advancedRow(0,'Diagnostics',1) +
+  st('mctiers',1,'Online, 180 ms') + st('mcpvp',1,'Online, 220 ms') + st('pvptiers',1,'Online, 160 ms') + st('subtiers',1,'Online, 190 ms') + st('pvphq',0,'Down, server replied 502'),
+  {})]; };
+
+P.search = () => { const res = (ic2, t, path, ctl, sel) => `<div class="row" style="height:${R(S.rowH)}px;margin-bottom:${R(S.rowGap)}px;${sel ? 'background:#3E4A50;box-shadow:inset 4px 0 0 #68B5D5;' : ''}"><span style="width:${R(20)}px;padding-left:6px">${I(ic2)}</span><span class="nw" style="width:${R(140)}px">${t}</span><span class="muted nw" style="width:${R(190)}px">${path}</span>${ctl}</div>`;
+  return [screen('Tags',
+  heading('5 results') +
+  res('name_tag','Hide retired','Tags, Nametag, Advanced',lever(1),1) +
+  res('book','Hide retired','Tags, Tab list, Advanced',lever(0)) +
+  res('spyglass','Hide retired','Tags, Look-at, Advanced',lever(0)) +
+  res('red_dye','Retired chip','Colours, Advanced',`<span class="nw">Hollow</span>`) +
+  res('comparator','Ignore retired','Rules, Rule 2',lever(1)),
+  { search:'retired' })]; };
+
+mount(P[tab]().join(''));
+</script></body>

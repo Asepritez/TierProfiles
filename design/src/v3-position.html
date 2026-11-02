@@ -1,0 +1,14 @@
+<!doctype html><meta charset="utf8"><title>Positions</title>
+<link rel="stylesheet" href="base.css"><script src="lib.js"></script><script src="card.js"></script><script src="hudkit.js"></script>
+<body><div class="scene" style="background-image:url(../_tmp/bg/fight.png)"></div>
+<script>
+// Every corner, with the Tab list open: the card stays clear of list, crosshair and hotbar.
+const q = new URLSearchParams(location.search), at = q.get('at') || 'tl', M = 20;
+const pos = { tl:`left:${M}px;top:${M}px`, tr:`right:${M}px;top:${M}px`, bl:`left:${M}px;bottom:${M}px`, br:`right:${M}px;bottom:${M}px` }[at];
+const edge = { tl:'left', tr:'right', bl:'left', br:'right' }[at];
+const isTop = at[0] === 't';
+mount(hud(0));
+mount(`<div class="abs" style="left:660px;top:20px">${tablist(TAB, 'JokingDK')}</div>`);
+mount(`<div class="abs" style="${pos}">${defaultCard(JOKING, { layout: isTop ? 'noDate' : undefined })}</div>`);
+mount(`<div class="abs row gap8 nw" style="left:50%;transform:translateX(-50%);top:340px;height:36px;padding:0 10px;background:rgba(9,11,12,.86);box-shadow:inset 0 0 0 2px #4E5C65"><span class="accent">${{tl:'Top left',tr:'Top right',bl:'Bottom left',br:'Bottom right'}[at]}</span><span class="muted">Glides in from the ${edge}${isTop ? ', and drops its date column beside the tab list' : ''}</span></div>`);
+</script></body>

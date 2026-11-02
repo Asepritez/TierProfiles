@@ -22,6 +22,54 @@ Marlowww. Every list keeps its row, and PVPHQ reads Unranked like any other list
 
 ![Sparse profile](shots/v3-03-sparse-profile.png)
 
+### Card detail
+
+Minimal, Standard and Full on the same columns. Full spells out a date for every tier. Peak and retired are chip states, so nothing sits beside a chip.
+
+![Card detail](shots/v3-04-card-detail.png)
+
+### Card styles: backgrounds
+
+Moon, starfield, nebula, embers, snow and plain, on the new card with official logos. The moon is the game's own texture, drawn as a small disc with its glow.
+
+![Card styles: backgrounds](shots/v3-10-styles-backgrounds.png)
+
+### Card styles: borders and effects
+
+Thin, double, glowing, shimmer and corner ornaments, then sparkles and motes. Effects stay in the model column, away from your tiers.
+
+![Card styles: borders and effects](shots/v3-11-styles-borders-effects.png)
+
+### Moon card in the game
+
+The styled card on the HUD, with vanilla armor and a trim on the model.
+
+![Moon card in the game](shots/v3-12-moon-card-on-hud.png)
+
+### The Inventory: Tags
+
+The signature config. It works like a Minecraft inventory: category tabs with real items, options as slots with the hotbar selection frame, and help as a real tooltip. The Live Stage on the right always shows the nametag, tab row, chat and card.
+
+![The Inventory: Tags](shots/v3-20-config-tags.png)
+
+### The Inventory: Profile
+
+Six essentials, with animation style and speed, and your card updating on the Stage. The world view shows your real armor, because cosmetics only appear on the card.
+
+![The Inventory: Profile](shots/v3-23-config-profile.png)
+
+### The Inventory: Profile, Advanced
+
+Everything else in one place, with real armor, trims and materials as slots.
+
+![The Inventory: Profile, Advanced](shots/v3-24-config-advanced.png)
+
+### The Inventory: Position
+
+Nine-anchor picker, X and Y offsets, and drag on a live screen. Red zones are the hotbar and crosshair. Yellow is the tab list.
+
+![The Inventory: Position](shots/v3-25-config-position.png)
+
 <!-- v3-end -->
 
 ## Older drafts
