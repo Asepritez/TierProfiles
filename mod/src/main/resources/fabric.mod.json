@@ -12,7 +12,8 @@
   "license": "MIT",
   "environment": "client",
   "entrypoints": {
-    "client": ["dev.tierprofiles.TierProfilesClient"]
+    "client": ["dev.tierprofiles.TierProfilesClient"],
+    "modmenu": ["dev.tierprofiles.ui.ModMenuEntry"]
   },
   "mixins": ["tierprofiles.mixins.json"],
   "depends": {

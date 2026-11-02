@@ -34,16 +34,16 @@ import net.minecraft.util.Mth;
  * clock, so the card can glide while the player keeps fighting.
  */
 public final class ProfileCard {
-    public static final int WIDTH = 244;
+    public static final int WIDTH = 296;
 
     private static final int MARGIN = 4;
-    private static final int MODEL_WIDTH = 40;
+    private static final int MODEL_WIDTH = 44;
     private static final int TOP_STRIP = 24;
     private static final int ROW_HEIGHT = 12;
     private static final int BOTTOM_PADDING = 3;
-    private static final int LIST_NAME_WIDTH = 52;
+    private static final int LIST_NAME_WIDTH = 76;
     private static final int ICON_WIDTH = 10;
-    private static final int TIER_WIDTH = 18;
+    private static final int TIER_WIDTH = 26;
     private static final int RIGHT_EDGE = WIDTH - 4;
     private static final int STAT_CELL_RANK = 74;
     private static final int STAT_CELL_POINTS = 38;
@@ -166,11 +166,11 @@ public final class ProfileCard {
     }
 
     private static int chipsPerLine(Detail detail) {
-        return detail == Detail.STANDARD ? 3 : 4;
+        return detail == Detail.MINIMAL ? 4 : 3;
     }
 
     private static int chipStep(Detail detail) {
-        return detail == Detail.FULL ? 38 : 31;
+        return detail == Detail.FULL ? 54 : 37;
     }
 
     private static void drawPosed(
@@ -329,7 +329,6 @@ public final class ProfileCard {
 
         int contentX = x + LIST_NAME_WIDTH;
         if (row.list().isBeta()) {
-            contentX += font.width(" beta");
             graphics.text(font, "beta", nameX + font.width(row.list().displayName()) + 3, y, rowPass.color(Theme.BETA));
         }
 

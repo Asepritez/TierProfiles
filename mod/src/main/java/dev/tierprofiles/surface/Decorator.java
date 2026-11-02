@@ -43,8 +43,15 @@ public final class Decorator {
     }
 
     private static Component decorate(UUID uuid, Component name, Surface surface) {
-        PlayerProfile profile = TierProfiles.profiles().profile(uuid);
-        Settings settings = TierProfiles.settings();
+        return build(TierProfiles.profiles().profile(uuid), name, surface, TierProfiles.settings(), context(uuid));
+    }
+
+    /** The same result for any settings, so previews show staged changes before Apply. */
+    public static Component preview(PlayerProfile profile, Component name, Surface surface, Settings settings) {
+        return build(profile, name, surface, settings, TagSelector.Context.NONE);
+    }
+
+    private static Component build(PlayerProfile profile, Component name, Surface surface, Settings settings, TagSelector.Context context) {
         SurfaceSettings surfaceSettings = settings.surface(surface);
         if (profile == null || !surfaceSettings.enabled) {
             return name;
@@ -55,7 +62,7 @@ public final class Decorator {
                 : NameStyle.NONE;
         Component styledName = TagText.styleName(name, nameStyle);
 
-        List<Tag> tags = TagSelector.select(profile, surface, settings, context(uuid));
+        List<Tag> tags = TagSelector.select(profile, surface, settings, context);
         if (tags.isEmpty()) {
             return styledName;
         }
