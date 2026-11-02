@@ -3,6 +3,14 @@
 Each version's jar is named `tierprofiles-<version>+mc<minecraft>.jar`, for example
 `tierprofiles-0.3.0+mc1.21.11.jar`.
 
+## 0.5.0 (2 Nov 2026)
+
+- The TierProfiles server is online, at `https://tierprofiles.asepritez.workers.dev`.
+- Other players' card styles load from it whichever way tiers are looked up, so you see the cards people picked.
+- New "Card styles" switch, on the welcome page and in More, Advanced. Off keeps every card plain and sends nothing to our server for styles.
+- The welcome page says what goes to the TierProfiles server.
+- Settings that pointed at the old test address on this PC move to the live server.
+
 ## 0.4.0 (2 Nov 2026)
 
 - A card opened from Tab shrinks to fit the space under the list, instead of running off the bottom of the screen.

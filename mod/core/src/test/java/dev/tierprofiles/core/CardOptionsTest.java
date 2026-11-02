@@ -195,6 +195,18 @@ class CardOptionsTest {
     }
 
     @Test
+    void configsFromBeforeTheServerWasOnlineMoveToTheLiveOne() {
+        String old = "{\"version\":2,\"global\":{\"serverUrl\":\"http://127.0.0.1:8787\"}}";
+        dev.tierprofiles.core.settings.ConfigFile config = new Gson().fromJson(old, dev.tierprofiles.core.settings.ConfigFile.class).sanitize();
+        assertEquals(dev.tierprofiles.core.settings.Global.DEFAULT_SERVER_URL, config.global.serverUrl);
+        assertTrue(config.global.serverUrl.startsWith("https://"));
+
+        String custom = "{\"version\":2,\"global\":{\"serverUrl\":\"https://my.server\"}}";
+        assertEquals("https://my.server", new Gson().fromJson(custom, dev.tierprofiles.core.settings.ConfigFile.class).sanitize().global.serverUrl,
+                "a server someone typed in themselves stays");
+    }
+
+    @Test
     void hiddenOwnListsAreCheckedAgainstRealLists() {
         Cosmetics look = new Cosmetics();
         look.hiddenLists.addAll(List.of("pvptiers", "myserver", "pvptiers"));

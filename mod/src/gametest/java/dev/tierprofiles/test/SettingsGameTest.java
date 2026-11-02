@@ -58,7 +58,11 @@ final class SettingsGameTest {
         CosmeticsService.SaveState state = context.computeOnClient(minecraft -> TierProfiles.cosmetics().state());
         SurfaceGameTest.check(state == CosmeticsService.SaveState.SAVED, "the card should save, but got " + state);
 
-        context.runOnClient(minecraft -> TierProfiles.cosmetics().request(TestWorld.ITZ));
+        // Another client, which hasn't looked this player up yet. This one already has, and keeps that answer for ten minutes.
+        context.runOnClient(minecraft -> {
+            TierProfiles.cosmetics().clear();
+            TierProfiles.cosmetics().request(TestWorld.ITZ);
+        });
         context.waitFor(minecraft -> TierProfiles.cosmetics().get(TestWorld.ITZ) != null, 200);
         String background = context.computeOnClient(minecraft -> TierProfiles.cosmetics().get(TestWorld.ITZ).background);
         SurfaceGameTest.check(background.equals("moon"), "another client should see the saved card");

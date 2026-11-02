@@ -1,11 +1,13 @@
 name = "tierprofiles"
 main = "src/index.ts"
 compatibility_date = "2026-09-01"
+# Served at tierprofiles.<account subdomain>.workers.dev, with no extra preview addresses.
+workers_dev = true
+preview_urls = false
 
-# Stores card styles. For local runs the id can stay as it is. Before deploying, create
-# the real database with `wrangler d1 create tierprofiles` and put its id here.
+# Stores card styles. The id is the live database, created with `wrangler d1 create tierprofiles`.
 [[d1_databases]]
 binding = "DB"
 database_name = "tierprofiles"
-database_id = "00000000-0000-0000-0000-000000000000"
+database_id = "a5d6c76a-b018-4e48-9415-78bf8e81bab1"
 migrations_dir = "migrations"

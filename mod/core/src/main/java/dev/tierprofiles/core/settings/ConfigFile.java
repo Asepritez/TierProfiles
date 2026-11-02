@@ -10,7 +10,7 @@ public final class ConfigFile {
     public static final int MAX_NAME_LENGTH = 32;
 
     /** Bumped when saved settings need a one-time change on load. */
-    public static final int CURRENT_VERSION = 2;
+    public static final int CURRENT_VERSION = 3;
 
     public int version = CURRENT_VERSION;
     public Global global = new Global();
@@ -47,6 +47,10 @@ public final class ConfigFile {
             for (Settings settings : profiles.values()) {
                 settings.surface(Surface.LOOK_AT).listLogo = false;
             }
+        }
+        if (version < 3 && Global.LOCAL_SERVER_URL.equals(global.serverUrl)) {
+            // Before the server was online the default pointed at this PC, which only worked in tests.
+            global.serverUrl = Global.DEFAULT_SERVER_URL;
         }
         version = CURRENT_VERSION;
 

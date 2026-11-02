@@ -9,11 +9,13 @@ import java.util.Locale;
  * your client at a different server.
  */
 public final class Global {
-    public static final String DEFAULT_SERVER_URL = "http://127.0.0.1:8787";
+    public static final String DEFAULT_SERVER_URL = "https://tierprofiles.asepritez.workers.dev";
+    /** Where the server runs on your own PC during development and tests. */
+    public static final String LOCAL_SERVER_URL = "http://127.0.0.1:8787";
 
     /** Master switch for looking anyone up at all. */
     public boolean lookupsEnabled = true;
-    /** Where lookups go. Direct needs no server of ours, so it's the default until one is hosted. */
+    /** Where tier lookups go. Lists needs nothing of ours, so it's the default. */
     public Source source = Source.DIRECT;
     public String serverUrl = DEFAULT_SERVER_URL;
 

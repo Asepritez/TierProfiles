@@ -38,6 +38,8 @@ final class TestWorld {
         config.global.noticeSeen = true;
         // The tests save a card, which needs the local server and its stand-in Mojang.
         config.global.source = dev.tierprofiles.core.settings.Global.Source.SERVER;
+        // The test server on this PC, never the live one.
+        config.global.serverUrl = dev.tierprofiles.core.settings.Global.LOCAL_SERVER_URL;
         TierProfiles.publish(config);
     }
 
