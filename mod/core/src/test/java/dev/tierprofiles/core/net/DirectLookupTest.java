@@ -87,6 +87,35 @@ class DirectLookupTest {
     }
 
     @Test
+    void pickingAPlayerStillWaitingMovesThemToTheFront() {
+        ProfileService service = service(null);
+        lists.holdPvphq = true;
+        List<UUID> lobby = new java.util.ArrayList<>();
+        for (int i = 0; i < 12; i++) {
+            UUID uuid = UUID.fromString(String.format("00000000-0000-4000-8000-%012d", i));
+            lobby.add(uuid);
+            service.request(uuid, "Player" + i);
+        }
+        service.pump();
+        // PVPHQ's two calls are stuck, so the other ten wait in its queue.
+        waitFor(() -> lists.urls.stream().filter(url -> url.contains("pvphq.com")).count() == 2, "PVPHQ to be busy");
+
+        UUID picked = lobby.getLast();
+        service.requestUrgent(picked, "Player11");
+        lists.pvphq.countDown();
+        waitFor(() -> service.queueSize() == 0, "every list to finish");
+
+        List<String> pvphq = lists.urls.stream().filter(url -> url.contains("pvphq.com")).toList();
+        int position = -1;
+        for (int i = 0; i < pvphq.size(); i++) {
+            if (pvphq.get(i).contains(picked.toString())) {
+                position = i;
+            }
+        }
+        assertTrue(position >= 2 && position <= 3, "the picked player should be next after the two already running, but was " + position);
+    }
+
+    @Test
     void aFastListShowsBeforeASlowOneAnswers() {
         ProfileService service = service(null);
         lists.holdPvphq = true;

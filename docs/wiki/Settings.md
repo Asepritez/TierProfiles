@@ -9,6 +9,16 @@ Press `F12`, or use the button in Mod Menu, to open settings.
 - **The Live Stage** on the right previews your changes on your own card, before you apply them.
 - **Setups:** the slots at the bottom are 9 complete setups. Press `1` to `9` to swap. See [[Setups and Share Codes]].
 
+## Players
+
+Search any tier-tested player by name. Type at least 3 letters, such as **Hosein**, and every player
+whose name has it is listed, best match first. Click one to see their full card on the Live Stage:
+their tiers are looked up ahead of anyone else, and their own skin and card style show.
+
+Results come from McPvP's search, which finds part of a name, plus Mojang's lookup for the exact
+name you typed, so someone ranked only on another list still turns up if you type their full name.
+Players you've already seen show too, marked *Seen before*.
+
 ## Tags
 
 Where tier tags show, and what they say. Pick a place with **Show on** at the top. Each place has its own settings:

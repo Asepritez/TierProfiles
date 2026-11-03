@@ -2,6 +2,7 @@ package dev.tierprofiles;
 
 import dev.tierprofiles.core.config.ConfigStore;
 import dev.tierprofiles.core.net.HttpTransport;
+import dev.tierprofiles.core.net.PlayerSearch;
 import dev.tierprofiles.core.net.ProfileService;
 import dev.tierprofiles.core.net.CosmeticsService;
 import dev.tierprofiles.core.settings.ConfigFile;
@@ -33,6 +34,7 @@ public final class TierProfiles {
     private static volatile String detectedKit;
     private static final Cosmetics DEFAULT_LOOK = new Cosmetics().sanitize();
     private static CosmeticsService cosmetics;
+    private static PlayerSearch playerSearch;
 
     private TierProfiles() {
     }
@@ -51,6 +53,17 @@ public final class TierProfiles {
             return thread;
         });
         cosmetics = new CosmeticsService(transport, () -> config.global.cardStyleServer(), new MojangJoiner(), background, System::currentTimeMillis);
+
+        ExecutorService searching = Executors.newSingleThreadExecutor(runnable -> {
+            Thread thread = new Thread(runnable, "TierProfiles player search");
+            thread.setDaemon(true);
+            return thread;
+        });
+        playerSearch = new PlayerSearch(transport, searching, profiles);
+    }
+
+    public static PlayerSearch playerSearch() {
+        return playerSearch;
     }
 
     public static ConfigFile config() {

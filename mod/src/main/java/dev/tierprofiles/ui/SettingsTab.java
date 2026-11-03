@@ -4,6 +4,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
 
 public enum SettingsTab {
+    PLAYERS("Players", Items.SPYGLASS, "Search any tier-tested player by name and see their full card."),
     TAGS("Tags", Items.NAME_TAG, "The tier tags beside names: above heads, in Tab, in chat and on the small card."),
     LISTS("Lists", Items.BOOKSHELF, "Remove whole tier lists or kits you never want to see, everywhere."),
     COLOURS("Colours", Items.FIRE_CORAL_FAN, "The colour of every tier, for all lists or each list on its own."),

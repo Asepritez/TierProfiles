@@ -21,6 +21,9 @@ Here is exactly what leaves your game:
   list websites (MCTiers, McPvP, PvPTiers, SubTiers and PVPHQ), the same way their own pages ask.
   If you switch Settings, More, Advanced, Look up from to Server, they go to the TierProfiles
   server instead, which asks the lists for you.
+- **Player search.** What you type in Settings, Players goes to McPvP's search and Mojang's name
+  lookup, and a player you pick has their skin looked up on Mojang by UUID, as the game does for
+  anyone in your tab list. Only when you search.
 - **Rows with made-up IDs.** Some servers fill the tab list with real players' names under made-up
   IDs, such as a board of top players. For those rows, the name shown goes to McPvP's search to find
   the real player, and their tiers are looked up as above.

@@ -8,6 +8,7 @@ import dev.tierprofiles.core.config.ShareCode;
 import dev.tierprofiles.core.model.Kits;
 import dev.tierprofiles.core.model.Tier;
 import dev.tierprofiles.core.model.TierList;
+import dev.tierprofiles.core.net.PlayerSearch;
 import dev.tierprofiles.core.settings.Colors;
 import dev.tierprofiles.core.settings.ConfigFile;
 import dev.tierprofiles.core.settings.Global;
@@ -23,6 +24,7 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.IntConsumer;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -89,6 +91,18 @@ public final class SettingsScreen extends Screen {
     private int visibleHeight;
 
     private final TextField search = new TextField(40, "");
+    private final TextField playerBox = new TextField(16, "A name, or part of one, like Hosein");
+    private List<PlayerSearch.Result> playerResults = List.of();
+    private String typed = "";
+    private String searchedFor = "";
+    private long typedAt;
+    private boolean searchingPlayers;
+    private int searchRound;
+    /** How long typing has to pause before a search goes out, so each letter isn't a request. */
+    private static final long TYPING_PAUSE_MILLIS = 350;
+    private static final int PLAYER_ROW = 22;
+    /** Results asked about straight away, so their tags show. Picking one asks for the rest. */
+    private static final int PRELOAD_RESULTS = 10;
     private final TextField serverBox = new TextField(200, "");
     private final TextField nameBox = new TextField(ConfigFile.MAX_NAME_LENGTH, "Type a new name");
     private final TextField codeBox = new TextField(65536, "Paste a code");
@@ -136,6 +150,24 @@ public final class SettingsScreen extends Screen {
     public void openTab(SettingsTab wanted) {
         tab = wanted;
         search.value = "";
+        playerBox.focused = wanted == SettingsTab.PLAYERS;
+    }
+
+    /** For tests: type a player name into the Players tab, as if after the typing pause. */
+    public void searchPlayers(String text) {
+        playerBox.value = text;
+        typedAt = 0;
+    }
+
+    /** For tests: the names the Players tab is listing. */
+    public List<String> playerResultsForTest() {
+        return playerResults.stream().map(PlayerSearch.Result::name).toList();
+    }
+
+    /** For tests: pick a result, as a click would. */
+    public void pickPlayerForTest(int index) {
+        PlayerSearch.Result result = playerResults.get(index);
+        stage.show(result.uuid(), result.name());
     }
 
     /** For tests: type into the search box. */
@@ -283,9 +315,10 @@ public final class SettingsScreen extends Screen {
 
     private void drawRail() {
         int y = BODY_Y;
+        int item = Math.min(RAIL_ITEM, (virtualHeight - FOOTER - BODY_Y) / SettingsTab.values().length);
         for (SettingsTab candidate : SettingsTab.values()) {
             boolean on = candidate == tab && !isSearching();
-            int height = RAIL_ITEM - 2;
+            int height = item - 2;
             ui.graphics.fill(MARGIN, y, MARGIN + RAIL_W + (on ? 2 : -1), y + height, on ? Theme.INK : 0xFF0E1216);
             if (on) {
                 ui.graphics.fill(MARGIN, y, MARGIN + 2, y + height, Theme.ACCENT);
@@ -299,7 +332,7 @@ public final class SettingsScreen extends Screen {
             if (ui.clicked(MARGIN, y, RAIL_W, height)) {
                 openTab(candidate);
             }
-            y += RAIL_ITEM;
+            y += item;
         }
     }
 
@@ -366,6 +399,7 @@ public final class SettingsScreen extends Screen {
         ui.bigText(title, left, y, TITLE_SCALE, 0xFFFFFFFF);
 
         String note = switch (tab) {
+            case PLAYERS -> playerResults.isEmpty() ? "" : playerResults.size() + " found";
             case TAGS -> surface.displayName();
             case LISTS -> listsNote();
             case RULES -> "First match wins";
@@ -394,6 +428,9 @@ public final class SettingsScreen extends Screen {
 
     private int drawTab(int left, int right, int y) {
         boolean advanced = Boolean.TRUE.equals(advancedOpen.get(tab));
+        if (tab == SettingsTab.PLAYERS) {
+            return drawPlayers(left, right, y) + 6;
+        }
         if (tab == SettingsTab.RULES) {
             return drawRules(left, right, y, advanced) + 6;
         }
@@ -425,6 +462,93 @@ public final class SettingsScreen extends Screen {
             y = drawAdvancedRow(left, right, y, more + " more: " + advancedSummary(), false);
         }
         return y + 6;
+    }
+
+    /**
+     * Type part of a name and every tier-tested player whose name has it is listed. Click
+     * one and their full card shows on the Live Stage, looked up ahead of anyone else.
+     */
+    private int drawPlayers(int left, int right, int y) {
+        int width = right - left;
+        playerBox.draw(ui, left, y, width, 20);
+        y += 28;
+
+        if (!dev.tierprofiles.core.net.ProfileService.isAllowed(config().global)) {
+            ui.text("Turn on Look up tiers online, in More, to search for players.", left, y, Theme.MUTED);
+            return y + 14;
+        }
+
+        String query = playerBox.value.trim();
+        long now = System.currentTimeMillis();
+        if (!query.equals(typed)) {
+            typed = query;
+            typedAt = now;
+        }
+        if (!query.equals(searchedFor) && now - typedAt >= TYPING_PAUSE_MILLIS) {
+            startPlayerSearch(query);
+        }
+
+        String status;
+        if (query.isEmpty()) {
+            status = "Searches McPvP's list by part of a name, plus the exact name on Mojang.";
+        } else if (!PlayerSearch.isSearchable(query)) {
+            status = "At least 3 letters, using only letters, numbers and _";
+        } else if (searchingPlayers) {
+            status = "Searching...";
+        } else if (playerResults.isEmpty()) {
+            status = "No players found with \"" + query + "\" in their name";
+        } else {
+            status = "Click a player to see their card";
+        }
+        ui.text(status, left, y, Theme.MUTED);
+        y += 16;
+
+        Settings settings = staged();
+        UUID showing = stage.showing();
+        for (PlayerSearch.Result result : playerResults) {
+            boolean picked = result.uuid().equals(showing);
+            boolean hover = ui.hovered(left, y, width, PLAYER_ROW - 2);
+            ui.graphics.fill(left, y, right, y + PLAYER_ROW - 2, picked ? Theme.SELECTED : hover ? Theme.ROW : 0x40000000);
+            if (picked) {
+                ui.graphics.fill(left, y, left + 2, y + PLAYER_ROW - 2, Theme.ACCENT);
+            }
+            dev.tierprofiles.core.model.PlayerProfile profile = TierProfiles.profiles().profile(result.uuid());
+            Component name = dev.tierprofiles.surface.Decorator.preview(profile, Component.literal(result.name()), Surface.TAB, settings);
+            ui.text(name, left + 8, y + 6, 0xFFFFFFFF);
+            if (!result.detail().isEmpty()) {
+                ui.text(result.detail(), right - 8 - ui.width(result.detail()), y + 6, Theme.MUTED);
+            }
+            if (hover) {
+                ui.hint(result.name(), "Show their card on the Live Stage. Their tiers are looked up first.");
+            }
+            if (ui.clicked(left, y, width, PLAYER_ROW - 2)) {
+                stage.show(result.uuid(), result.name());
+                playerBox.focused = false;
+            }
+            y += PLAYER_ROW;
+        }
+        return y;
+    }
+
+    private void startPlayerSearch(String query) {
+        searchedFor = query;
+        int round = ++searchRound;
+        if (!PlayerSearch.isSearchable(query)) {
+            playerResults = List.of();
+            searchingPlayers = false;
+            return;
+        }
+        searchingPlayers = true;
+        TierProfiles.playerSearch().search(query, found -> minecraft.execute(() -> {
+            if (round != searchRound) {
+                return;
+            }
+            playerResults = found;
+            searchingPlayers = false;
+            for (int i = 0; i < Math.min(PRELOAD_RESULTS, found.size()); i++) {
+                TierProfiles.profiles().request(found.get(i).uuid(), found.get(i).name());
+            }
+        }));
     }
 
     private String advancedSummary() {
@@ -1155,8 +1279,16 @@ public final class SettingsScreen extends Screen {
         if (event.input() == InputConstants.KEY_ESCAPE) {
             return onEscape();
         }
-        if (search.onKey(event) || serverBox.onKey(event) || nameBox.onKey(event) || codeBox.onKey(event) || hexBox.onKey(event)) {
+        if (search.onKey(event) || playerBox.onKey(event) || serverBox.onKey(event) || nameBox.onKey(event) || codeBox.onKey(event) || hexBox.onKey(event)) {
             return true;
+        }
+        if (playerBox.focused && (event.input() == InputConstants.KEY_RETURN || event.input() == InputConstants.KEY_NUMPADENTER)) {
+            typedAt = 0;
+            return true;
+        }
+        if (search.focused || playerBox.focused || serverBox.focused || nameBox.focused || codeBox.focused || hexBox.focused) {
+            // A name like Player123: the digits are typing, not a setup swap.
+            return super.keyPressed(event);
         }
         if (event.key() == InputConstants.KEY_F && event.hasControlDownWithQuirk()) {
             search.focused = true;
@@ -1193,7 +1325,7 @@ public final class SettingsScreen extends Screen {
 
     @Override
     public boolean charTyped(CharacterEvent event) {
-        return search.onChar(event) || serverBox.onChar(event) || nameBox.onChar(event) || codeBox.onChar(event) || hexBox.onChar(event);
+        return search.onChar(event) || playerBox.onChar(event) || serverBox.onChar(event) || nameBox.onChar(event) || codeBox.onChar(event) || hexBox.onChar(event);
     }
 
     @Override

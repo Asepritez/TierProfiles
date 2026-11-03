@@ -3,6 +3,12 @@
 Each version's jar is named `tierprofiles-<version>+mc<minecraft>.jar`, for example
 `tierprofiles-0.3.0+mc1.21.11.jar`.
 
+## 0.9.0 (3 Nov 2026)
+
+- New **Players** tab in settings: search any tier-tested player by name. Type part of a name, like "Hosein", and every match is listed. Click one to see their full card, with their skin and card style.
+- The player you pick in Tab is looked up first, even if they were still waiting behind a busy lobby.
+- Number keys now type in text boxes instead of swapping your setup, so names like Player123 work.
+
 ## 0.8.1 (3 Nov 2026)
 
 - The Live Stage in settings is see-through grey now, so you see your actual game behind your card instead of a drawn scene of trees and grass.

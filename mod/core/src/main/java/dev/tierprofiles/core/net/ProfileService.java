@@ -17,10 +17,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -183,7 +185,14 @@ public final class ProfileService {
     }
 
     private void enqueue(UUID uuid, String name, boolean first) {
-        if (!isLookupEligible(uuid) || !isAllowed(global.get()) || inFlight.contains(uuid)) {
+        if (!isLookupEligible(uuid) || !isAllowed(global.get())) {
+            return;
+        }
+        if (inFlight.contains(uuid)) {
+            // Already handed to the lists. If you just picked them, they skip the line.
+            if (first) {
+                direct.hurry(uuid);
+            }
             return;
         }
         Cached cached = cache.get(uuid);
@@ -239,6 +248,26 @@ public final class ProfileService {
             }
         }
         return health;
+    }
+
+    /**
+     * Players already looked up whose name contains `part`, ignoring case, best match
+     * first: exact names, then names that start with it, then the rest.
+     */
+    public List<PlayerProfile> knownMatching(String part, int limit) {
+        String needle = part.toLowerCase(Locale.ROOT);
+        return cache.values().stream()
+                .map(Cached::profile)
+                .filter(profile -> profile.name() != null && profile.name().toLowerCase(Locale.ROOT).contains(needle))
+                .sorted(Comparator.comparingInt((PlayerProfile profile) -> matchRank(profile.name(), needle))
+                        .thenComparing(PlayerProfile::name, String.CASE_INSENSITIVE_ORDER))
+                .limit(limit)
+                .toList();
+    }
+
+    private static int matchRank(String name, String needle) {
+        String lower = name.toLowerCase(Locale.ROOT);
+        return lower.equals(needle) ? 0 : lower.startsWith(needle) ? 1 : 2;
     }
 
     public int knownPlayers() {

@@ -8,6 +8,7 @@ import dev.tierprofiles.core.settings.Surface;
 import dev.tierprofiles.ui.FirstRunScreen;
 import dev.tierprofiles.ui.SettingsScreen;
 import dev.tierprofiles.ui.SettingsTab;
+import java.util.List;
 import java.util.Locale;
 import java.util.function.Consumer;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
@@ -40,6 +41,30 @@ final class SettingsGameTest {
         red.glow = true;
         settings.rules.add(top);
         settings.rules.add(red);
+    }
+
+    /** The Players tab, against the real McPvP and Mojang: part of a name, then a pick. */
+    private static void testPlayerSearch(ClientGameTestContext context) {
+        onScreen(context, current -> {
+            current.openTab(SettingsTab.PLAYERS);
+            current.searchPlayers("Hosein");
+        });
+        context.waitFor(minecraft -> !screen.playerResultsForTest().isEmpty(), 300);
+        List<String> found = context.computeOnClient(minecraft -> screen.playerResultsForTest());
+        SurfaceGameTest.check(found.stream().allMatch(name -> name.toLowerCase(Locale.ROOT).contains("hosein")),
+                "every result should have the text in its name, but got " + found);
+        SurfaceGameTest.check(found.contains("Hoseinplays"), "Hoseinplays is on McPvP, so should be found, but got " + found);
+        shot(context, "players-search");
+
+        onScreen(context, current -> current.searchPlayers("Swight"));
+        context.waitFor(minecraft -> screen.playerResultsForTest().contains("Swight"), 300);
+        onScreen(context, current -> current.pickPlayerForTest(screen.playerResultsForTest().indexOf("Swight")));
+        java.util.UUID swight = java.util.UUID.fromString("ebd7af32-759e-41e2-b227-9eeb8576d609");
+        context.waitFor(minecraft -> TierProfiles.profiles().profile(swight) != null, 400);
+        // Let the rest of the lists and the skin arrive before the picture.
+        context.waitTicks(80);
+        shot(context, "players-picked");
+        onScreen(context, current -> current.openTab(SettingsTab.TAGS));
     }
 
     /**
@@ -99,6 +124,7 @@ final class SettingsGameTest {
             onScreen(context, current -> current.openTab(tab));
             shot(context, tab.name().toLowerCase(Locale.ROOT));
         }
+        testPlayerSearch(context);
 
         onScreen(context, current -> {
             current.openTab(SettingsTab.RULES);

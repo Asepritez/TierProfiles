@@ -4,6 +4,8 @@ Here is exactly what leaves your game, and where it goes.
 |---|---|---|
 | Names and UUIDs of players around you | The five tier list websites: MCTiers, McPvP, PvPTiers, SubTiers, PVPHQ | When a player shows up on screen or in the tab list |
 | The name on a tab row with a made-up ID | McPvP's search | Some servers list real players under made-up IDs, such as a top players board. This finds the real player |
+| What you type in Settings → Players | McPvP's search, and Mojang's name lookup | Only when you search, after you stop typing |
+| The UUID of a player you pick in search | Mojang's profile lookup, for their skin | When their card shows and they aren't in your tab list |
 | The same UUIDs | The TierProfiles server | To load the card styles those players picked |
 | Your card style (a few preset choices) | The TierProfiles server | Only when you change it and press Apply |
 | A request for each list's logo | That list's own website | Once, then it's kept in your config folder |

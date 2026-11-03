@@ -43,6 +43,12 @@ Specialist 50+, Cadet 20+, Novice 10+, Rookie 1+. MCTiers gives these titles its
 applies the same ladder to McPvP, PvPTiers and SubTiers points and calls those TierProfiles titles.
 The card shows the highest title from any list.
 
+**Player search** (Settings, Players) needs 3 to 16 name characters. Only McPvP's search matches
+part of a name, so it supplies most results. Mojang's `https://api.mojang.com/users/profiles/minecraft/<name>`
+adds the exact name, and players already in the cache come first as "Seen before". A picked player is
+looked up urgently, and their skin comes from Mojang's session server by UUID when they aren't in the
+tab list. Waiting calls for a player picked in Tab move to the front of every list's queue.
+
 ## Server
 
 Cloudflare Workers on the free plan, in `server/`, in TypeScript. No payment needed. Limits: 100,000

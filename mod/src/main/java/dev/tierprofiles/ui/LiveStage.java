@@ -5,6 +5,7 @@ import dev.tierprofiles.core.layout.CardPlacement;
 import dev.tierprofiles.core.model.PlayerProfile;
 import dev.tierprofiles.core.settings.CardSettings;
 import dev.tierprofiles.core.settings.ConfigFile;
+import dev.tierprofiles.core.settings.Cosmetics;
 import dev.tierprofiles.core.settings.Settings;
 import dev.tierprofiles.core.settings.Surface;
 import dev.tierprofiles.hud.CardState;
@@ -33,6 +34,8 @@ final class LiveStage {
     private static final int SNAP_DISTANCE = 6;
 
     private final Object dragId = new Object();
+    /** Someone picked in the Players tab, shown instead of you. Null shows you. */
+    private Subject showing;
     private int grabX;
     private int grabY;
 
@@ -42,15 +45,19 @@ final class LiveStage {
         int inner = x + PADDING;
         int innerWidth = width - 2 * PADDING;
 
+        Subject subject = tab == SettingsTab.PLAYERS && showing != null ? refreshed(showing) : subject();
         String note = tab == SettingsTab.POSITION ? "Drag the card, or pick an anchor"
-                : tab == SettingsTab.PROFILE ? "How others see your card" : "Updates as you change things";
+                : tab == SettingsTab.PROFILE ? "How others see your card"
+                : tab == SettingsTab.PLAYERS ? (showing != null ? "Their card" : "Pick a player to see their card")
+                : "Updates as you change things";
         ui.text("Live Stage", inner, y + 8, Theme.ACCENT);
         ui.text(note, inner + ui.width("Live Stage "), y + 8, Theme.MUTED);
 
         Settings settings = config.active();
-        Subject subject = subject();
+        // Your card shows your staged style; anyone else's shows the style they saved.
+        Cosmetics look = subject == showing && showing != null ? TierProfiles.cosmeticsFor(subject.uuid()) : config.global.cosmetics;
 
-        int cardHeight = ProfileCard.previewHeight(settings, config.global.cosmetics, subject.profile());
+        int cardHeight = ProfileCard.previewHeight(settings, look, subject.profile());
         int cardWidth = ProfileCard.previewWidth(settings);
         float cardScale = Math.min(1, (float) innerWidth / cardWidth);
         int scaledCardHeight = Math.round(cardHeight * cardScale);
@@ -67,11 +74,37 @@ final class LiveStage {
         }
         drawStrip(ui, inner, stripY, innerWidth, settings, subject);
 
-        ProfileCard.drawPreview(ui.graphics, settings, config.global.cosmetics, subject.profile(), subject.uuid(), subject.name(),
+        ProfileCard.drawPreview(ui.graphics, settings, look, subject.profile(), subject.uuid(), subject.name(),
                 inner + (innerWidth - Math.round(cardWidth * cardScale)) / 2, cardY, cardScale, scale);
     }
 
     record Subject(UUID uuid, String name, PlayerProfile profile) {
+    }
+
+    /** Shows this player on the stage, or you again with null. Their tiers are asked for first. */
+    void show(UUID uuid, String name) {
+        if (uuid == null) {
+            showing = null;
+            return;
+        }
+        TierProfiles.profiles().requestUrgent(uuid, name);
+        if (dev.tierprofiles.core.net.ProfileService.isAllowed(TierProfiles.config().global)) {
+            TierProfiles.cosmetics().request(uuid);
+        }
+        showing = new Subject(uuid, name, TierProfiles.profiles().profile(uuid));
+    }
+
+    UUID showing() {
+        return showing == null ? null : showing.uuid();
+    }
+
+    /** The same player, with whatever has arrived since they were picked. */
+    private Subject refreshed(Subject picked) {
+        PlayerProfile now = TierProfiles.profiles().profile(picked.uuid());
+        if (now != picked.profile()) {
+            showing = new Subject(picked.uuid(), picked.name(), now);
+        }
+        return showing;
     }
 
     /**

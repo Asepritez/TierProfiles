@@ -21,6 +21,11 @@ The card closes by itself after **Stays open** (15 seconds by default), or press
 
 The arrow keys and the scroll wheel only do this while `Tab` is held, so they never get in the way of normal play. The hints under the tab list show the keys while you browse.
 
+## The player you pick goes first
+
+Whoever you move to in Tab is looked up ahead of everyone else, even if the mod was still working
+through a big lobby. Their card fills in within a second or two instead of waiting its turn.
+
 ## The small card when aiming
 
 Look at a player with your crosshair and a small card with their tiers appears. Turn it off in **Settings → Cards → Tags when aiming**, or change where it sits in **Settings → Position → Advanced**.

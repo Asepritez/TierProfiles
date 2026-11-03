@@ -98,11 +98,13 @@ public final class DirectLists {
     private static final class Job implements Runnable, Comparable<Job> {
         private final boolean urgent;
         private final long order;
+        private final UUID player;
         private final Runnable work;
 
-        Job(boolean urgent, long order, Runnable work) {
+        Job(boolean urgent, long order, UUID player, Runnable work) {
             this.urgent = urgent;
             this.order = order;
+            this.player = player;
             this.work = work;
         }
 
@@ -148,7 +150,29 @@ public final class DirectLists {
     }
 
     private void run(TierList list, boolean urgent, Runnable work) {
-        pools.get(list).execute(new Job(urgent, order.incrementAndGet(), work));
+        run(list, urgent, null, work);
+    }
+
+    private void run(TierList list, boolean urgent, UUID player, Runnable work) {
+        pools.get(list).execute(new Job(urgent, order.incrementAndGet(), player, work));
+    }
+
+    /**
+     * Moves a player who is still waiting in any list's queue to the front, for when you
+     * pick them in Tab before their turn came. Calls already running carry on as they are.
+     * Returns how many waiting calls moved.
+     */
+    public int hurry(UUID player) {
+        int moved = 0;
+        for (ThreadPoolExecutor pool : pools.values()) {
+            for (Runnable waiting : pool.getQueue().toArray(new Runnable[0])) {
+                if (waiting instanceof Job job && !job.urgent && player.equals(job.player) && pool.getQueue().remove(job)) {
+                    pool.execute(new Job(true, order.incrementAndGet(), player, job.work));
+                    moved++;
+                }
+            }
+        }
+        return moved;
     }
 
     public static String canonicalKit(String raw) {
@@ -163,7 +187,7 @@ public final class DirectLists {
     public void lookupEach(UUID uuid, String name, boolean urgent, Listener listener) {
         AtomicInteger left = new AtomicInteger(TierList.values().length);
         for (TierList list : TierList.values()) {
-            run(list, urgent, () -> {
+            run(list, urgent, uuid, () -> {
                 JsonObject result;
                 try {
                     result = call(list, uuid, name);
